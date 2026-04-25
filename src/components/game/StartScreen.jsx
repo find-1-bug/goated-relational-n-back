@@ -10,9 +10,18 @@ const RELATIONSHIP_DESCRIPTIONS = [
   { name: 'OVERLAPPING', desc: 'A and B intersect partially' },
   { name: 'TOUCHING', desc: 'A and B sit flush, no overlap' },
   { name: 'SIZE_MISMATCH', desc: 'A is 3x+ larger than B' },
-  { name: 'HOLLOW vs SOLID', desc: 'One filled, one outline' },
+  { name: 'HOLLOW vs SOLID', desc: 'One filled, one outline only' },
   { name: 'SHARED TRAIT', desc: 'Same color OR same shape only' },
   { name: 'ONE to MANY', desc: '1 of A, 3 of B' },
+  { name: 'ABOVE / BELOW', desc: 'A is strictly above or below B' },
+  { name: 'DIAGONAL', desc: 'A and B offset both axes' },
+  { name: 'ROTATED', desc: 'Same shape, one rotated 45°' },
+  { name: 'EQUAL COUNT', desc: '2 of A and 2 of B' },
+  { name: 'TWO to ONE', desc: '2 of A, 1 of B' },
+  { name: 'PYRAMID', desc: '1 on top, 2 below in a row' },
+  { name: 'CONNECTED', desc: 'A line bridges A and B' },
+  { name: 'SURROUNDED', desc: 'A is encircled by 4 copies of B' },
+  { name: 'BETWEEN', desc: 'C sits between A and B' },
 ];
 
 export default function StartScreen({ onStart }) {
@@ -69,12 +78,12 @@ export default function StartScreen({ onStart }) {
         {/* Relationship Reference */}
         <div className="bg-secondary/50 rounded-lg border border-border p-4 space-y-2">
           <h3 className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-3">
-            Relationship Types
+            Relationship Types ({RELATIONSHIP_DESCRIPTIONS.length})
           </h3>
-          <div className="grid grid-cols-1 gap-1.5">
+          <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
             {RELATIONSHIP_DESCRIPTIONS.map((r) => (
               <div key={r.name} className="flex items-center gap-3 text-xs font-mono">
-                <span className="text-primary font-semibold w-28 shrink-0">{r.name}</span>
+                <span className="text-primary font-semibold w-32 shrink-0">{r.name}</span>
                 <span className="text-muted-foreground">{r.desc}</span>
               </div>
             ))}

@@ -9,6 +9,15 @@ export const RELATIONSHIPS = [
   'HOLLOW_VS_SOLID',
   'ONE_SHARED_TRAIT',
   'ONE_TO_MANY',
+  'ABOVE_BELOW',
+  'DIAGONAL',
+  'ROTATED',
+  'EQUAL_COUNT',
+  'TWO_TO_ONE',
+  'PYRAMID',
+  'CONNECTED',
+  'SURROUNDED',
+  'BETWEEN',
 ];
 
 export const MATCH_CHANCE = 0.3;
