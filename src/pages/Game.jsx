@@ -8,12 +8,14 @@ export default function Game() {
   const [screen, setScreen] = useState('start');
   const [nLevel, setNLevel] = useState(2);
   const [modes, setModes] = useState([]);
+  const [relationshipPool, setRelationshipPool] = useState(null);
   const [finalState, setFinalState] = useState(null);
   const [suggestedN, setSuggestedN] = useState(null);
 
-  const handleStart = (n, selectedModes) => {
+  const handleStart = (n, selectedModes, selectedRels) => {
     setNLevel(n);
     setModes(selectedModes);
+    setRelationshipPool(selectedRels && selectedRels.length > 0 ? selectedRels : null);
     setScreen('playing');
   };
 
@@ -52,6 +54,7 @@ export default function Game() {
           key={Date.now()}
           nLevel={nLevel}
           modes={modes}
+          relationshipPool={relationshipPool}
           onFinish={handleFinish}
         />
       )}

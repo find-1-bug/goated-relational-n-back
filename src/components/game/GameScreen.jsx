@@ -14,8 +14,8 @@ import {
   FEEDBACK_DURATION,
 } from '@/lib/gameConstants';
 
-export default function GameScreen({ nLevel, modes, onFinish }) {
-  const [gameState, setGameState] = useState(() => createGameState({ nLevel, modes }));
+export default function GameScreen({ nLevel, modes, relationshipPool, onFinish }) {
+  const [gameState, setGameState] = useState(() => createGameState({ nLevel, modes, relationshipPool }));
   const [phase, setPhase] = useState('stimulus');
   const [feedbackA, setFeedbackA] = useState(null);
   const [feedbackB, setFeedbackB] = useState(null);

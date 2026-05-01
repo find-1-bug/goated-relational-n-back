@@ -1,11 +1,8 @@
 import { drawShape } from './shapeRenderer';
-import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween } from './gameConstants';
+import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, getVerbalPair, buildVerbalDisplay } from './gameConstants';
 
-// Generates random visual props, ensuring they differ from previous turn
 function randomVisuals(prevVisuals) {
   let shapeA, shapeB, colorA, colorB;
-  
-  // Keep regenerating until we get something different from prev
   do {
     shapeA = pickRandom(SHAPES);
     shapeB = pickRandom(SHAPES);
@@ -18,76 +15,132 @@ function randomVisuals(prevVisuals) {
     colorA === prevVisuals.colorA &&
     colorB === prevVisuals.colorB
   );
-
   return { shapeA, shapeB, colorA, colorB };
 }
 
-// Main render function — draws the relationship onto the canvas
-export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisuals) {
-  const visuals = randomVisuals(prevVisuals);
+// ── Verbal renderer ───────────────────────────────────────────────────────────
+function renderVerbal(ctx, canvasW, canvasH, relationship) {
+  const pair = getVerbalPair(relationship);
+  const [wordA, verb, wordB] = buildVerbalDisplay(relationship, pair);
+
   const cx = canvasW / 2;
   const cy = canvasH / 2;
 
   ctx.clearRect(0, 0, canvasW, canvasH);
 
+  // Background pill
+  const pillW = canvasW * 0.85;
+  const pillH = canvasH * 0.62;
+  const rx = 18;
+  ctx.save();
+  ctx.fillStyle = 'hsla(220,18%,14%,0.7)';
+  ctx.beginPath();
+  ctx.roundRect(cx - pillW / 2, cy - pillH / 2, pillW, pillH, rx);
+  ctx.fill();
+  ctx.strokeStyle = 'hsla(168,80%,50%,0.18)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+
+  // Word A
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(canvasW * 0.09, 38)}px 'JetBrains Mono', monospace`;
+  ctx.fillStyle = '#22d3ee';
+  ctx.fillText(wordA, cx, cy - canvasH * 0.13);
+  ctx.restore();
+
+  // Verb
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${Math.min(canvasW * 0.055, 22)}px 'JetBrains Mono', monospace`;
+  ctx.fillStyle = 'hsla(210,20%,65%,0.9)';
+  ctx.fillText(verb, cx, cy);
+  ctx.restore();
+
+  // Word B
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(canvasW * 0.09, 38)}px 'JetBrains Mono', monospace`;
+  ctx.fillStyle = '#a78bfa';
+  ctx.fillText(wordB, cx, cy + canvasH * 0.13);
+  ctx.restore();
+
+  // Relationship label (small)
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${Math.min(canvasW * 0.036, 13)}px 'JetBrains Mono', monospace`;
+  ctx.fillStyle = 'hsla(210,10%,45%,0.7)';
+  ctx.fillText(relationship.replace(/_/g, ' '), cx, cy + pillH / 2 - 14);
+  ctx.restore();
+
+  return {};
+}
+
+// ── Main dispatch ──────────────────────────────────────────────────────────────
+export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisuals) {
+  if (isVerbal(relationship)) {
+    return renderVerbal(ctx, canvasW, canvasH, relationship);
+  }
+
+  const visuals = randomVisuals(prevVisuals);
+  const cx = canvasW / 2;
+  const cy = canvasH / 2;
+  ctx.clearRect(0, 0, canvasW, canvasH);
+
   switch (relationship) {
-    case 'INSIDE':
-      renderInside(ctx, cx, cy, visuals);
-      break;
-    case 'OVERLAPPING':
-      renderOverlapping(ctx, cx, cy, visuals);
-      break;
-    case 'TOUCHING':
-      renderTouching(ctx, cx, cy, visuals);
-      break;
-    case 'SIZE_MISMATCH':
-      renderSizeMismatch(ctx, cx, cy, visuals);
-      break;
-    case 'HOLLOW_VS_SOLID':
-      renderHollowVsSolid(ctx, cx, cy, visuals);
-      break;
-    case 'ONE_SHARED_TRAIT':
-      renderOneSharedTrait(ctx, cx, cy, visuals);
-      break;
-    case 'ONE_TO_MANY':
-      renderOneToMany(ctx, cx, cy, canvasW, canvasH, visuals);
-      break;
-    case 'ABOVE_BELOW':
-      renderAboveBelow(ctx, cx, cy, visuals);
-      break;
-    case 'DIAGONAL':
-      renderDiagonal(ctx, cx, cy, visuals);
-      break;
-    case 'ROTATED':
-      renderRotated(ctx, cx, cy, visuals);
-      break;
-    case 'EQUAL_COUNT':
-      renderEqualCount(ctx, cx, cy, visuals);
-      break;
-    case 'TWO_TO_ONE':
-      renderTwoToOne(ctx, cx, cy, visuals);
-      break;
-    case 'PYRAMID':
-      renderPyramid(ctx, cx, cy, visuals);
-      break;
-    case 'CONNECTED':
-      renderConnected(ctx, cx, cy, visuals);
-      break;
-    case 'SURROUNDED':
-      renderSurrounded(ctx, cx, cy, visuals);
-      break;
-    case 'BETWEEN':
-      renderBetween(ctx, cx, cy, visuals);
-      break;
+    case 'INSIDE':             renderInside(ctx, cx, cy, visuals); break;
+    case 'OVERLAPPING':        renderOverlapping(ctx, cx, cy, visuals); break;
+    case 'TOUCHING':           renderTouching(ctx, cx, cy, visuals); break;
+    case 'SIZE_MISMATCH':      renderSizeMismatch(ctx, cx, cy, visuals); break;
+    case 'HOLLOW_VS_SOLID':    renderHollowVsSolid(ctx, cx, cy, visuals); break;
+    case 'ONE_SHARED_TRAIT':   renderOneSharedTrait(ctx, cx, cy, visuals); break;
+    case 'ONE_TO_MANY':        renderOneToMany(ctx, cx, cy, canvasW, canvasH, visuals); break;
+    case 'ABOVE_BELOW':        renderAboveBelow(ctx, cx, cy, visuals); break;
+    case 'DIAGONAL':           renderDiagonal(ctx, cx, cy, visuals); break;
+    case 'ROTATED':            renderRotated(ctx, cx, cy, visuals); break;
+    case 'EQUAL_COUNT':        renderEqualCount(ctx, cx, cy, visuals); break;
+    case 'TWO_TO_ONE':         renderTwoToOne(ctx, cx, cy, visuals); break;
+    case 'PYRAMID':            renderPyramid(ctx, cx, cy, visuals); break;
+    case 'CONNECTED':          renderConnected(ctx, cx, cy, visuals); break;
+    case 'SURROUNDED':         renderSurrounded(ctx, cx, cy, visuals); break;
+    case 'BETWEEN':            renderBetween(ctx, cx, cy, visuals); break;
+    // NEW SPATIAL
+    case 'LEFT_RIGHT':         renderLeftRight(ctx, cx, cy, visuals); break;
+    case 'STACKED':            renderStacked(ctx, cx, cy, visuals); break;
+    case 'NESTED_3':           renderNested3(ctx, cx, cy, visuals); break;
+    case 'MIRRORED':           renderMirrored(ctx, cx, cy, visuals); break;
+    case 'SCATTERED':          renderScattered(ctx, cx, cy, canvasW, canvasH, visuals); break;
+    // NEW TRAIT
+    case 'SAME_COLOR':         renderSameColor(ctx, cx, cy, visuals); break;
+    case 'SAME_SHAPE':         renderSameShape(ctx, cx, cy, visuals); break;
+    case 'OPPOSITE_COLORS':    renderOppositeColors(ctx, cx, cy, visuals); break;
+    case 'SIZE_GRADIENT':      renderSizeGradient(ctx, cx, cy, visuals); break;
+    case 'BORDER_ONLY':        renderBorderOnly(ctx, cx, cy, visuals); break;
+    case 'SHADOW_COPY':        renderShadowCopy(ctx, cx, cy, visuals); break;
+    case 'STRIPED':            renderStriped(ctx, cx, cy, visuals); break;
+    case 'DASHED_OUTLINE':     renderDashedOutline(ctx, cx, cy, visuals); break;
+    // NEW QUANT
+    case 'THREE_TO_ONE':       renderThreeToOne(ctx, cx, cy, visuals); break;
+    case 'ONE_TO_FIVE':        renderOneToFive(ctx, cx, cy, canvasW, canvasH, visuals); break;
+    case 'DECREASING_ROW':     renderDecreasingRow(ctx, cx, cy, visuals); break;
+    case 'INCREASING_ROW':     renderIncreasingRow(ctx, cx, cy, visuals); break;
+    case 'BALANCED_SCALE':     renderBalancedScale(ctx, cx, cy, visuals); break;
+    default: break;
   }
 
   return visuals;
 }
 
+// ─── Original visuals ──────────────────────────────────────────────────────────
+
 function renderInside(ctx, cx, cy, v) {
   const outerSize = randomBetween(120, 160);
   const innerSize = randomBetween(30, outerSize * 0.4);
-  // Draw outer first (behind), then inner
   drawShape(ctx, v.shapeB, cx, cy, outerSize, v.colorB, true);
   drawShape(ctx, v.shapeA, cx + randomBetween(-10, 10), cy + randomBetween(-10, 10), innerSize, v.colorA, true);
 }
@@ -95,7 +148,6 @@ function renderInside(ctx, cx, cy, v) {
 function renderOverlapping(ctx, cx, cy, v) {
   const sizeA = randomBetween(70, 110);
   const sizeB = randomBetween(70, 110);
-  // Offset so they overlap but neither is fully inside
   const offset = Math.min(sizeA, sizeB) * 0.4;
   ctx.globalAlpha = 0.85;
   drawShape(ctx, v.shapeA, cx - offset, cy, sizeA, v.colorA, true);
@@ -106,7 +158,6 @@ function renderOverlapping(ctx, cx, cy, v) {
 function renderTouching(ctx, cx, cy, v) {
   const sizeA = randomBetween(60, 90);
   const sizeB = randomBetween(60, 90);
-  // Place them so edges are flush
   const gap = (sizeA + sizeB) / 2;
   drawShape(ctx, v.shapeA, cx - gap / 2, cy, sizeA, v.colorA, true);
   drawShape(ctx, v.shapeB, cx + gap / 2, cy, sizeB, v.colorB, true);
@@ -115,7 +166,6 @@ function renderTouching(ctx, cx, cy, v) {
 function renderSizeMismatch(ctx, cx, cy, v) {
   const bigSize = randomBetween(130, 170);
   const smallSize = bigSize / randomBetween(3, 4.5);
-  // Place side by side with some space
   drawShape(ctx, v.shapeA, cx - 60, cy, bigSize, v.colorA, true);
   drawShape(ctx, v.shapeB, cx + 80, cy, smallSize, v.colorB, true);
 }
@@ -123,62 +173,32 @@ function renderSizeMismatch(ctx, cx, cy, v) {
 function renderHollowVsSolid(ctx, cx, cy, v) {
   const sizeA = randomBetween(70, 110);
   const sizeB = randomBetween(70, 110);
-  // A is solid, B is hollow
   drawShape(ctx, v.shapeA, cx - 70, cy, sizeA, v.colorA, true);
   drawShape(ctx, v.shapeB, cx + 70, cy, sizeB, v.colorB, false);
 }
 
 function renderOneSharedTrait(ctx, cx, cy, v) {
-  // Decide which trait to share: color or shape
   const shareColor = Math.random() < 0.5;
-  
   let shapeA, shapeB, colorA, colorB;
-  
   if (shareColor) {
-    // Same color, different shapes
-    colorA = v.colorA;
-    colorB = v.colorA; // share the color
-    shapeA = v.shapeA;
-    shapeB = pickRandomExcluding(SHAPES, shapeA);
+    colorA = v.colorA; colorB = v.colorA;
+    shapeA = v.shapeA; shapeB = pickRandomExcluding(SHAPES, shapeA);
   } else {
-    // Same shape, different colors
-    shapeA = v.shapeA;
-    shapeB = v.shapeA; // share the shape
-    colorA = v.colorA;
-    colorB = pickRandomExcluding(COLORS, colorA);
+    shapeA = v.shapeA; shapeB = v.shapeA;
+    colorA = v.colorA; colorB = pickRandomExcluding(COLORS, colorA);
   }
-
-  const sizeA = randomBetween(60, 100);
-  const sizeB = randomBetween(60, 100);
-  
-  drawShape(ctx, shapeA, cx - 75, cy, sizeA, colorA, true);
-  drawShape(ctx, shapeB, cx + 75, cy, sizeB, colorB, true);
+  drawShape(ctx, shapeA, cx - 75, cy, randomBetween(60, 100), colorA, true);
+  drawShape(ctx, shapeB, cx + 75, cy, randomBetween(60, 100), colorB, true);
 }
 
 function renderOneToMany(ctx, cx, cy, canvasW, canvasH, v) {
-  // One of shape A, three of shape B
-  const sizeA = randomBetween(60, 90);
+  drawShape(ctx, v.shapeA, cx - 100, cy, randomBetween(60, 90), v.colorA, true);
   const sizeB = randomBetween(40, 65);
-  
-  // Draw A on left side
-  drawShape(ctx, v.shapeA, cx - 100, cy, sizeA, v.colorA, true);
-  
-  // Draw 3x B on right side, arranged in a triangle pattern
-  const positions = [
-    { x: cx + 70, y: cy - 55 },
-    { x: cx + 130, y: cy - 55 },
-    { x: cx + 100, y: cy + 30 },
-  ];
-  
-  for (const pos of positions) {
-    drawShape(ctx, v.shapeB, pos.x, pos.y, sizeB, v.colorB, true);
-  }
+  [{ x: cx + 70, y: cy - 55 }, { x: cx + 130, y: cy - 55 }, { x: cx + 100, y: cy + 30 }]
+    .forEach(p => drawShape(ctx, v.shapeB, p.x, p.y, sizeB, v.colorB, true));
 }
 
-// ── NEW RELATIONSHIPS ─────────────────────────────────────────────────────────
-
 function renderAboveBelow(ctx, cx, cy, v) {
-  // A is strictly above B — no horizontal offset
   const sizeA = randomBetween(55, 85);
   const sizeB = randomBetween(55, 85);
   const gap = (sizeA + sizeB) / 2 + 20;
@@ -187,7 +207,6 @@ function renderAboveBelow(ctx, cx, cy, v) {
 }
 
 function renderDiagonal(ctx, cx, cy, v) {
-  // Both horizontally AND vertically offset
   const sizeA = randomBetween(55, 85);
   const sizeB = randomBetween(55, 85);
   const dx = randomBetween(60, 90) * (Math.random() < 0.5 ? -1 : 1);
@@ -197,14 +216,9 @@ function renderDiagonal(ctx, cx, cy, v) {
 }
 
 function renderRotated(ctx, cx, cy, v) {
-  // Same shape: one upright, one rotated 45°
   const shape = v.shapeA;
   const size = randomBetween(65, 95);
-  
-  // Draw normal on left
   drawShape(ctx, shape, cx - 75, cy, size, v.colorA, true);
-  
-  // Draw rotated 45° on right
   ctx.save();
   ctx.translate(cx + 75, cy);
   ctx.rotate(Math.PI / 4);
@@ -214,7 +228,6 @@ function renderRotated(ctx, cx, cy, v) {
 }
 
 function renderEqualCount(ctx, cx, cy, v) {
-  // 2 of A on left, 2 of B on right
   const sizeA = randomBetween(45, 65);
   const sizeB = randomBetween(45, 65);
   drawShape(ctx, v.shapeA, cx - 90, cy - 38, sizeA, v.colorA, true);
@@ -224,16 +237,13 @@ function renderEqualCount(ctx, cx, cy, v) {
 }
 
 function renderTwoToOne(ctx, cx, cy, v) {
-  // 2 of A on left, 1 of B on right
   const sizeA = randomBetween(50, 70);
-  const sizeB = randomBetween(60, 90);
   drawShape(ctx, v.shapeA, cx - 90, cy - 38, sizeA, v.colorA, true);
   drawShape(ctx, v.shapeA, cx - 90, cy + 38, sizeA, v.colorA, true);
-  drawShape(ctx, v.shapeB, cx + 70, cy, sizeB, v.colorB, true);
+  drawShape(ctx, v.shapeB, cx + 70, cy, randomBetween(60, 90), v.colorB, true);
 }
 
 function renderPyramid(ctx, cx, cy, v) {
-  // 1 of shapeA on top, 2 of shapeB below in a row
   const sizeA = randomBetween(50, 70);
   const sizeB = randomBetween(45, 65);
   const vertGap = (sizeA + sizeB) / 2 + 15;
@@ -243,16 +253,11 @@ function renderPyramid(ctx, cx, cy, v) {
 }
 
 function renderConnected(ctx, cx, cy, v) {
-  // A line bridges the two shapes
   const sizeA = randomBetween(55, 80);
   const sizeB = randomBetween(55, 80);
-  const leftX = cx - 90;
-  const rightX = cx + 90;
-  
+  const leftX = cx - 90, rightX = cx + 90;
   drawShape(ctx, v.shapeA, leftX, cy, sizeA, v.colorA, true);
   drawShape(ctx, v.shapeB, rightX, cy, sizeB, v.colorB, true);
-  
-  // Draw connecting line between the two shapes
   ctx.save();
   ctx.strokeStyle = '#94a3b8';
   ctx.lineWidth = 2.5;
@@ -266,36 +271,234 @@ function renderConnected(ctx, cx, cy, v) {
 }
 
 function renderSurrounded(ctx, cx, cy, v) {
-  // Shape A in center, 4 copies of shape B around it
   const sizeA = randomBetween(50, 70);
   const sizeB = randomBetween(35, 50);
   const radius = sizeA / 2 + sizeB / 2 + 20;
-  
   drawShape(ctx, v.shapeA, cx, cy, sizeA, v.colorA, true);
-  
-  const offsets = [
-    { x: 0,      y: -radius },
-    { x: radius, y: 0       },
-    { x: 0,      y: radius  },
-    { x: -radius, y: 0      },
-  ];
-  for (const o of offsets) {
-    drawShape(ctx, v.shapeB, cx + o.x, cy + o.y, sizeB, v.colorB, true);
-  }
+  [{ x: 0, y: -radius }, { x: radius, y: 0 }, { x: 0, y: radius }, { x: -radius, y: 0 }]
+    .forEach(o => drawShape(ctx, v.shapeB, cx + o.x, cy + o.y, sizeB, v.colorB, true));
 }
 
 function renderBetween(ctx, cx, cy, v) {
-  // Shape A on far left, shape B on far right, shape C (third color/shape) between them
   const sizeOuter = randomBetween(55, 75);
   const sizeMiddle = randomBetween(45, 65);
-
-  // Pick a distinct third color and shape for the middle element
-  const colorC = pickRandomExcluding(COLORS, v.colorA) === v.colorB
-    ? COLORS.find(c => c !== v.colorA && c !== v.colorB) || v.colorA
-    : pickRandomExcluding(COLORS, v.colorA);
+  const colorC = COLORS.find(c => c !== v.colorA && c !== v.colorB) || v.colorA;
   const shapeC = pickRandomExcluding(SHAPES, v.shapeA);
-
   drawShape(ctx, v.shapeA, cx - 110, cy, sizeOuter, v.colorA, true);
   drawShape(ctx, shapeC,   cx,       cy, sizeMiddle, colorC,  true);
   drawShape(ctx, v.shapeB, cx + 110, cy, sizeOuter, v.colorB, true);
+}
+
+// ─── New Spatial ───────────────────────────────────────────────────────────────
+
+function renderLeftRight(ctx, cx, cy, v) {
+  const sizeA = randomBetween(55, 90);
+  const sizeB = randomBetween(55, 90);
+  drawShape(ctx, v.shapeA, cx - 90, cy, sizeA, v.colorA, true);
+  drawShape(ctx, v.shapeB, cx + 90, cy, sizeB, v.colorB, true);
+  // label
+  ctx.save();
+  ctx.fillStyle = 'hsla(210,10%,50%,0.5)';
+  ctx.font = '11px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('L', cx - 90, cy + sizeA / 2 + 18);
+  ctx.fillText('R', cx + 90, cy + sizeB / 2 + 18);
+  ctx.restore();
+}
+
+function renderStacked(ctx, cx, cy, v) {
+  // 3 shapes vertically stacked
+  const size = randomBetween(48, 65);
+  const gap = size + 12;
+  const colorC = COLORS.find(c => c !== v.colorA && c !== v.colorB) || v.colorA;
+  const shapeC = pickRandomExcluding(SHAPES, v.shapeA, v.shapeB);
+  drawShape(ctx, v.shapeA, cx, cy - gap, size, v.colorA, true);
+  drawShape(ctx, shapeC,   cx, cy,       size, colorC,  true);
+  drawShape(ctx, v.shapeB, cx, cy + gap, size, v.colorB, true);
+}
+
+function renderNested3(ctx, cx, cy, v) {
+  // 3 concentric shapes
+  const colorC = COLORS.find(c => c !== v.colorA && c !== v.colorB) || '#14B8A6';
+  drawShape(ctx, v.shapeB, cx, cy, 160, v.colorB, false);
+  drawShape(ctx, v.shapeA, cx, cy, 105, v.colorA, false);
+  drawShape(ctx, 'circle', cx, cy, 50,  colorC,   true);
+}
+
+function renderMirrored(ctx, cx, cy, v) {
+  const size = randomBetween(60, 90);
+  drawShape(ctx, v.shapeA, cx - 75, cy, size, v.colorA, true);
+  ctx.save();
+  ctx.translate(cx + 75, cy);
+  ctx.scale(-1, 1);
+  drawShape(ctx, v.shapeA, 0, 0, size, v.colorB, true);
+  ctx.restore();
+}
+
+function renderScattered(ctx, cx, cy, canvasW, canvasH, v) {
+  // 5 random small shapes scattered across canvas
+  const size = randomBetween(30, 50);
+  const positions = [
+    { x: cx - 110, y: cy - 55 },
+    { x: cx + 95,  y: cy - 70 },
+    { x: cx - 60,  y: cy + 65 },
+    { x: cx + 120, y: cy + 40 },
+    { x: cx - 10,  y: cy - 10 },
+  ];
+  const colors = [v.colorA, v.colorB, v.colorA, v.colorB, v.colorA];
+  positions.forEach((p, i) =>
+    drawShape(ctx, i % 2 === 0 ? v.shapeA : v.shapeB, p.x, p.y, size, colors[i], true)
+  );
+}
+
+// ─── New Trait ────────────────────────────────────────────────────────────────
+
+function renderSameColor(ctx, cx, cy, v) {
+  const size = randomBetween(60, 90);
+  const shapeB = pickRandomExcluding(SHAPES, v.shapeA);
+  drawShape(ctx, v.shapeA, cx - 80, cy, size, v.colorA, true);
+  drawShape(ctx, shapeB,   cx + 80, cy, size, v.colorA, true); // same color!
+}
+
+function renderSameShape(ctx, cx, cy, v) {
+  const size = randomBetween(60, 90);
+  drawShape(ctx, v.shapeA, cx - 80, cy, size, v.colorA, true);
+  drawShape(ctx, v.shapeA, cx + 80, cy, size, v.colorB, true); // same shape, diff color
+}
+
+function renderOppositeColors(ctx, cx, cy, v) {
+  const size = randomBetween(65, 95);
+  // Draw one on dark bg, one inverted
+  ctx.save();
+  ctx.fillStyle = v.colorA;
+  ctx.beginPath(); ctx.roundRect(cx - 120, cy - size / 1.4, size * 1.4, size * 1.4 * 1.2 + 2, 8); ctx.fill();
+  ctx.restore();
+  drawShape(ctx, v.shapeA, cx - 75, cy, size * 0.7, '#1e293b', true);
+  drawShape(ctx, v.shapeB, cx + 75, cy, size * 0.7, v.colorA,  true);
+}
+
+function renderSizeGradient(ctx, cx, cy, v) {
+  // 4 same shapes in a row, increasing size
+  const sizes = [28, 44, 62, 82];
+  const xs = [cx - 105, cx - 45, cx + 25, cx + 105];
+  sizes.forEach((s, i) => drawShape(ctx, v.shapeA, xs[i], cy, s, v.colorA, true));
+}
+
+function renderBorderOnly(ctx, cx, cy, v) {
+  const size = randomBetween(65, 95);
+  drawShape(ctx, v.shapeA, cx - 80, cy, size, v.colorA, false); // outline only
+  drawShape(ctx, v.shapeB, cx + 80, cy, size, v.colorB, false); // outline only
+}
+
+function renderShadowCopy(ctx, cx, cy, v) {
+  const size = randomBetween(65, 90);
+  // Draw shadow (offset, semi-transparent)
+  ctx.save();
+  ctx.globalAlpha = 0.25;
+  drawShape(ctx, v.shapeA, cx + 12, cy + 12, size, '#000000', true);
+  ctx.globalAlpha = 1;
+  drawShape(ctx, v.shapeA, cx, cy, size, v.colorA, true);
+  ctx.restore();
+}
+
+function renderStriped(ctx, cx, cy, v) {
+  const size = randomBetween(70, 100);
+  // Draw shape then clip stripes inside
+  ctx.save();
+  ctx.beginPath();
+  // Use a circle clip for simplicity
+  ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.fillStyle = v.colorA;
+  ctx.fillRect(cx - size, cy - size, size * 2, size * 2);
+  ctx.strokeStyle = 'hsla(220,20%,6%,0.5)';
+  ctx.lineWidth = 7;
+  for (let i = -size; i < size * 2; i += 16) {
+    ctx.beginPath();
+    ctx.moveTo(cx - size + i, cy - size);
+    ctx.lineTo(cx - size + i, cy + size);
+    ctx.stroke();
+  }
+  ctx.restore();
+  drawShape(ctx, v.shapeA, cx, cy, size, v.colorA, false);
+}
+
+function renderDashedOutline(ctx, cx, cy, v) {
+  const sizeA = randomBetween(65, 90);
+  const sizeB = randomBetween(65, 90);
+  // A = solid, B = dashed outline
+  drawShape(ctx, v.shapeA, cx - 80, cy, sizeA, v.colorA, true);
+  ctx.save();
+  ctx.setLineDash([8, 5]);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = v.colorB;
+  drawShape(ctx, v.shapeB, cx + 80, cy, sizeB, v.colorB, false);
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// ─── New Quant ────────────────────────────────────────────────────────────────
+
+function renderThreeToOne(ctx, cx, cy, v) {
+  const sizeA = randomBetween(42, 58);
+  const sizeB = randomBetween(65, 90);
+  [{ x: cx - 105, y: cy - 38 }, { x: cx - 105, y: cy + 38 }, { x: cx - 60, y: cy }]
+    .forEach(p => drawShape(ctx, v.shapeA, p.x, p.y, sizeA, v.colorA, true));
+  drawShape(ctx, v.shapeB, cx + 80, cy, sizeB, v.colorB, true);
+}
+
+function renderOneToFive(ctx, cx, cy, canvasW, canvasH, v) {
+  drawShape(ctx, v.shapeA, cx - 105, cy, randomBetween(55, 75), v.colorA, true);
+  const sizeB = randomBetween(30, 42);
+  const positions = [
+    { x: cx + 40, y: cy - 55 }, { x: cx + 90, y: cy - 55 },
+    { x: cx + 140, y: cy - 55 }, { x: cx + 65, y: cy + 20 },
+    { x: cx + 115, y: cy + 20 },
+  ];
+  positions.forEach(p => drawShape(ctx, v.shapeB, p.x, p.y, sizeB, v.colorB, true));
+}
+
+function renderDecreasingRow(ctx, cx, cy, v) {
+  // 4 shapes in a row, decreasing size left→right
+  const sizes = [85, 65, 46, 30];
+  const xs = [cx - 105, cx - 38, cx + 22, cx + 72];
+  sizes.forEach((s, i) => drawShape(ctx, v.shapeA, xs[i], cy, s, v.colorA, true));
+}
+
+function renderIncreasingRow(ctx, cx, cy, v) {
+  const sizes = [30, 46, 65, 85];
+  const xs = [cx - 105, cx - 52, cx + 15, cx + 90];
+  sizes.forEach((s, i) => drawShape(ctx, v.shapeA, xs[i], cy, s, v.colorB, true));
+}
+
+function renderBalancedScale(ctx, cx, cy, v) {
+  // Beam
+  ctx.save();
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(cx - 120, cy - 10); ctx.lineTo(cx + 120, cy - 10); ctx.stroke();
+  // Pivot
+  ctx.beginPath(); ctx.moveTo(cx, cy - 10); ctx.lineTo(cx, cy + 30); ctx.stroke();
+  ctx.restore();
+  // Pans
+  const sizeA = randomBetween(42, 60);
+  const sizeB = randomBetween(42, 60);
+  // Left pan
+  ctx.save();
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(cx - 100, cy - 10); ctx.lineTo(cx - 100, cy + 20); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+  drawShape(ctx, v.shapeA, cx - 100, cy + 20 + sizeA / 2, sizeA, v.colorA, true);
+  // Right pan
+  ctx.save();
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(cx + 100, cy - 10); ctx.lineTo(cx + 100, cy + 20); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+  drawShape(ctx, v.shapeB, cx + 100, cy + 20 + sizeB / 2, sizeB, v.colorB, true);
 }

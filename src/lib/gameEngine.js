@@ -1,5 +1,5 @@
 import {
-  RELATIONSHIPS,
+  RELATIONSHIPS as ALL_RELATIONSHIPS,
   RELATIONSHIP_CATEGORIES,
   MATCH_CHANCE,
   DUAL_MATCH_CHANCE,
@@ -17,10 +17,11 @@ import {
 
 // ─── State Creation ──────────────────────────────────────────────────────────
 
-export function createGameState({ nLevel, modes }) {
+export function createGameState({ nLevel, modes, relationshipPool }) {
   return {
     nLevel,
     modes, // array: ['adaptive', 'dual', 'hierarchical', 'distractors']
+    relationshipPool: relationshipPool || ALL_RELATIONSHIPS,
     round: 0,
     totalRounds: TOTAL_ROUNDS,
 
@@ -72,16 +73,18 @@ export function createGameState({ nLevel, modes }) {
 // ─── Distractor generation ────────────────────────────────────────────────────
 
 // Returns a "near-match" relationship: same category as the target, different relationship
-function makeDistractor(targetRelationship) {
+function makeDistractor(targetRelationship, pool) {
   const cat = getCategory(targetRelationship);
-  const sameCategory = RELATIONSHIP_CATEGORIES[cat] || RELATIONSHIPS;
-  return pickRandomExcluding(sameCategory, targetRelationship);
+  const sameCategory = (RELATIONSHIP_CATEGORIES[cat] || ALL_RELATIONSHIPS).filter(r => pool.includes(r));
+  const candidates = sameCategory.length > 1 ? sameCategory : pool;
+  return pickRandomExcluding(candidates, targetRelationship);
 }
 
 // ─── Stimulus Generation ──────────────────────────────────────────────────────
 
 export function generateNextStimulus(state) {
-  const { nLevel, round, historyA, historyB, historyCategory, modes } = state;
+  const { nLevel, round, historyA, historyB, historyCategory, modes, relationshipPool } = state;
+  const pool = (relationshipPool && relationshipPool.length > 0) ? relationshipPool : ALL_RELATIONSHIPS;
   const isDual = modes.includes('dual');
   const isHier = modes.includes('hierarchical');
   const hasDistractors = modes.includes('distractors');
@@ -94,12 +97,11 @@ export function generateNextStimulus(state) {
     isTargetA = true;
   } else {
     const nBackA = canTarget ? historyA[historyA.length - nLevel] : null;
-    // Temporal distractor: near-match from same category (not a true target)
-    if (hasDistractors && canTarget && !isTargetA && Math.random() < DISTRACTOR_CHANCE) {
-      relA = makeDistractor(nBackA);
+    if (hasDistractors && canTarget && Math.random() < DISTRACTOR_CHANCE) {
+      relA = makeDistractor(nBackA, pool);
       isDistractor = true;
     } else {
-      relA = nBackA ? pickRandomExcluding(RELATIONSHIPS, nBackA) : pickRandom(RELATIONSHIPS);
+      relA = nBackA ? pickRandomExcluding(pool, nBackA) : pickRandom(pool);
     }
     isTargetA = false;
   }
@@ -113,7 +115,7 @@ export function generateNextStimulus(state) {
       isTargetB = true;
     } else {
       const nBackB = canTarget ? historyB[historyB.length - nLevel] : null;
-      relB = nBackB ? pickRandomExcluding(RELATIONSHIPS, nBackB) : pickRandom(RELATIONSHIPS);
+      relB = nBackB ? pickRandomExcluding(pool, nBackB) : pickRandom(pool);
       isTargetB = false;
     }
   }
