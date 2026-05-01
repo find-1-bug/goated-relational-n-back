@@ -34,13 +34,30 @@ const REL_DISPLAY = {
   TWO_TO_ONE: '2:1', PYRAMID: 'Pyramid', THREE_TO_ONE: '3:1',
   ONE_TO_FIVE: '1:5', DECREASING_ROW: 'Decreasing Row', INCREASING_ROW: 'Increasing Row',
   BALANCED_SCALE: 'Balanced Scale',
-  // Verbal
+  // Verbal — semantic
   SAME_AS: 'Same As', OPPOSITE_OF: 'Opposite Of', PART_OF: 'Part Of',
-  BIGGER_THAN: 'Bigger Than', SMALLER_THAN: 'Smaller Than', BEFORE: 'Before',
-  AFTER: 'After', CAUSES: 'Causes', CONTAINS: 'Contains', BELONGS_TO: 'Belongs To',
-  DEFINES: 'Defines', REPLACES: 'Replaces', FOLLOWS: 'Follows', NEGATES: 'Negates',
-  MATCHES: 'Matches', EXCEEDS: 'Exceeds', PRECEDES: 'Precedes',
-  TRANSFORMS_INTO: 'Transforms Into', MIRRORS: 'Mirrors', DEPENDS_ON: 'Depends On',
+  CAUSES: 'Causes', CONTAINS: 'Contains', BELONGS_TO: 'Belongs To',
+  DEFINES: 'Defines', REPLACES: 'Replaces', NEGATES: 'Negates',
+  MATCHES: 'Matches', TRANSFORMS_INTO: '→', DEPENDS_ON: 'Depends On',
+  // Verbal — comparison
+  BIGGER_THAN: 'Bigger Than', SMALLER_THAN: 'Smaller Than',
+  MORE_THAN: 'More Than', LESS_THAN: 'Less Than',
+  FASTER_THAN: 'Faster Than', SLOWER_THAN: 'Slower Than',
+  HEAVIER_THAN: 'Heavier Than', LIGHTER_THAN: 'Lighter Than',
+  HOTTER_THAN: 'Hotter Than', COLDER_THAN: 'Colder Than',
+  LOUDER_THAN: 'Louder Than', SOFTER_THAN: 'Softer Than',
+  STRONGER_THAN: 'Stronger Than', WEAKER_THAN: 'Weaker Than',
+  OLDER_THAN: 'Older Than', NEWER_THAN: 'Newer Than',
+  HIGHER_THAN: 'Higher Than', LOWER_THAN: 'Lower Than',
+  CLOSER_THAN: 'Closer Than', FURTHER_THAN: 'Further Than',
+  // Verbal — temporal
+  BEFORE: 'Before', AFTER: 'After', FOLLOWS: 'Follows', PRECEDES: 'Precedes',
+  EXCEEDS: 'Exceeds', MIRRORS: 'Mirrors',
+  // Verbal — directional
+  LEFT_OF: 'Left Of', RIGHT_OF: 'Right Of', ABOVE: 'Above', BELOW: 'Below',
+  NORTH_OF: 'North Of', SOUTH_OF: 'South Of', EAST_OF: 'East Of', WEST_OF: 'West Of',
+  NORTH_EAST_OF: 'NE Of', NORTH_WEST_OF: 'NW Of', SOUTH_EAST_OF: 'SE Of', SOUTH_WEST_OF: 'SW Of',
+  INSIDE_OF: 'Inside Of', OUTSIDE_OF: 'Outside Of', NEXT_TO: 'Next To', FAR_FROM: 'Far From',
 };
 
 export default function StartScreen({ onStart, suggestedN }) {
