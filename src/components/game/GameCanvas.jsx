@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { renderRelationship } from '@/lib/relationshipRenderer';
 
-export default function GameCanvas({ relationship, prevVisuals, onVisualsRendered, clearCanvas }) {
+export default function GameCanvas({ relationship, stimulus, prevVisuals, onVisualsRendered, clearCanvas }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export default function GameCanvas({ relationship, prevVisuals, onVisualsRendere
     }
 
     if (relationship) {
-      const visuals = renderRelationship(ctx, rect.width, rect.height, relationship, prevVisuals);
+      const visuals = renderRelationship(ctx, rect.width, rect.height, relationship, prevVisuals, stimulus);
       if (onVisualsRendered) onVisualsRendered(visuals);
     }
   }, [relationship, clearCanvas]);

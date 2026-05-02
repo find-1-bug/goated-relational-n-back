@@ -167,14 +167,18 @@ function renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tok
   ctx.restore();
 }
 
-function renderVerbal(ctx, canvasW, canvasH, relationship) {
-  const pair = getVerbalPair(relationship);
+function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWordB) {
+  // If fixedWordA/B provided (replay of a match), use them exactly
+  const pair = (fixedWordA && fixedWordB) ? [fixedWordA, fixedWordB] : getVerbalPair(relationship);
   const [rawA, verb, rawB] = buildVerbalDisplay(relationship, pair);
   const cx = canvasW / 2;
   const cy = canvasH / 2;
   ctx.clearRect(0, 0, canvasW, canvasH);
 
-  const [tokenA, tokenB] = pickVerbalTokens(rawA, rawB);
+  // If replaying fixed words, don't randomise tokens — use the exact words
+  const [tokenA, tokenB] = (fixedWordA && fixedWordB)
+    ? [rawA, rawB]
+    : pickVerbalTokens(rawA, rawB);
 
   const mode = Math.floor(Math.random() * 4);
   if (mode === 0) renderVerbalText(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB, relationship);
@@ -186,9 +190,10 @@ function renderVerbal(ctx, canvasW, canvasH, relationship) {
 }
 
 // ── Main dispatch ──────────────────────────────────────────────────────────────
-export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisuals) {
+// stimulus: optional {rel, wordA?, wordB?} entry — if provided, verbal words are locked (replay)
+export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisuals, stimulus) {
   if (isVerbal(relationship)) {
-    return renderVerbal(ctx, canvasW, canvasH, relationship);
+    return renderVerbal(ctx, canvasW, canvasH, relationship, stimulus?.wordA, stimulus?.wordB);
   }
 
   const visuals = randomVisuals(prevVisuals);

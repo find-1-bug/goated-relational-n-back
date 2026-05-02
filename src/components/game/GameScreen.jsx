@@ -157,6 +157,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       <div className="relative w-full max-w-xl aspect-[4/3] rounded-xl bg-secondary/30 border border-border">
         <GameCanvas
           relationship={!clearCanvas ? gameState.currentRelationship : null}
+          stimulus={gameState.currentStimulusA}
           prevVisuals={prevVisuals}
           onVisualsRendered={(v) => setPrevVisuals(v)}
           clearCanvas={clearCanvas}
@@ -179,6 +180,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
         <div className="relative w-full max-w-xl aspect-[4/3] mt-3 rounded-xl bg-secondary/30 border border-accent/20">
           <GameCanvas
             relationship={!clearCanvas ? gameState.currentRelationshipB : null}
+            stimulus={gameState.currentStimulusB}
             prevVisuals={null}
             onVisualsRendered={() => {}}
             clearCanvas={clearCanvas}

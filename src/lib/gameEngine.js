@@ -13,7 +13,27 @@ import {
   getCategory,
   pickRandom,
   pickRandomExcluding,
+  isVerbal,
+  getVerbalPair,
 } from './gameConstants';
+
+// Generate a stable stimulus key: for verbal, includes the word pair so matching
+// requires the same triple (A, relation, B), not just the relation type.
+function makeStimulusEntry(rel) {
+  if (isVerbal(rel)) {
+    const [wordA, wordB] = getVerbalPair(rel);
+    return { rel, wordA, wordB };
+  }
+  return { rel };
+}
+
+function stimuliMatch(a, b) {
+  if (!a || !b) return false;
+  if (a.rel !== b.rel) return false;
+  // For verbal: both wordA and wordB must also match
+  if (a.wordA !== undefined) return a.wordA === b.wordA && a.wordB === b.wordB;
+  return true;
+}
 
 // ─── State Creation ──────────────────────────────────────────────────────────
 
@@ -25,14 +45,16 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds }
     round: 0,
     totalRounds: totalRounds || TOTAL_ROUNDS,
 
-    // Stream A: primary relationship
+    // Stream A: primary relationship (stores {rel, wordA?, wordB?} entries)
     historyA: [],
     currentRelationship: null,
+    currentStimulusA: null,  // full entry for renderer
     isTargetA: false,
 
     // Stream B: secondary relationship (dual mode)
     historyB: [],
     currentRelationshipB: null,
+    currentStimulusB: null,
     isTargetB: false,
 
     // Hierarchical stream: category-level N-back
@@ -101,33 +123,38 @@ export function generateNextStimulus(state) {
   const canTargetEffective = round >= effectiveN;
 
   // ── Stream A ──
-  let relA, isTargetA, isDistractor = false;
+  let stimA, isTargetA, isDistractor = false;
+  const nBackEntryA = canTargetEffective ? historyA[historyA.length - effectiveN] : null;
   if (canTargetEffective && Math.random() < MATCH_CHANCE) {
-    relA = historyA[historyA.length - effectiveN];
+    // Replay the exact same stimulus (same rel + same words for verbal)
+    stimA = nBackEntryA;
     isTargetA = true;
   } else {
-    const nBackA = canTargetEffective ? historyA[historyA.length - effectiveN] : null;
     if (hasDistractors && canTargetEffective && Math.random() < DISTRACTOR_CHANCE) {
-      relA = makeDistractor(nBackA, pool);
+      stimA = makeStimulusEntry(makeDistractor(nBackEntryA?.rel, pool));
       isDistractor = true;
     } else {
-      relA = nBackA ? pickRandomExcluding(pool, nBackA) : pickRandom(pool);
+      const excludeRel = nBackEntryA?.rel;
+      stimA = makeStimulusEntry(excludeRel ? pickRandomExcluding(pool, excludeRel) : pickRandom(pool));
     }
     isTargetA = false;
   }
+  const relA = stimA.rel;
   const categoryA = getCategory(relA);
 
   // ── Stream B (dual mode) ──
-  let relB = null, isTargetB = false;
+  let stimB = null, relB = null, isTargetB = false;
   if (isDual) {
+    const nBackEntryB = canTarget ? historyB[historyB.length - nLevel] : null;
     if (canTarget && Math.random() < DUAL_MATCH_CHANCE) {
-      relB = historyB[historyB.length - nLevel];
+      stimB = nBackEntryB;
       isTargetB = true;
     } else {
-      const nBackB = canTarget ? historyB[historyB.length - nLevel] : null;
-      relB = nBackB ? pickRandomExcluding(pool, nBackB) : pickRandom(pool);
+      const excludeRel = nBackEntryB?.rel;
+      stimB = makeStimulusEntry(excludeRel ? pickRandomExcluding(pool, excludeRel) : pickRandom(pool));
       isTargetB = false;
     }
+    relB = stimB.rel;
   }
 
   // ── Category / Hierarchical stream ──
@@ -139,22 +166,24 @@ export function generateNextStimulus(state) {
     }
   }
 
-  return { relA, isTargetA, relB, isTargetB, categoryA, isTargetCategory, isDistractor, effectiveN };
+  return { stimA, relA, stimB, relB, isTargetA, isTargetB, categoryA, isTargetCategory, isDistractor, effectiveN };
 }
 
 // ─── Advance Round ────────────────────────────────────────────────────────────
 
 export function advanceRound(state, stimulus) {
-  const { relA, isTargetA, relB, isTargetB, categoryA, isTargetCategory, isDistractor, effectiveN } = stimulus;
+  const { stimA, relA, stimB, relB, isTargetA, isTargetB, categoryA, isTargetCategory, isDistractor, effectiveN } = stimulus;
   return {
     ...state,
     round: state.round + 1,
     currentEffectiveN: effectiveN ?? state.nLevel,
-    historyA: [...state.historyA, relA],
-    historyB: relB !== null ? [...state.historyB, relB] : state.historyB,
+    historyA: [...state.historyA, stimA],
+    historyB: stimB !== null ? [...state.historyB, stimB] : state.historyB,
     historyCategory: [...state.historyCategory, categoryA],
     currentRelationship: relA,
+    currentStimulusA: stimA,
     currentRelationshipB: relB,
+    currentStimulusB: stimB,
     currentCategory: categoryA,
     isTargetA,
     isTargetB,
