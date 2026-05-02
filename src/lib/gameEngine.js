@@ -203,11 +203,14 @@ function streamStats(hits, misses, falseAlarms, correctRejections) {
   const totalTargets = hits + misses;
   const totalNonTargets = falseAlarms + correctRejections;
   const total = totalTargets + totalNonTargets;
-  const correct = hits + correctRejections;
-  const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
   const hitRate = totalTargets > 0 ? Math.round((hits / totalTargets) * 100) : 0;
   const falseAlarmRate = totalNonTargets > 0 ? Math.round((falseAlarms / totalNonTargets) * 100) : 0;
-  return { hits, misses, falseAlarms, correctRejections, total, accuracy, hitRate, falseAlarmRate };
+  // Accuracy = signal detection only: penalises misses AND false alarms, ignores correct rejections
+  // Score = hits - false alarms, normalised over total targets so pressing nothing = 0%
+  const signalScore = totalTargets > 0
+    ? Math.max(0, Math.round(((hits - falseAlarms) / totalTargets) * 100))
+    : 0;
+  return { hits, misses, falseAlarms, correctRejections, total, accuracy: signalScore, hitRate, falseAlarmRate };
 }
 
 export function calculateResults(state) {
