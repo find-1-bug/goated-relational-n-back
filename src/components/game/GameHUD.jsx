@@ -2,7 +2,7 @@ import React from 'react';
 
 const CAT_LABEL = { SPATIAL: 'Spatial', TRAIT: 'Trait', QUANT: 'Quantitative' };
 
-export default function GameHUD({ round, totalRounds, nLevel, hitsA, missesA, falseAlarmsA, relationship, relationshipB, category, phase, modes = [], isDistractor }) {
+export default function GameHUD({ round, totalRounds, nLevel, effectiveN, hitsA, missesA, falseAlarmsA, relationship, relationshipB, category, phase, modes = [], isDistractor }) {
   const isDual = modes.includes('dual');
   const isHier = modes.includes('hierarchical');
 
@@ -16,7 +16,9 @@ export default function GameHUD({ round, totalRounds, nLevel, hitsA, missesA, fa
           <span>{totalRounds}</span>
         </div>
         <div className="px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
-          <span className="font-mono text-xs font-semibold text-primary">N={nLevel}</span>
+          <span className="font-mono text-xs font-semibold text-primary">
+            N={effectiveN ?? nLevel}
+          </span>
         </div>
         {isDual && (
           <div className="px-2 py-0.5 rounded bg-accent/10 border border-accent/20">
@@ -30,19 +32,10 @@ export default function GameHUD({ round, totalRounds, nLevel, hitsA, missesA, fa
         )}
       </div>
 
-      {/* Center: labels */}
-      <div className="font-mono text-xs text-muted-foreground text-center flex-1 min-w-0 space-y-0.5">
-        {phase === 'stimulus' && relationship && (
-          <div className="text-foreground/60 truncate">
-            A: {relationship.replace(/_/g, ' ')}
-            {isDistractor && <span className="ml-1 text-amber-400/60 text-xs">~</span>}
-          </div>
-        )}
-        {phase === 'stimulus' && isDual && relationshipB && (
-          <div className="text-accent/50 truncate">B: {relationshipB.replace(/_/g, ' ')}</div>
-        )}
-        {phase === 'stimulus' && isHier && category && (
-          <div className="text-chart-3/50 truncate">{CAT_LABEL[category] || category}</div>
+      {/* Center: only show category for hierarchical mode — static enough to not distract */}
+      <div className="font-mono text-xs text-muted-foreground text-center flex-1 min-w-0">
+        {isHier && phase === 'stimulus' && category && (
+          <span className="text-chart-3/60">{CAT_LABEL[category] || category}</span>
         )}
       </div>
 

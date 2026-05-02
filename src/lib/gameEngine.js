@@ -90,14 +90,24 @@ export function generateNextStimulus(state) {
   const hasDistractors = modes.includes('distractors');
   const canTarget = round >= nLevel;
 
+  // ── Variable N: pick effective N for this trial ──
+  const isVariableN = modes.includes('variable_n');
+  let effectiveN = nLevel;
+  if (isVariableN && canTarget) {
+    const delta = Math.random() < 0.5 ? 1 : -1;
+    const candidate = nLevel + delta;
+    if (candidate >= 1 && candidate <= round) effectiveN = candidate;
+  }
+  const canTargetEffective = round >= effectiveN;
+
   // ── Stream A ──
   let relA, isTargetA, isDistractor = false;
-  if (canTarget && Math.random() < MATCH_CHANCE) {
-    relA = historyA[historyA.length - nLevel];
+  if (canTargetEffective && Math.random() < MATCH_CHANCE) {
+    relA = historyA[historyA.length - effectiveN];
     isTargetA = true;
   } else {
-    const nBackA = canTarget ? historyA[historyA.length - nLevel] : null;
-    if (hasDistractors && canTarget && Math.random() < DISTRACTOR_CHANCE) {
+    const nBackA = canTargetEffective ? historyA[historyA.length - effectiveN] : null;
+    if (hasDistractors && canTargetEffective && Math.random() < DISTRACTOR_CHANCE) {
       relA = makeDistractor(nBackA, pool);
       isDistractor = true;
     } else {
@@ -129,16 +139,17 @@ export function generateNextStimulus(state) {
     }
   }
 
-  return { relA, isTargetA, relB, isTargetB, categoryA, isTargetCategory, isDistractor };
+  return { relA, isTargetA, relB, isTargetB, categoryA, isTargetCategory, isDistractor, effectiveN };
 }
 
 // ─── Advance Round ────────────────────────────────────────────────────────────
 
 export function advanceRound(state, stimulus) {
-  const { relA, isTargetA, relB, isTargetB, categoryA, isTargetCategory, isDistractor } = stimulus;
+  const { relA, isTargetA, relB, isTargetB, categoryA, isTargetCategory, isDistractor, effectiveN } = stimulus;
   return {
     ...state,
     round: state.round + 1,
+    currentEffectiveN: effectiveN ?? state.nLevel,
     historyA: [...state.historyA, relA],
     historyB: relB !== null ? [...state.historyB, relB] : state.historyB,
     historyCategory: [...state.historyCategory, categoryA],

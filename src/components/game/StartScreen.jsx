@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RELATIONSHIP_CATEGORIES } from '@/lib/gameConstants';
 
 const MODE_OPTIONS = [
-  { id: 'adaptive',     icon: TrendingUp, label: 'Adaptive N',   desc: 'N auto-adjusts based on your accuracy after each session' },
+  { id: 'variable_n',   icon: Shuffle,    label: 'Variable N',   desc: 'N changes randomly each trial (±1 around your chosen N). Forces flexible updating.' },
+  { id: 'adaptive',     icon: TrendingUp, label: 'Adaptive N',   desc: 'N auto-adjusts between sessions based on accuracy (≥80% → up, ≤50% → down)' },
   { id: 'dual',         icon: Layers,     label: 'Dual Stream',  desc: 'Track two independent relationship streams simultaneously (SPACE + A)' },
   { id: 'hierarchical', icon: GitBranch,  label: 'Hierarchical', desc: 'Also track relationship category N-back (L)' },
   { id: 'distractors',  icon: Shuffle,    label: 'Distractors',  desc: 'Near-match stimuli from the same category create interference' },
@@ -147,7 +148,9 @@ export default function StartScreen({ onStart, suggestedN }) {
 
         {/* N-Level spinner */}
         <div className="space-y-2">
-          <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest text-center">N-Level</label>
+          <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest text-center" title="How many trials back you must remember. N=2 means match what appeared 2 trials ago.">
+            N-Level {modes.includes('variable_n') && <span className="text-primary/60 normal-case">(base)</span>}
+          </label>
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={() => setNLevel(n => Math.max(1, n - 1))}
@@ -229,12 +232,12 @@ export default function StartScreen({ onStart, suggestedN }) {
 
         {/* Session Length & Speed */}
         <div className="grid grid-cols-2 gap-3">
-          {/* Rounds */}
+          {/* Trials */}
           <div className="space-y-2">
-            <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest text-center">Rounds</label>
+            <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest text-center" title="Total number of stimuli presented in the session.">Trials</label>
             <div className="flex items-center justify-center gap-2">
               <button
-                onClick={() => setRounds(r => Math.max(5, r - 5))}
+                onClick={() => setRounds(r => Math.max(1, r - 1))}
                 className="w-8 h-8 rounded-lg bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center transition-colors">
                 <Minus className="w-3.5 h-3.5" />
               </button>
@@ -242,7 +245,7 @@ export default function StartScreen({ onStart, suggestedN }) {
                 <span className="font-mono text-lg font-bold text-foreground">{rounds}</span>
               </div>
               <button
-                onClick={() => setRounds(r => r + 5)}
+                onClick={() => setRounds(r => r + 1)}
                 className="w-8 h-8 rounded-lg bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center transition-colors">
                 <Plus className="w-3.5 h-3.5" />
               </button>
@@ -251,7 +254,7 @@ export default function StartScreen({ onStart, suggestedN }) {
 
           {/* Speed */}
           <div className="space-y-2">
-            <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest text-center">Speed</label>
+            <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest text-center" title="Time each stimulus is shown before disappearing.">Speed</label>
             <div className="grid grid-cols-2 gap-1">
               {SPEED_OPTIONS.map(opt => (
                 <button key={opt.ms} onClick={() => setSpeedMs(opt.ms)}

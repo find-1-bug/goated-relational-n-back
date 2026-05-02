@@ -62,6 +62,7 @@ export default function Game() {
           totalRounds={rounds}
           stimulusDuration={speedMs}
           onFinish={handleFinish}
+          onExit={handleBack}
         />
       )}
       {screen === 'results' && finalState && (

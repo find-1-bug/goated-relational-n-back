@@ -13,7 +13,7 @@ import {
   FEEDBACK_DURATION,
 } from '@/lib/gameConstants';
 
-export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, onFinish }) {
+export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, onFinish, onExit }) {
   const [gameState, setGameState] = useState(() => createGameState({ nLevel, modes, relationshipPool, totalRounds }));
   const [phase, setPhase] = useState('stimulus');
   const [feedbackA, setFeedbackA] = useState(null);
@@ -121,23 +121,19 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     return () => window.removeEventListener('keydown', handleKey);
   }, [phase, isDual, isHier]);
 
-  const getBorderColor = () => {
-    if (phase !== 'feedback') return 'border-transparent';
-    if (feedbackA === 'hit') return 'border-emerald-500';
-    if (feedbackA === 'miss') return 'border-amber-500';
-    if (feedbackA === 'false_alarm') return 'border-red-500';
-    return 'border-transparent';
-  };
+  // No border flash — too distracting in peripheral vision
 
   const categoryLabel = { SPATIAL: 'Spatial', TRAIT: 'Trait', QUANT: 'Quantitative' };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 py-4 select-none">
-      <div className="w-full max-w-xl mb-4">
+      <div className="w-full max-w-xl mb-4 flex items-center gap-2">
+        <div className="flex-1">
         <GameHUD
           round={gameState.round}
           totalRounds={gameState.totalRounds}
           nLevel={gameState.nLevel}
+          effectiveN={gameState.currentEffectiveN}
           hitsA={gameState.hitsA}
           missesA={gameState.missesA}
           falseAlarmsA={gameState.falseAlarmsA}
@@ -148,10 +144,17 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           modes={modes}
           isDistractor={gameState.isDistractor}
         />
+        </div>
+        {onExit && (
+          <button onClick={onExit}
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-secondary border border-border text-xs font-mono text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors">
+            Exit
+          </button>
+        )}
       </div>
 
       {/* Main canvas */}
-      <div className={`relative w-full max-w-xl aspect-[4/3] rounded-xl bg-secondary/30 border-4 transition-colors duration-200 ${getBorderColor()}`}>
+      <div className="relative w-full max-w-xl aspect-[4/3] rounded-xl bg-secondary/30 border border-border">
         <GameCanvas
           relationship={!clearCanvas ? gameState.currentRelationship : null}
           prevVisuals={prevVisuals}
@@ -159,15 +162,10 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           clearCanvas={clearCanvas}
         />
 
-        {/* Stream A responded indicator */}
-        <AnimatePresence>
-          {gameState.respondedA && phase === 'stimulus' && (
-            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-              className="absolute bottom-3 right-3 px-2 py-1 rounded bg-primary/20 border border-primary/30">
-              <span className="text-xs font-mono text-primary font-semibold">MATCH A</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Responded dot — subtle, center-bottom, not peripheral */}
+        {gameState.respondedA && phase === 'stimulus' && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary/60" />
+        )}
 
         {phase === 'wipe' && (
           <div className="absolute inset-0 bg-background/90 rounded-xl flex items-center justify-center">
@@ -178,8 +176,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
       {/* Stream B canvas (dual mode) */}
       {isDual && (
-        <div className={`relative w-full max-w-xl aspect-[4/3] mt-3 rounded-xl bg-secondary/30 border-4 transition-colors duration-200
-          ${phase === 'feedback' ? feedbackB === 'hit' ? 'border-emerald-500' : feedbackB === 'miss' ? 'border-amber-500' : feedbackB === 'false_alarm' ? 'border-red-500' : 'border-transparent' : 'border-accent/40'}`}>
+        <div className="relative w-full max-w-xl aspect-[4/3] mt-3 rounded-xl bg-secondary/30 border border-accent/20">
           <GameCanvas
             relationship={!clearCanvas ? gameState.currentRelationshipB : null}
             prevVisuals={null}
@@ -189,14 +186,9 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           <div className="absolute top-2 left-3">
             <span className="text-xs font-mono text-accent/70 uppercase tracking-widest">Stream B</span>
           </div>
-          <AnimatePresence>
-            {gameState.respondedB && phase === 'stimulus' && (
-              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                className="absolute bottom-3 right-3 px-2 py-1 rounded bg-accent/20 border border-accent/30">
-                <span className="text-xs font-mono text-accent font-semibold">MATCH B</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {gameState.respondedB && phase === 'stimulus' && (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-accent/60" />
+          )}
           {phase === 'wipe' && (
             <div className="absolute inset-0 bg-background/90 rounded-xl flex items-center justify-center">
               <div className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-pulse" />
