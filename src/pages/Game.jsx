@@ -11,11 +11,15 @@ export default function Game() {
   const [relationshipPool, setRelationshipPool] = useState(null);
   const [finalState, setFinalState] = useState(null);
   const [suggestedN, setSuggestedN] = useState(null);
+  const [rounds, setRounds] = useState(20);
+  const [speedMs, setSpeedMs] = useState(2800);
 
-  const handleStart = (n, selectedModes, selectedRels) => {
+  const handleStart = (n, selectedModes, selectedRels, totalRounds, stimulusMs) => {
     setNLevel(n);
     setModes(selectedModes);
     setRelationshipPool(selectedRels && selectedRels.length > 0 ? selectedRels : null);
+    setRounds(totalRounds || 20);
+    setSpeedMs(stimulusMs || 2800);
     setScreen('playing');
   };
 
@@ -55,6 +59,8 @@ export default function Game() {
           nLevel={nLevel}
           modes={modes}
           relationshipPool={relationshipPool}
+          totalRounds={rounds}
+          stimulusDuration={speedMs}
           onFinish={handleFinish}
         />
       )}

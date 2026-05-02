@@ -60,10 +60,19 @@ const REL_DISPLAY = {
   INSIDE_OF: 'Inside Of', OUTSIDE_OF: 'Outside Of', NEXT_TO: 'Next To', FAR_FROM: 'Far From',
 };
 
+const SPEED_OPTIONS = [
+  { label: 'Slow',   ms: 4000 },
+  { label: 'Normal', ms: 2800 },
+  { label: 'Fast',   ms: 1800 },
+  { label: 'Turbo',  ms: 1000 },
+];
+
 export default function StartScreen({ onStart, suggestedN }) {
   const [nLevel, setNLevel] = React.useState(suggestedN || 2);
   const [modes, setModes] = React.useState([]);
   const [showRelTypes, setShowRelTypes] = React.useState(false);
+  const [rounds, setRounds] = React.useState(20);
+  const [speedMs, setSpeedMs] = React.useState(2800);
 
   // Selected categories (all on by default)
   const allCats = Object.keys(RELATIONSHIP_CATEGORIES);
@@ -218,6 +227,43 @@ export default function StartScreen({ onStart, suggestedN }) {
           </AnimatePresence>
         </div>
 
+        {/* Session Length & Speed */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Rounds */}
+          <div className="space-y-2">
+            <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest text-center">Rounds</label>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => setRounds(r => Math.max(5, r - 5))}
+                className="w-8 h-8 rounded-lg bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center transition-colors">
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <div className="w-16 h-10 rounded-lg bg-secondary/80 border border-border flex items-center justify-center">
+                <span className="font-mono text-lg font-bold text-foreground">{rounds}</span>
+              </div>
+              <button
+                onClick={() => setRounds(r => r + 5)}
+                className="w-8 h-8 rounded-lg bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center transition-colors">
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Speed */}
+          <div className="space-y-2">
+            <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest text-center">Speed</label>
+            <div className="grid grid-cols-2 gap-1">
+              {SPEED_OPTIONS.map(opt => (
+                <button key={opt.ms} onClick={() => setSpeedMs(opt.ms)}
+                  className={`px-2 py-1.5 rounded text-xs font-mono transition-all border
+                    ${speedMs === opt.ms ? 'border-primary bg-primary/15 text-primary' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Enhancement Modes */}
         <div className="space-y-2">
           <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest">Enhancement Modes</label>
@@ -254,7 +300,7 @@ export default function StartScreen({ onStart, suggestedN }) {
         {/* Start */}
         <div className="flex justify-center pb-4">
           <Button
-            onClick={() => onStart(nLevel, modes, selectedRels)}
+            onClick={() => onStart(nLevel, modes, selectedRels, rounds, speedMs)}
             className="h-12 px-10 font-mono font-semibold text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90">
             Start Training
           </Button>

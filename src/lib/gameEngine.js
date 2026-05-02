@@ -17,13 +17,13 @@ import {
 
 // ─── State Creation ──────────────────────────────────────────────────────────
 
-export function createGameState({ nLevel, modes, relationshipPool }) {
+export function createGameState({ nLevel, modes, relationshipPool, totalRounds }) {
   return {
     nLevel,
     modes, // array: ['adaptive', 'dual', 'hierarchical', 'distractors']
     relationshipPool: relationshipPool || ALL_RELATIONSHIPS,
     round: 0,
-    totalRounds: TOTAL_ROUNDS,
+    totalRounds: totalRounds || TOTAL_ROUNDS,
 
     // Stream A: primary relationship
     historyA: [],

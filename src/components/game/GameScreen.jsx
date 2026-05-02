@@ -9,13 +9,12 @@ import {
   advanceRound,
 } from '@/lib/gameEngine';
 import {
-  STIMULUS_DURATION,
   WIPE_DURATION,
   FEEDBACK_DURATION,
 } from '@/lib/gameConstants';
 
-export default function GameScreen({ nLevel, modes, relationshipPool, onFinish }) {
-  const [gameState, setGameState] = useState(() => createGameState({ nLevel, modes, relationshipPool }));
+export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, onFinish }) {
+  const [gameState, setGameState] = useState(() => createGameState({ nLevel, modes, relationshipPool, totalRounds }));
   const [phase, setPhase] = useState('stimulus');
   const [feedbackA, setFeedbackA] = useState(null);
   const [feedbackB, setFeedbackB] = useState(null);
@@ -48,7 +47,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, onFinish }
     setFeedbackB(null);
     setFeedbackC(null);
 
-    phaseTimerRef.current = setTimeout(() => endStimulus(nextState), STIMULUS_DURATION);
+    phaseTimerRef.current = setTimeout(() => endStimulus(nextState), stimulusDuration || 2800);
   }, []);
 
   const endStimulus = useCallback((currentState) => {
