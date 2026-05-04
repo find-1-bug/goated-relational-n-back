@@ -68,20 +68,27 @@ const SPEED_OPTIONS = [
   { label: 'Turbo',  ms: 1000 },
 ];
 
-export default function StartScreen({ onStart, suggestedN }) {
-  const [nLevel, setNLevel] = React.useState(suggestedN || 2);
-  const [modes, setModes] = React.useState([]);
-  const [showRelTypes, setShowRelTypes] = React.useState(false);
-  const [rounds, setRounds] = React.useState(20);
-  const [speedMs, setSpeedMs] = React.useState(2800);
-
-  // Selected categories (all on by default)
+export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const allCats = Object.keys(RELATIONSHIP_CATEGORIES);
-  const [enabledCats, setEnabledCats] = React.useState(new Set(allCats));
-  // Selected individual relationships (all on by default)
+  const allRels = Object.values(RELATIONSHIP_CATEGORIES).flat();
+
+  const [nLevel, setNLevel] = React.useState(suggestedN || lastSettings?.n || 2);
+  const [modes, setModes] = React.useState(lastSettings?.modes || []);
+  const [showRelTypes, setShowRelTypes] = React.useState(false);
+  const [rounds, setRounds] = React.useState(lastSettings?.rounds || 20);
+  const [speedMs, setSpeedMs] = React.useState(lastSettings?.speedMs || 2800);
+
+  // Selected individual relationships
   const [enabledRels, setEnabledRels] = React.useState(
-    new Set(Object.values(RELATIONSHIP_CATEGORIES).flat())
+    lastSettings?.rels ? new Set(lastSettings.rels) : new Set(allRels)
   );
+  // Derive enabled cats from enabled rels
+  const [enabledCats, setEnabledCats] = React.useState(() => {
+    const initRels = lastSettings?.rels ? new Set(lastSettings.rels) : new Set(allRels);
+    return new Set(allCats.filter(cat =>
+      RELATIONSHIP_CATEGORIES[cat].some(r => initRels.has(r))
+    ));
+  });
 
   const toggleMode = (id) =>
     setModes(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);

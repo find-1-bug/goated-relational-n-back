@@ -168,23 +168,21 @@ function renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tok
 }
 
 function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWordB) {
-  // If fixedWordA/B provided (replay of a match), use them exactly
+  // Always use the stored word pair — never randomise them away.
+  // fixedWordA/B come from the stimulus entry (set at generation time and stable for the trial).
   const pair = (fixedWordA && fixedWordB) ? [fixedWordA, fixedWordB] : getVerbalPair(relationship);
-  const [rawA, verb, rawB] = buildVerbalDisplay(relationship, pair);
+  const [wordA, verb, wordB] = buildVerbalDisplay(relationship, pair);
   const cx = canvasW / 2;
   const cy = canvasH / 2;
   ctx.clearRect(0, 0, canvasW, canvasH);
 
-  // If replaying fixed words, don't randomise tokens — use the exact words
-  const [tokenA, tokenB] = (fixedWordA && fixedWordB)
-    ? [rawA, rawB]
-    : pickVerbalTokens(rawA, rawB);
-
+  // Always render the actual semantic words — no token substitution.
+  // This ensures matches are visually verifiable (same words = target, different words = not).
   const mode = Math.floor(Math.random() * 4);
-  if (mode === 0) renderVerbalText(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB, relationship);
+  if (mode === 0) renderVerbalText(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
   else if (mode === 1) renderVerbalShapes(ctx, cx, cy, canvasW, canvasH, verb, relationship);
-  else if (mode === 2) renderVerbalBlended(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB, relationship);
-  else renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB, relationship);
+  else if (mode === 2) renderVerbalBlended(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
+  else renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
 
   return {};
 }

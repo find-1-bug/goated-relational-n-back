@@ -14,12 +14,16 @@ export default function Game() {
   const [rounds, setRounds] = useState(20);
   const [speedMs, setSpeedMs] = useState(2800);
 
+  // Last-used settings to restore on StartScreen
+  const [lastSettings, setLastSettings] = useState(null);
+
   const handleStart = (n, selectedModes, selectedRels, totalRounds, stimulusMs) => {
     setNLevel(n);
     setModes(selectedModes);
     setRelationshipPool(selectedRels && selectedRels.length > 0 ? selectedRels : null);
     setRounds(totalRounds || 20);
     setSpeedMs(stimulusMs || 2800);
+    setLastSettings({ n, modes: selectedModes, rels: selectedRels, rounds: totalRounds || 20, speedMs: stimulusMs || 2800 });
     setScreen('playing');
   };
 
@@ -51,7 +55,7 @@ export default function Game() {
   return (
     <div className="min-h-screen bg-background">
       {screen === 'start' && (
-        <StartScreen onStart={handleStart} suggestedN={suggestedN} />
+        <StartScreen onStart={handleStart} suggestedN={suggestedN} lastSettings={lastSettings} />
       )}
       {screen === 'playing' && (
         <GameScreen
