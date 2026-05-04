@@ -177,11 +177,10 @@ function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWord
   ctx.clearRect(0, 0, canvasW, canvasH);
 
   // Always render the actual semantic words — no token substitution.
-  // This ensures matches are visually verifiable (same words = target, different words = not).
-  const mode = Math.floor(Math.random() * 4);
+  // Mode 1 (shapes-only) is excluded: it hides the word pair, making matches unverifiable.
+  const mode = Math.floor(Math.random() * 3); // 0, 1, 2 → maps to text, blended, symbolVerb
   if (mode === 0) renderVerbalText(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
-  else if (mode === 1) renderVerbalShapes(ctx, cx, cy, canvasW, canvasH, verb, relationship);
-  else if (mode === 2) renderVerbalBlended(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
+  else if (mode === 1) renderVerbalBlended(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
   else renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
 
   return {};
