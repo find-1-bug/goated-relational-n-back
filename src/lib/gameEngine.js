@@ -36,7 +36,7 @@ function makeStimulusEntry(rel) {
 
 function stimuliMatch(a, b) {
   if (!a || !b) return false;
-  return a === b; // target is always the exact same object reference (replayed from history)
+  return a === b;
 }
 
 // ─── State Creation ──────────────────────────────────────────────────────────
@@ -130,8 +130,9 @@ export function generateNextStimulus(state) {
   let stimA, isTargetA, isDistractor = false;
   const nBackEntryA = canTargetEffective ? historyA[historyA.length - effectiveN] : null;
   if (canTargetEffective && Math.random() < MATCH_CHANCE) {
-    // Replay the exact same stimulus (same rel + same words for verbal)
-    stimA = nBackEntryA;
+    // Verbal: replay exact object so words + renderMode are identical.
+    // Non-verbal: create a fresh stimulus with the same rel (new random visuals each time).
+    stimA = isVerbal(nBackEntryA?.rel) ? nBackEntryA : makeStimulusEntry(nBackEntryA.rel);
     isTargetA = true;
   } else {
     if (hasDistractors && canTargetEffective && Math.random() < DISTRACTOR_CHANCE) {
@@ -151,7 +152,7 @@ export function generateNextStimulus(state) {
   if (isDual) {
     const nBackEntryB = canTarget ? historyB[historyB.length - nLevel] : null;
     if (canTarget && Math.random() < DUAL_MATCH_CHANCE) {
-      stimB = nBackEntryB;
+      stimB = isVerbal(nBackEntryB?.rel) ? nBackEntryB : makeStimulusEntry(nBackEntryB.rel);
       isTargetB = true;
     } else {
       const excludeRel = nBackEntryB?.rel;
