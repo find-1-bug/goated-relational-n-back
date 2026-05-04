@@ -1,21 +1,15 @@
 import { drawShape } from './shapeRenderer';
 import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, getVerbalPair, buildVerbalDisplay, pickTokenType, pickTokenWord } from './gameConstants';
 
-function randomVisuals(prevVisuals) {
-  let shapeA, shapeB, colorA, colorB;
-  do {
-    shapeA = pickRandom(SHAPES);
-    shapeB = pickRandom(SHAPES);
-    colorA = pickRandom(COLORS);
-    colorB = pickRandomExcluding(COLORS, colorA);
-  } while (
-    prevVisuals &&
-    shapeA === prevVisuals.shapeA &&
-    shapeB === prevVisuals.shapeB &&
-    colorA === prevVisuals.colorA &&
-    colorB === prevVisuals.colorB
-  );
-  return { shapeA, shapeB, colorA, colorB };
+// Visuals are now always taken from the stimulus entry (pre-generated in gameEngine).
+// This ensures target replays look identical to the original stimulus.
+function getVisuals(stimulus) {
+  return {
+    shapeA: stimulus?.shapeA || pickRandom(SHAPES),
+    shapeB: stimulus?.shapeB || pickRandom(SHAPES),
+    colorA: stimulus?.colorA || pickRandom(COLORS),
+    colorB: stimulus?.colorB || pickRandomExcluding(COLORS, stimulus?.colorA || '#000'),
+  };
 }
 
 // ── Verbal renderer ───────────────────────────────────────────────────────────
@@ -167,18 +161,15 @@ function renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tok
   ctx.restore();
 }
 
-function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWordB) {
-  // Always use the stored word pair — never randomise them away.
-  // fixedWordA/B come from the stimulus entry (set at generation time and stable for the trial).
+function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWordB, renderMode) {
   const pair = (fixedWordA && fixedWordB) ? [fixedWordA, fixedWordB] : getVerbalPair(relationship);
   const [wordA, verb, wordB] = buildVerbalDisplay(relationship, pair);
   const cx = canvasW / 2;
   const cy = canvasH / 2;
   ctx.clearRect(0, 0, canvasW, canvasH);
 
-  // Always render the actual semantic words — no token substitution.
-  // Mode 1 (shapes-only) is excluded: it hides the word pair, making matches unverifiable.
-  const mode = Math.floor(Math.random() * 3); // 0, 1, 2 → maps to text, blended, symbolVerb
+  // Use the stored renderMode so target replays look identical to the original.
+  const mode = renderMode !== undefined ? renderMode : Math.floor(Math.random() * 3);
   if (mode === 0) renderVerbalText(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
   else if (mode === 1) renderVerbalBlended(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
   else renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
@@ -187,13 +178,13 @@ function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWord
 }
 
 // ── Main dispatch ──────────────────────────────────────────────────────────────
-// stimulus: optional {rel, wordA?, wordB?} entry — if provided, verbal words are locked (replay)
+// stimulus: {rel, wordA?, wordB?, shapeA, shapeB, colorA, colorB, renderMode} — always provided
 export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisuals, stimulus) {
   if (isVerbal(relationship)) {
-    return renderVerbal(ctx, canvasW, canvasH, relationship, stimulus?.wordA, stimulus?.wordB);
+    return renderVerbal(ctx, canvasW, canvasH, relationship, stimulus?.wordA, stimulus?.wordB, stimulus?.renderMode);
   }
 
-  const visuals = randomVisuals(prevVisuals);
+  const visuals = getVisuals(stimulus);
   const cx = canvasW / 2;
   const cy = canvasH / 2;
   ctx.clearRect(0, 0, canvasW, canvasH);

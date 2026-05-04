@@ -20,7 +20,6 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   const [feedbackB, setFeedbackB] = useState(null);
   const [feedbackC, setFeedbackC] = useState(null);
   const [clearCanvas, setClearCanvas] = useState(false);
-  const [prevVisuals, setPrevVisuals] = useState(null);
 
   const respondedARef = useRef(false);
   const respondedBRef = useRef(false);
@@ -158,8 +157,6 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
         <GameCanvas
           relationship={!clearCanvas ? gameState.currentRelationship : null}
           stimulus={gameState.currentStimulusA}
-          prevVisuals={prevVisuals}
-          onVisualsRendered={(v) => setPrevVisuals(v)}
           clearCanvas={clearCanvas}
         />
 
@@ -181,8 +178,6 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           <GameCanvas
             relationship={!clearCanvas ? gameState.currentRelationshipB : null}
             stimulus={gameState.currentStimulusB}
-            prevVisuals={null}
-            onVisualsRendered={() => {}}
             clearCanvas={clearCanvas}
           />
           <div className="absolute top-2 left-3">

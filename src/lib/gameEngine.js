@@ -1,6 +1,8 @@
 import {
   RELATIONSHIPS as ALL_RELATIONSHIPS,
   RELATIONSHIP_CATEGORIES,
+  SHAPES,
+  COLORS,
   MATCH_CHANCE,
   DUAL_MATCH_CHANCE,
   HIER_MATCH_CHANCE,
@@ -17,22 +19,24 @@ import {
   getVerbalPair,
 } from './gameConstants';
 
-// Generate a stable stimulus key: for verbal, includes the word pair so matching
-// requires the same triple (A, relation, B), not just the relation type.
+// Generate a stable stimulus entry. Visuals (shapes, colors, renderMode) are chosen
+// at generation time and stored so a target replay looks identical to the original.
 function makeStimulusEntry(rel) {
+  const shapeA = pickRandom(SHAPES);
+  const shapeB = pickRandomExcluding(SHAPES, shapeA);
+  const colorA = pickRandom(COLORS);
+  const colorB = pickRandomExcluding(COLORS, colorA);
+  const renderMode = Math.floor(Math.random() * 3); // 0, 1, 2 — maps to renderer modes
   if (isVerbal(rel)) {
     const [wordA, wordB] = getVerbalPair(rel);
-    return { rel, wordA, wordB };
+    return { rel, wordA, wordB, shapeA, shapeB, colorA, colorB, renderMode };
   }
-  return { rel };
+  return { rel, shapeA, shapeB, colorA, colorB, renderMode };
 }
 
 function stimuliMatch(a, b) {
   if (!a || !b) return false;
-  if (a.rel !== b.rel) return false;
-  // For verbal: both wordA and wordB must also match
-  if (a.wordA !== undefined) return a.wordA === b.wordA && a.wordB === b.wordB;
-  return true;
+  return a === b; // target is always the exact same object reference (replayed from history)
 }
 
 // ─── State Creation ──────────────────────────────────────────────────────────
