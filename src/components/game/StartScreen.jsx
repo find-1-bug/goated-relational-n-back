@@ -4,6 +4,25 @@ import { Brain, Zap, TrendingUp, Layers, GitBranch, Shuffle, ChevronDown, Chevro
 import { motion, AnimatePresence } from 'framer-motion';
 import { RELATIONSHIP_CATEGORIES } from '@/lib/gameConstants';
 
+// Build a weighted pool from category weights + enabled rels
+// Each category's rels are repeated proportionally to its weight
+function buildWeightedPool(enabledRels, catWeights) {
+  const REPEAT = 10; // granularity
+  const pool = [];
+  const cats = Object.keys(RELATIONSHIP_CATEGORIES);
+  const totalWeight = cats.reduce((s, c) => s + (catWeights[c] || 0), 0);
+  if (totalWeight === 0) return [...enabledRels];
+  for (const cat of cats) {
+    const w = catWeights[cat] || 0;
+    if (w === 0) continue;
+    const members = RELATIONSHIP_CATEGORIES[cat].filter(r => enabledRels.has(r));
+    if (members.length === 0) continue;
+    const repeats = Math.max(1, Math.round((w / totalWeight) * REPEAT * cats.length));
+    for (let i = 0; i < repeats; i++) pool.push(...members);
+  }
+  return pool.length > 0 ? pool : [...enabledRels];
+}
+
 const MODE_OPTIONS = [
   { id: 'variable_n',   icon: Shuffle,    label: 'Variable N',   desc: 'N changes randomly each trial (±1 around your chosen N). Forces flexible updating.' },
   { id: 'adaptive',     icon: TrendingUp, label: 'Adaptive N',   desc: 'N auto-adjusts between sessions based on accuracy (≥80% → up, ≤50% → down)' },
@@ -78,6 +97,12 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const [rounds, setRounds] = React.useState(lastSettings?.rounds || 20);
   const [speedMs, setSpeedMs] = React.useState(lastSettings?.speedMs || 2800);
 
+  // Category mix weights (0–100 sliders, equal by default)
+  const [catWeights, setCatWeights] = React.useState(
+    lastSettings?.catWeights || { SPATIAL: 25, TRAIT: 25, QUANT: 25, VERBAL: 25 }
+  );
+  const [useCustomMix, setUseCustomMix] = React.useState(lastSettings?.useCustomMix || false);
+
   // Selected individual relationships
   const [enabledRels, setEnabledRels] = React.useState(
     lastSettings?.rels ? new Set(lastSettings.rels) : new Set(allRels)
@@ -132,6 +157,15 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
   const selectedRels = [...enabledRels];
   const totalRels = Object.values(RELATIONSHIP_CATEGORIES).flat().length;
+
+  // Build final pool (weighted or flat)
+  const finalPool = useCustomMix ? buildWeightedPool(enabledRels, catWeights) : selectedRels;
+
+  const setCatWeight = (cat, val) => setCatWeights(prev => ({ ...prev, [cat]: Number(val) }));
+
+  // Normalize weights to show % of total
+  const totalW = Object.values(catWeights).reduce((s, v) => s + v, 0);
+  const normalizedPct = (cat) => totalW > 0 ? Math.round((catWeights[cat] / totalW) * 100) : 0;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -237,6 +271,60 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
           </AnimatePresence>
         </div>
 
+        {/* Stimuli Mix */}
+        <div className="space-y-2">
+          <button
+            onClick={() => setUseCustomMix(v => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/50 border border-border hover:border-muted-foreground/40 transition-colors">
+            <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Stimuli Mix</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-primary">{useCustomMix ? 'Custom' : 'Equal'}</span>
+              {useCustomMix ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {useCustomMix && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden">
+                <div className="space-y-3 pt-1 px-1">
+                  {Object.entries(CATEGORY_META).map(([cat, meta]) => {
+                    const hasMembersEnabled = RELATIONSHIP_CATEGORIES[cat].some(r => enabledRels.has(r));
+                    if (!hasMembersEnabled) return null;
+                    const pct = normalizedPct(cat);
+                    return (
+                      <div key={cat} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-mono font-semibold ${meta.color}`}>{meta.label}</span>
+                          <span className="text-xs font-mono text-muted-foreground">{pct}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            value={catWeights[cat]}
+                            onChange={e => setCatWeight(cat, e.target.value)}
+                            className="flex-1 h-1.5 accent-current rounded-full cursor-pointer"
+                            style={{ accentColor: meta.color.replace('text-', '').includes('cyan') ? '#22d3ee' : meta.color.includes('violet') ? '#a78bfa' : meta.color.includes('amber') ? '#fbbf24' : '#34d399' }}
+                          />
+                          <div className="flex gap-1">
+                            <button onClick={() => setCatWeight(cat, Math.max(0, catWeights[cat] - 5))}
+                              className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">−</button>
+                            <button onClick={() => setCatWeight(cat, Math.min(100, catWeights[cat] + 5))}
+                              className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="text-xs font-mono text-muted-foreground/50">Weights are relative — they don't need to sum to 100.</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Session Length & Speed */}
         <div className="grid grid-cols-2 gap-3">
           {/* Trials */}
@@ -310,7 +398,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
         {/* Start */}
         <div className="flex justify-center pb-4">
           <Button
-            onClick={() => onStart(nLevel, modes, selectedRels, rounds, speedMs)}
+            onClick={() => onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels })}
             className="h-12 px-10 font-mono font-semibold text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90">
             Start Training
           </Button>

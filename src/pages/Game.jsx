@@ -17,13 +17,20 @@ export default function Game() {
   // Last-used settings to restore on StartScreen
   const [lastSettings, setLastSettings] = useState(null);
 
-  const handleStart = (n, selectedModes, selectedRels, totalRounds, stimulusMs) => {
+  const handleStart = (n, selectedModes, poolRels, totalRounds, stimulusMs, extraSettings) => {
     setNLevel(n);
     setModes(selectedModes);
-    setRelationshipPool(selectedRels && selectedRels.length > 0 ? selectedRels : null);
+    setRelationshipPool(poolRels && poolRels.length > 0 ? poolRels : null);
     setRounds(totalRounds || 20);
     setSpeedMs(stimulusMs || 2800);
-    setLastSettings({ n, modes: selectedModes, rels: selectedRels, rounds: totalRounds || 20, speedMs: stimulusMs || 2800 });
+    setLastSettings({
+      n, modes: selectedModes,
+      rels: extraSettings?.rels || poolRels,
+      rounds: totalRounds || 20,
+      speedMs: stimulusMs || 2800,
+      catWeights: extraSettings?.catWeights,
+      useCustomMix: extraSettings?.useCustomMix,
+    });
     setScreen('playing');
   };
 
