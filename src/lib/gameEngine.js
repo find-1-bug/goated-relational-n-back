@@ -17,7 +17,18 @@ import {
   pickRandomExcluding,
   isVerbal,
   getVerbalPair,
+  makeInverseStimulus,
 } from './gameConstants';
+
+// Visual inverse map: relationships where swapping A↔B gives the semantic inverse
+// e.g. ABOVE_BELOW: A above B → B above A is the same relationship (symmetric)
+// but for directional ones like SIZE_MISMATCH: big A / small B → big B / small A
+// We handle this by swapping shapeA/colorA with shapeB/colorB
+const VISUAL_SYMMETRIC = new Set([
+  'OVERLAPPING','TOUCHING','MIRRORED','CONNECTED','EQUAL_COUNT',
+  'SAME_COLOR','SAME_SHAPE','OPPOSITE_COLORS','BORDER_ONLY','BALANCED_SCALE',
+  'NEXT_TO','LEFT_RIGHT','SCATTERED','NESTED_3',
+]);
 
 // Generate a stable stimulus entry. Visuals (shapes, colors, renderMode) are chosen
 // at generation time and stored so a target replay looks identical to the original.
@@ -32,6 +43,19 @@ function makeStimulusEntry(rel) {
     return { rel, wordA, wordB, shapeA, shapeB, colorA, colorB, renderMode };
   }
   return { rel, shapeA, shapeB, colorA, colorB, renderMode };
+}
+
+// For non-verbal targets: 25% chance produce a visually "inverted" version
+// (swap A/B roles) — same relationship, different assignment of shapes
+function maybeInvertVisual(entry) {
+  if (!entry || Math.random() >= 0.25) return entry;
+  return {
+    ...entry,
+    shapeA: entry.shapeB,
+    shapeB: entry.shapeA,
+    colorA: entry.colorB,
+    colorB: entry.colorA,
+  };
 }
 
 function stimuliMatch(a, b) {
@@ -130,9 +154,13 @@ export function generateNextStimulus(state) {
   let stimA, isTargetA, isDistractor = false;
   const nBackEntryA = canTargetEffective ? historyA[historyA.length - effectiveN] : null;
   if (canTargetEffective && Math.random() < MATCH_CHANCE) {
-    // Verbal: replay exact object so words + renderMode are identical.
-    // Non-verbal: create a fresh stimulus with the same rel (new random visuals each time).
-    stimA = isVerbal(nBackEntryA?.rel) ? nBackEntryA : makeStimulusEntry(nBackEntryA.rel);
+    if (isVerbal(nBackEntryA?.rel)) {
+      // 35% chance: produce the semantic inverse (B inv-rel A) instead of exact replay
+      const inv = Math.random() < 0.35 ? makeInverseStimulus(nBackEntryA) : null;
+      stimA = inv || nBackEntryA;
+    } else {
+      stimA = maybeInvertVisual(makeStimulusEntry(nBackEntryA.rel));
+    }
     isTargetA = true;
   } else {
     if (hasDistractors && canTargetEffective && Math.random() < DISTRACTOR_CHANCE) {
@@ -152,7 +180,12 @@ export function generateNextStimulus(state) {
   if (isDual) {
     const nBackEntryB = canTarget ? historyB[historyB.length - nLevel] : null;
     if (canTarget && Math.random() < DUAL_MATCH_CHANCE) {
-      stimB = isVerbal(nBackEntryB?.rel) ? nBackEntryB : makeStimulusEntry(nBackEntryB.rel);
+      if (isVerbal(nBackEntryB?.rel)) {
+        const inv = Math.random() < 0.35 ? makeInverseStimulus(nBackEntryB) : null;
+        stimB = inv || nBackEntryB;
+      } else {
+        stimB = maybeInvertVisual(makeStimulusEntry(nBackEntryB.rel));
+      }
       isTargetB = true;
     } else {
       const excludeRel = nBackEntryB?.rel;

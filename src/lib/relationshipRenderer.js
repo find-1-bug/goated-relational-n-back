@@ -1,5 +1,5 @@
 import { drawShape } from './shapeRenderer';
-import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, getVerbalPair, buildVerbalDisplay, pickTokenType, pickTokenWord } from './gameConstants';
+import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, getVerbalPair, buildVerbalDisplay, pickTokenType, pickTokenWord, encodeVoronoiToken } from './gameConstants';
 
 // Visuals are now always taken from the stimulus entry (pre-generated in gameEngine).
 // This ensures target replays look identical to the original stimulus.
@@ -29,13 +29,96 @@ function drawVerbalPill(ctx, cx, cy, canvasW, canvasH) {
   return pillH;
 }
 
+// ── Voronoi pattern renderer ──────────────────────────────────────────────────
+// Draws a small procedural voronoi-like cell pattern centered at (cx, cy)
+// Uses a seeded set of random points from the token string as seed
+function drawVoronoiToken(ctx, seed, cx, cy, size, color) {
+  const N = 6; // number of cells
+  // Generate stable points from seed string
+  const pts = [];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) & 0xffff;
+  const rng = (offset) => {
+    let x = Math.sin(h + offset) * 43758.5453123;
+    return x - Math.floor(x);
+  };
+  for (let i = 0; i < N; i++) {
+    pts.push({
+      x: cx + (rng(i * 2) - 0.5) * size,
+      y: cy + (rng(i * 2 + 1) - 0.5) * size,
+    });
+  }
+
+  // For each pixel in bounding box, find nearest cell and color it
+  const s = Math.round(size);
+  const x0 = Math.round(cx - s / 2);
+  const y0 = Math.round(cy - s / 2);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, s / 2, 0, Math.PI * 2);
+  ctx.clip();
+
+  // Parse hex color to rgba
+  const r = parseInt(color.slice(1, 3), 16);
+  const g = parseInt(color.slice(3, 5), 16);
+  const b = parseInt(color.slice(5, 7), 16);
+
+  for (let pi = 0; pi < N; pi++) {
+    // Find voronoi cell boundary by drawing the nearest-neighbor polygon
+    // Efficient approximation: draw small filled regions around each center
+    const alpha = 0.55 + (pi / N) * 0.45;
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+    ctx.beginPath();
+    ctx.arc(pts[pi].x, pts[pi].y, s * 0.22, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Draw cell edges
+  ctx.strokeStyle = `rgba(${r},${g},${b},0.5)`;
+  ctx.lineWidth = 0.8;
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 1; j < N; j++) {
+      const dx = pts[j].x - pts[i].x;
+      const dy = pts[j].y - pts[i].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < s * 0.55) {
+        ctx.beginPath();
+        ctx.moveTo(pts[i].x, pts[i].y);
+        ctx.lineTo(pts[j].x, pts[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Dot at each cell center
+  ctx.fillStyle = `rgba(${r},${g},${b},0.9)`;
+  pts.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.restore();
+}
+
 // Determine if a token is an emoji/symbol (render larger, no quotes)
 function isSymbol(tok) {
   return /\p{Emoji}/u.test(tok) || /^[◈◉◊◌◍◎●○◐◑◒◓▲△▴▵▶▷▸▹►▻▼▽◆◇❋✦✧✩✪✫✬✭✮⬡⬢⬣⬟⬠⬤⭕🔷🔶🔹🔸🔺🔻💠🔘🔳🔲⌬⎔⏣⟁⟐⟡]/.test(tok);
 }
 
+// Voronoi token detection — prefix matches encodeVoronoiToken in gameConstants
+const VORONOI_PREFIX = '\x00V:';
+function isVoronoi(tok) { return typeof tok === 'string' && tok.startsWith(VORONOI_PREFIX); }
+function voronoiSeed(tok) { return tok.slice(VORONOI_PREFIX.length); }
+
 // Draw a single token (word, nonsense, emoji, voronoi) centered at (x,y)
 function drawToken(ctx, token, x, y, canvasW, color) {
+  if (isVoronoi(token)) {
+    const size = Math.min(canvasW * 0.22, 72);
+    drawVoronoiToken(ctx, voronoiSeed(token), x, y, size, color);
+    return;
+  }
   const sym = isSymbol(token);
   const fontSize = sym ? Math.min(canvasW * 0.12, 48) : Math.min(canvasW * 0.082, 34);
   ctx.save();

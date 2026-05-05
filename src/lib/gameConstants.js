@@ -69,7 +69,7 @@ export function getCategory(relationship) {
 
 // ─── Token Type System ─────────────────────────────────────────────────────────
 // Each stimulus word can be rendered as one of these token types
-export const TOKEN_TYPES = ['meaningful', 'nonsense', 'garbage', 'emoji', 'voronoi_emoji'];
+export const TOKEN_TYPES = ['meaningful', 'nonsense', 'garbage', 'emoji', 'voronoi_emoji', 'random_string', 'voronoi'];
 
 // Meaningful words grouped by semantic field
 const MEANINGFUL_POOLS = {
@@ -122,6 +122,11 @@ const VORONOI_EMOJI_POOL = [
   '⬤','⭕','🔷','🔶','🔹','🔸','🔺','🔻','💠','🔘','🔳','🔲',
 ];
 
+// voronoi seed: a short unique-ish string used as RNG seed for the pattern
+function makeVoronoiSeed() { return makeGarbage(5) + Math.floor(Math.random() * 999); }
+const VORONOI_TOKEN_PREFIX = '\x00V:';
+export function encodeVoronoiToken(seed) { return VORONOI_TOKEN_PREFIX + seed; }
+
 export function pickTokenWord(type, garbageLen = 3) {
   switch (type) {
     case 'meaningful':    return pickMeaningful();
@@ -129,6 +134,8 @@ export function pickTokenWord(type, garbageLen = 3) {
     case 'garbage':       return makeGarbage(garbageLen);
     case 'emoji':         return EMOJI_POOL[Math.floor(Math.random() * EMOJI_POOL.length)];
     case 'voronoi_emoji': return VORONOI_EMOJI_POOL[Math.floor(Math.random() * VORONOI_EMOJI_POOL.length)];
+    case 'random_string': return makeRandomString();
+    case 'voronoi':       return encodeVoronoiToken(makeVoronoiSeed());
     default:              return pickMeaningful();
   }
 }
@@ -136,11 +143,22 @@ export function pickTokenWord(type, garbageLen = 3) {
 // Pick a random token type, with weightings
 export function pickTokenType() {
   const r = Math.random();
-  if (r < 0.30) return 'meaningful';
-  if (r < 0.50) return 'emoji';
-  if (r < 0.65) return 'voronoi_emoji';
-  if (r < 0.80) return 'nonsense';
-  return 'garbage';
+  if (r < 0.22) return 'meaningful';
+  if (r < 0.36) return 'emoji';
+  if (r < 0.48) return 'voronoi_emoji';
+  if (r < 0.60) return 'nonsense';
+  if (r < 0.72) return 'garbage';
+  if (r < 0.86) return 'random_string';
+  return 'voronoi';
+}
+
+// Random uppercase/lowercase mixed string 4-6 chars — looks like a code token
+export function makeRandomString(len) {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const l = len || (4 + Math.floor(Math.random() * 3));
+  let s = '';
+  for (let i = 0; i < l; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
 }
 
 // ─── Verbal word pools ─────────────────────────────────────────────────────────
@@ -209,6 +227,79 @@ export function getVerbalPair(relationship) {
   const pool = VERBAL_WORD_POOLS[relationship];
   if (!pool) return ['A', 'B'];
   return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// ─── Inverse relationship map ──────────────────────────────────────────────────
+// Maps a relationship to its semantic inverse. If A rel B matches, then B inv(rel) A
+// is an equivalent stimulus. Both should count as the same N-back target.
+export const INVERSE_RELATIONSHIP = {
+  // Comparison pairs
+  BIGGER_THAN:    'SMALLER_THAN',
+  SMALLER_THAN:   'BIGGER_THAN',
+  MORE_THAN:      'LESS_THAN',
+  LESS_THAN:      'MORE_THAN',
+  FASTER_THAN:    'SLOWER_THAN',
+  SLOWER_THAN:    'FASTER_THAN',
+  HEAVIER_THAN:   'LIGHTER_THAN',
+  LIGHTER_THAN:   'HEAVIER_THAN',
+  HOTTER_THAN:    'COLDER_THAN',
+  COLDER_THAN:    'HOTTER_THAN',
+  LOUDER_THAN:    'SOFTER_THAN',
+  SOFTER_THAN:    'LOUDER_THAN',
+  STRONGER_THAN:  'WEAKER_THAN',
+  WEAKER_THAN:    'STRONGER_THAN',
+  OLDER_THAN:     'NEWER_THAN',
+  NEWER_THAN:     'OLDER_THAN',
+  HIGHER_THAN:    'LOWER_THAN',
+  LOWER_THAN:     'HIGHER_THAN',
+  CLOSER_THAN:    'FURTHER_THAN',
+  FURTHER_THAN:   'CLOSER_THAN',
+  // Temporal
+  BEFORE:         'AFTER',
+  AFTER:          'BEFORE',
+  FOLLOWS:        'PRECEDES',
+  PRECEDES:       'FOLLOWS',
+  // Directional
+  LEFT_OF:        'RIGHT_OF',
+  RIGHT_OF:       'LEFT_OF',
+  ABOVE:          'BELOW',
+  BELOW:          'ABOVE',
+  NORTH_OF:       'SOUTH_OF',
+  SOUTH_OF:       'NORTH_OF',
+  EAST_OF:        'WEST_OF',
+  WEST_OF:        'EAST_OF',
+  NORTH_EAST_OF:  'SOUTH_WEST_OF',
+  SOUTH_WEST_OF:  'NORTH_EAST_OF',
+  NORTH_WEST_OF:  'SOUTH_EAST_OF',
+  SOUTH_EAST_OF:  'NORTH_WEST_OF',
+  INSIDE_OF:      'OUTSIDE_OF',
+  OUTSIDE_OF:     'INSIDE_OF',
+  // Semantic inverses (commutative / reversible)
+  SAME_AS:        'SAME_AS',      // symmetric
+  OPPOSITE_OF:    'OPPOSITE_OF',  // symmetric
+  MATCHES:        'MATCHES',      // symmetric
+  MIRRORS:        'MIRRORS',      // symmetric
+  NEXT_TO:        'NEXT_TO',      // symmetric
+  CAUSES:         'DEPENDS_ON',
+  DEPENDS_ON:     'CAUSES',
+  CONTAINS:       'PART_OF',
+  PART_OF:        'CONTAINS',
+  BELONGS_TO:     'CONTAINS',
+};
+
+// Given a relationship and its [wordA, wordB], produce the inverted form:
+// inverted rel = INVERSE_RELATIONSHIP[rel], and swap the words.
+// Returns { rel, wordA, wordB } or null if no inverse defined.
+export function makeInverseStimulus(stimulus) {
+  const inv = INVERSE_RELATIONSHIP[stimulus.rel];
+  if (!inv) return null;
+  return {
+    ...stimulus,
+    rel: inv,
+    wordA: stimulus.wordB,
+    wordB: stimulus.wordA,
+    // renderMode stays the same so layout is identical but words/rel flip
+  };
 }
 
 // ─── Template phrases for verbal display ──────────────────────────────────────
