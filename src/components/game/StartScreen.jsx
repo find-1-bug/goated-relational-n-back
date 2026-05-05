@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Brain, Zap, TrendingUp, Layers, GitBranch, Shuffle, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RELATIONSHIP_CATEGORIES } from '@/lib/gameConstants';
+import { RELATIONSHIP_CATEGORIES, setTokenWeights, getTokenWeights } from '@/lib/gameConstants';
 
 // Build a weighted pool from category weights + enabled rels
 // Each category's rels are repeated proportionally to its weight
@@ -102,6 +102,26 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
     lastSettings?.catWeights || { SPATIAL: 25, TRAIT: 25, QUANT: 25, VERBAL: 25 }
   );
   const [useCustomMix, setUseCustomMix] = React.useState(lastSettings?.useCustomMix || false);
+
+  // Token type weights for verbal stimuli
+  const [tokenWeights, setTokenWeightsState] = React.useState(
+    lastSettings?.tokenWeights || getTokenWeights()
+  );
+  const [showTokenMix, setShowTokenMix] = React.useState(false);
+
+  const TOKEN_META = [
+    { id: 'meaningful',    label: 'Words',        color: '#22d3ee', desc: 'Real words (sun, fire, mind…)' },
+    { id: 'nonsense',      label: 'Nonsense',     color: '#a78bfa', desc: 'Pronounceable but meaningless (blim, quor…)' },
+    { id: 'garbage',       label: 'Garbage',      color: '#f87171', desc: 'Random letter strings (xqz, bvp…)' },
+    { id: 'emoji',         label: 'Emoji',        color: '#fbbf24', desc: 'Emoji symbols (🔥, 💧, 🌀…)' },
+    { id: 'voronoi_emoji', label: 'Abstract',     color: '#34d399', desc: 'Geometric unicode symbols (◈, ⬡, ⟐…)' },
+    { id: 'random_string', label: 'Random Str',   color: '#fb923c', desc: 'Alphanumeric codes (Xk3F, aB9z…)' },
+    { id: 'voronoi',       label: 'Voronoi',      color: '#818cf8', desc: 'Procedural cell pattern graphics' },
+  ];
+
+  const setTokenWeight = (id, val) => setTokenWeightsState(prev => ({ ...prev, [id]: Number(val) }));
+  const totalTW = Object.values(tokenWeights).reduce((s, v) => s + v, 0);
+  const tokenPct = (id) => totalTW > 0 ? Math.round((tokenWeights[id] / totalTW) * 100) : 0;
 
   // Selected individual relationships
   const [enabledRels, setEnabledRels] = React.useState(
@@ -325,6 +345,60 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
           </AnimatePresence>
         </div>
 
+        {/* Token Mix (for verbal stimuli) */}
+        <div className="space-y-2">
+          <button
+            onClick={() => setShowTokenMix(v => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/50 border border-border hover:border-muted-foreground/40 transition-colors">
+            <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Token Style Mix</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-primary/70 truncate max-w-[160px]">
+                {TOKEN_META.filter(t => tokenWeights[t.id] > 0).map(t => `${t.label} ${tokenPct(t.id)}%`).join(' · ')}
+              </span>
+              {showTokenMix ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {showTokenMix && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden">
+                <div className="space-y-3 pt-1 px-1">
+                  {TOKEN_META.map(({ id, label, color, desc }) => (
+                    <div key={id} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-mono font-semibold" style={{ color }}>{label}</span>
+                          <span className="text-xs font-mono text-muted-foreground/50 ml-2">{desc}</span>
+                        </div>
+                        <span className="text-xs font-mono text-muted-foreground">{tokenPct(id)}%</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={tokenWeights[id]}
+                          onChange={e => setTokenWeight(id, e.target.value)}
+                          className="flex-1 h-1.5 rounded-full cursor-pointer"
+                          style={{ accentColor: color }}
+                        />
+                        <div className="flex gap-1">
+                          <button onClick={() => setTokenWeight(id, Math.max(0, tokenWeights[id] - 5))}
+                            className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">−</button>
+                          <button onClick={() => setTokenWeight(id, Math.min(100, tokenWeights[id] + 5))}
+                            className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">+</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-xs font-mono text-muted-foreground/50">Controls token style in verbal stimuli. Set to 0 to disable a type.</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Session Length & Speed */}
         <div className="grid grid-cols-2 gap-3">
           {/* Trials */}
@@ -398,7 +472,10 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
         {/* Start */}
         <div className="flex justify-center pb-4">
           <Button
-            onClick={() => onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels })}
+            onClick={() => {
+              setTokenWeights(tokenWeights);
+              onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights });
+            }}
             className="h-12 px-10 font-mono font-semibold text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90">
             Start Training
           </Button>

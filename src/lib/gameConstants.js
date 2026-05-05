@@ -140,16 +140,36 @@ export function pickTokenWord(type, garbageLen = 3) {
   }
 }
 
-// Pick a random token type, with weightings
+// Token type weights — can be overridden from the UI
+let _tokenWeights = {
+  meaningful:    22,
+  emoji:         14,
+  voronoi_emoji: 12,
+  nonsense:      12,
+  garbage:       12,
+  random_string: 14,
+  voronoi:       14,
+};
+
+export function setTokenWeights(weights) {
+  _tokenWeights = { ..._tokenWeights, ...weights };
+}
+
+export function getTokenWeights() {
+  return { ..._tokenWeights };
+}
+
+// Pick a random token type using current weights
 export function pickTokenType() {
-  const r = Math.random();
-  if (r < 0.22) return 'meaningful';
-  if (r < 0.36) return 'emoji';
-  if (r < 0.48) return 'voronoi_emoji';
-  if (r < 0.60) return 'nonsense';
-  if (r < 0.72) return 'garbage';
-  if (r < 0.86) return 'random_string';
-  return 'voronoi';
+  const entries = Object.entries(_tokenWeights);
+  const total = entries.reduce((s, [, w]) => s + w, 0);
+  if (total === 0) return 'meaningful';
+  let r = Math.random() * total;
+  for (const [type, w] of entries) {
+    r -= w;
+    if (r <= 0) return type;
+  }
+  return entries[entries.length - 1][0];
 }
 
 // Random uppercase/lowercase mixed string 4-6 chars — looks like a code token

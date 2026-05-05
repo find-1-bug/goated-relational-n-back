@@ -30,6 +30,7 @@ export default function Game() {
       speedMs: stimulusMs || 2800,
       catWeights: extraSettings?.catWeights,
       useCustomMix: extraSettings?.useCustomMix,
+      tokenWeights: extraSettings?.tokenWeights,
     });
     setScreen('playing');
   };
