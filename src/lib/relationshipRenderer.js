@@ -1,5 +1,5 @@
 import { drawShape } from './shapeRenderer';
-import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, getVerbalPair, buildVerbalDisplay, pickTokenType, pickTokenWord, encodeVoronoiToken } from './gameConstants';
+import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, getVerbalPair, buildVerbalDisplay, pickTokenType, pickTokenWord } from './gameConstants';
 
 // Visuals are now always taken from the stimulus entry (pre-generated in gameEngine).
 // This ensures target replays look identical to the original stimulus.
@@ -29,76 +29,130 @@ function drawVerbalPill(ctx, cx, cy, canvasW, canvasH) {
   return pillH;
 }
 
-// ── Voronoi pattern renderer ──────────────────────────────────────────────────
-// Draws a small procedural voronoi-like cell pattern centered at (cx, cy)
-// Uses a seeded set of random points from the token string as seed
-function drawVoronoiToken(ctx, seed, cx, cy, size, color) {
-  const N = 6; // number of cells
-  // Generate stable points from seed string
-  const pts = [];
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) & 0xffff;
-  const rng = (offset) => {
-    let x = Math.sin(h + offset) * 43758.5453123;
-    return x - Math.floor(x);
+// ── Full-canvas Voronoi renderer ──────────────────────────────────────────────
+// Renders a proper Voronoi diagram filling the entire canvas (like the reference images).
+// Uses a clipping-region approach: for each cell, clip to a polygon formed by the
+// perpendicular bisectors with all other cells, then fill. Fast and accurate.
+export function renderVoronoiCanvas(ctx, canvasW, canvasH, seed) {
+  const N = 4 + (seed % 4); // 4–7 cells
+  // Seeded RNG
+  let h = seed | 1;
+  const rng = () => {
+    h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+    h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+    h = h ^ (h >>> 16);
+    return (h >>> 0) / 0xffffffff;
   };
-  for (let i = 0; i < N; i++) {
-    pts.push({
-      x: cx + (rng(i * 2) - 0.5) * size,
-      y: cy + (rng(i * 2 + 1) - 0.5) * size,
-    });
-  }
 
-  // For each pixel in bounding box, find nearest cell and color it
-  const s = Math.round(size);
-  const x0 = Math.round(cx - s / 2);
-  const y0 = Math.round(cy - s / 2);
+  const PALETTES = [
+    ['#1DB88A', '#151D2E', '#0F3460'],
+    ['#F4A261', '#264653', '#2EC4B6', '#E9C46A'],
+    ['#A8DADC', '#457B9D', '#1D3557'],
+    ['#95D5B2', '#B5838D', '#E5989B', '#6D6875'],
+    ['#FF6B6B', '#4ECDC4', '#45B7D1'],
+    ['#A29BFE', '#6C5CE7', '#FD79A8'],
+    ['#74B9FF', '#0984E3', '#2D3436'],
+    ['#81ECEC', '#6C5CE7', '#FDCB6E', '#E17055'],
+  ];
+  const palette = PALETTES[seed % PALETTES.length];
 
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, s / 2, 0, Math.PI * 2);
-  ctx.clip();
-
-  // Parse hex color to rgba
-  const r = parseInt(color.slice(1, 3), 16);
-  const g = parseInt(color.slice(3, 5), 16);
-  const b = parseInt(color.slice(5, 7), 16);
-
-  for (let pi = 0; pi < N; pi++) {
-    // Find voronoi cell boundary by drawing the nearest-neighbor polygon
-    // Efficient approximation: draw small filled regions around each center
-    const alpha = 0.55 + (pi / N) * 0.45;
-    ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
-    ctx.beginPath();
-    ctx.arc(pts[pi].x, pts[pi].y, s * 0.22, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Draw cell edges
-  ctx.strokeStyle = `rgba(${r},${g},${b},0.5)`;
-  ctx.lineWidth = 0.8;
-  for (let i = 0; i < N; i++) {
-    for (let j = i + 1; j < N; j++) {
-      const dx = pts[j].x - pts[i].x;
-      const dy = pts[j].y - pts[i].y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < s * 0.55) {
-        ctx.beginPath();
-        ctx.moveTo(pts[i].x, pts[i].y);
-        ctx.lineTo(pts[j].x, pts[j].y);
-        ctx.stroke();
-      }
+  // Cell centers — well-spread using a jittered grid
+  const cols = Math.ceil(Math.sqrt(N));
+  const rows = Math.ceil(N / cols);
+  const pts = [];
+  for (let r = 0; r < rows && pts.length < N; r++) {
+    for (let c = 0; c < cols && pts.length < N; c++) {
+      const jx = (rng() - 0.5) * 0.5;
+      const jy = (rng() - 0.5) * 0.5;
+      pts.push({
+        x: canvasW * ((c + 0.5 + jx) / cols),
+        y: canvasH * ((r + 0.5 + jy) / rows),
+        color: palette[pts.length % palette.length],
+      });
     }
   }
 
-  // Dot at each cell center
-  ctx.fillStyle = `rgba(${r},${g},${b},0.9)`;
-  pts.forEach(p => {
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
-    ctx.fill();
-  });
+  // For each cell, compute its Voronoi region via half-plane intersection
+  // Start with full canvas rectangle, then clip by each bisector
+  for (let i = 0; i < pts.length; i++) {
+    // Polygon = canvas corners
+    let poly = [
+      { x: 0, y: 0 }, { x: canvasW, y: 0 },
+      { x: canvasW, y: canvasH }, { x: 0, y: canvasH },
+    ];
 
+    for (let j = 0; j < pts.length; j++) {
+      if (i === j) continue;
+      // Half-plane: points closer to pts[i] than pts[j]
+      // Bisector midpoint and normal
+      const mx = (pts[i].x + pts[j].x) / 2;
+      const my = (pts[i].y + pts[j].y) / 2;
+      const nx = pts[j].x - pts[i].x; // normal points toward pts[j]
+      const ny = pts[j].y - pts[i].y;
+      // Keep side where dot(p - mid, n) <= 0 (i.e., closer to pts[i])
+      poly = clipPolygonByHalfPlane(poly, mx, my, -nx, -ny);
+      if (poly.length === 0) break;
+    }
+
+    if (poly.length < 3) continue;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(poly[0].x, poly[0].y);
+    for (let k = 1; k < poly.length; k++) ctx.lineTo(poly[k].x, poly[k].y);
+    ctx.closePath();
+    ctx.fillStyle = pts[i].color;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// Sutherland-Hodgman clip polygon against half-plane defined by point (mx,my) and inward normal (nx,ny)
+function clipPolygonByHalfPlane(poly, mx, my, nx, ny) {
+  if (poly.length === 0) return [];
+  const inside = p => (p.x - mx) * nx + (p.y - my) * ny >= 0;
+  const intersect = (a, b) => {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const denom = dx * nx + dy * ny;
+    if (Math.abs(denom) < 1e-10) return a;
+    const t = ((mx - a.x) * nx + (my - a.y) * ny) / denom;
+    return { x: a.x + t * dx, y: a.y + t * dy };
+  };
+  const out = [];
+  for (let i = 0; i < poly.length; i++) {
+    const cur = poly[i], prev = poly[(i + poly.length - 1) % poly.length];
+    const curIn = inside(cur), prevIn = inside(prev);
+    if (curIn) { if (!prevIn) out.push(intersect(prev, cur)); out.push(cur); }
+    else if (prevIn) out.push(intersect(prev, cur));
+  }
+  return out;
+}
+
+// ── Small Voronoi token renderer (for verbal stimuli tokens) ──────────────────
+function drawVoronoiToken(ctx, seed, cx, cy, size, color) {
+  const N = 6;
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) & 0xffff;
+  const rng = (offset) => { let x = Math.sin(h + offset) * 43758.5453123; return x - Math.floor(x); };
+  const pts = [];
+  for (let i = 0; i < N; i++) {
+    pts.push({ x: cx + (rng(i * 2) - 0.5) * size, y: cy + (rng(i * 2 + 1) - 0.5) * size });
+  }
+  const ri = parseInt(color.slice(1,3),16), gi = parseInt(color.slice(3,5),16), bi = parseInt(color.slice(5,7),16);
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, size/2, 0, Math.PI*2); ctx.clip();
+  for (let pi = 0; pi < N; pi++) {
+    const alpha = 0.5 + (pi/N)*0.5;
+    ctx.fillStyle = `rgba(${ri},${gi},${bi},${alpha.toFixed(2)})`;
+    ctx.beginPath(); ctx.arc(pts[pi].x, pts[pi].y, size*0.22, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.strokeStyle = `rgba(${ri},${gi},${bi},0.5)`; ctx.lineWidth = 0.8;
+  for (let i = 0; i < N; i++) for (let j = i+1; j < N; j++) {
+    const dx=pts[j].x-pts[i].x, dy=pts[j].y-pts[i].y;
+    if (Math.sqrt(dx*dx+dy*dy) < size*0.55) { ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.stroke(); }
+  }
+  ctx.fillStyle = `rgba(${ri},${gi},${bi},0.9)`;
+  pts.forEach(p => { ctx.beginPath(); ctx.arc(p.x,p.y,2.2,0,Math.PI*2); ctx.fill(); });
   ctx.restore();
 }
 
@@ -107,18 +161,10 @@ function isSymbol(tok) {
   return /\p{Emoji}/u.test(tok) || /^[◈◉◊◌◍◎●○◐◑◒◓▲△▴▵▶▷▸▹►▻▼▽◆◇❋✦✧✩✪✫✬✭✮⬡⬢⬣⬟⬠⬤⭕🔷🔶🔹🔸🔺🔻💠🔘🔳🔲⌬⎔⏣⟁⟐⟡]/.test(tok);
 }
 
-// Voronoi token detection — prefix matches encodeVoronoiToken in gameConstants
-const VORONOI_PREFIX = '\x00V:';
-function isVoronoi(tok) { return typeof tok === 'string' && tok.startsWith(VORONOI_PREFIX); }
-function voronoiSeed(tok) { return tok.slice(VORONOI_PREFIX.length); }
+// (Voronoi as a full-canvas stimulus is handled at the relationship level, not token level)
 
-// Draw a single token (word, nonsense, emoji, voronoi) centered at (x,y)
+// Draw a single token (word, nonsense, emoji, symbol) centered at (x,y)
 function drawToken(ctx, token, x, y, canvasW, color) {
-  if (isVoronoi(token)) {
-    const size = Math.min(canvasW * 0.22, 72);
-    drawVoronoiToken(ctx, voronoiSeed(token), x, y, size, color);
-    return;
-  }
   const sym = isSymbol(token);
   const fontSize = sym ? Math.min(canvasW * 0.12, 48) : Math.min(canvasW * 0.082, 34);
   ctx.save();
@@ -263,6 +309,13 @@ function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWord
 // ── Main dispatch ──────────────────────────────────────────────────────────────
 // stimulus: {rel, wordA?, wordB?, shapeA, shapeB, colorA, colorB, renderMode} — always provided
 export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisuals, stimulus) {
+  if (relationship === 'VORONOI') {
+    ctx.clearRect(0, 0, canvasW, canvasH);
+    const seed = stimulus?.voronoiSeed ?? Math.floor(Math.random() * 10000);
+    renderVoronoiCanvas(ctx, canvasW, canvasH, seed);
+    return {};
+  }
+
   if (isVerbal(relationship)) {
     return renderVerbal(ctx, canvasW, canvasH, relationship, stimulus?.wordA, stimulus?.wordB, stimulus?.renderMode);
   }

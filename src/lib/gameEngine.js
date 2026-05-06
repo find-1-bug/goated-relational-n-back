@@ -16,6 +16,7 @@ import {
   pickRandom,
   pickRandomExcluding,
   isVerbal,
+  isVisual,
   getVerbalPair,
   makeInverseStimulus,
 } from './gameConstants';
@@ -33,6 +34,10 @@ const VISUAL_SYMMETRIC = new Set([
 // Generate a stable stimulus entry. Visuals (shapes, colors, renderMode) are chosen
 // at generation time and stored so a target replay looks identical to the original.
 function makeStimulusEntry(rel) {
+  // VORONOI: full-canvas cell diagram — only needs a stable seed
+  if (isVisual(rel)) {
+    return { rel, voronoiSeed: Math.floor(Math.random() * 100000) };
+  }
   const shapeA = pickRandom(SHAPES);
   const shapeB = pickRandomExcluding(SHAPES, shapeA);
   const colorA = pickRandom(COLORS);

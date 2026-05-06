@@ -32,6 +32,7 @@ const MODE_OPTIONS = [
 ];
 
 const CATEGORY_META = {
+  VISUAL:  { label: 'Visual',       color: 'text-pink-400',   border: 'border-pink-400/40',   bg: 'bg-pink-400/10'  },
   SPATIAL: { label: 'Spatial',      color: 'text-cyan-400',   border: 'border-cyan-400/40',   bg: 'bg-cyan-400/10'  },
   TRAIT:   { label: 'Trait',        color: 'text-violet-400', border: 'border-violet-400/40', bg: 'bg-violet-400/10' },
   QUANT:   { label: 'Quantitative', color: 'text-amber-400',  border: 'border-amber-400/40',  bg: 'bg-amber-400/10' },
@@ -39,6 +40,8 @@ const CATEGORY_META = {
 };
 
 const REL_DISPLAY = {
+  // Visual
+  VORONOI: 'Voronoi',
   // Spatial
   INSIDE: 'Inside', OVERLAPPING: 'Overlapping', TOUCHING: 'Touching',
   ABOVE_BELOW: 'Above/Below', DIAGONAL: 'Diagonal', BETWEEN: 'Between',
@@ -99,24 +102,27 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
   // Category mix weights (0–100 sliders, equal by default)
   const [catWeights, setCatWeights] = React.useState(
-    lastSettings?.catWeights || { SPATIAL: 25, TRAIT: 25, QUANT: 25, VERBAL: 25 }
+    lastSettings?.catWeights || { VISUAL: 0, SPATIAL: 25, TRAIT: 25, QUANT: 25, VERBAL: 25 }
   );
   const [useCustomMix, setUseCustomMix] = React.useState(lastSettings?.useCustomMix || false);
 
   // Token type weights for verbal stimuli
-  const [tokenWeights, setTokenWeightsState] = React.useState(
-    lastSettings?.tokenWeights || getTokenWeights()
-  );
+  const [tokenWeights, setTokenWeightsState] = React.useState(() => {
+    const defaults = getTokenWeights();
+    const saved = lastSettings?.tokenWeights || {};
+    // Strip any old 'voronoi' key from saved settings
+    const { voronoi: _v, ...cleanSaved } = saved;
+    return { ...defaults, ...cleanSaved };
+  });
   const [showTokenMix, setShowTokenMix] = React.useState(false);
 
   const TOKEN_META = [
-    { id: 'meaningful',    label: 'Words',        color: '#22d3ee', desc: 'Real words (sun, fire, mind…)' },
-    { id: 'nonsense',      label: 'Nonsense',     color: '#a78bfa', desc: 'Pronounceable but meaningless (blim, quor…)' },
-    { id: 'garbage',       label: 'Garbage',      color: '#f87171', desc: 'Random letter strings (xqz, bvp…)' },
-    { id: 'emoji',         label: 'Emoji',        color: '#fbbf24', desc: 'Emoji symbols (🔥, 💧, 🌀…)' },
-    { id: 'voronoi_emoji', label: 'Abstract',     color: '#34d399', desc: 'Geometric unicode symbols (◈, ⬡, ⟐…)' },
-    { id: 'random_string', label: 'Random Str',   color: '#fb923c', desc: 'Alphanumeric codes (Xk3F, aB9z…)' },
-    { id: 'voronoi',       label: 'Voronoi',      color: '#818cf8', desc: 'Procedural cell pattern graphics' },
+    { id: 'meaningful',    label: 'Words',       color: '#22d3ee', desc: 'Real words (sun, fire, mind…)' },
+    { id: 'nonsense',      label: 'Nonsense',    color: '#a78bfa', desc: 'Pronounceable but meaningless (blim, quor…)' },
+    { id: 'garbage',       label: 'Garbage',     color: '#f87171', desc: 'Random letter strings (xqz, bvp…)' },
+    { id: 'emoji',         label: 'Emoji',       color: '#fbbf24', desc: 'Emoji symbols (🔥, 💧, 🌀…)' },
+    { id: 'voronoi_emoji', label: 'Abstract',    color: '#34d399', desc: 'Geometric unicode symbols (◈, ⬡, ⟐…)' },
+    { id: 'random_string', label: 'Random Str',  color: '#fb923c', desc: 'Alphanumeric codes (Xk3F, aB9z…)' },
   ];
 
   const setTokenWeight = (id, val) => setTokenWeightsState(prev => ({ ...prev, [id]: Number(val) }));

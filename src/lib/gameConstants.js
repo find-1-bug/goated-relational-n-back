@@ -12,6 +12,9 @@ export const COLORS = [
 
 // ─── Relationship Categories ───────────────────────────────────────────────────
 export const RELATIONSHIP_CATEGORIES = {
+  VISUAL: [
+    'VORONOI',
+  ],
   SPATIAL: [
     'INSIDE', 'OVERLAPPING', 'TOUCHING',
     'ABOVE_BELOW', 'DIAGONAL', 'BETWEEN',
@@ -54,11 +57,21 @@ export const RELATIONSHIP_CATEGORIES = {
 };
 
 export const RELATIONSHIPS = [
+  ...RELATIONSHIP_CATEGORIES.VISUAL,
   ...RELATIONSHIP_CATEGORIES.SPATIAL,
   ...RELATIONSHIP_CATEGORIES.TRAIT,
   ...RELATIONSHIP_CATEGORIES.QUANT,
   ...RELATIONSHIP_CATEGORIES.VERBAL,
 ];
+
+// For the HUD category label
+export const CATEGORY_LABELS = {
+  VISUAL: 'Visual',
+  SPATIAL: 'Spatial',
+  TRAIT: 'Trait',
+  QUANT: 'Quantitative',
+  VERBAL: 'Verbal',
+};
 
 export function getCategory(relationship) {
   for (const [cat, members] of Object.entries(RELATIONSHIP_CATEGORIES)) {
@@ -68,8 +81,8 @@ export function getCategory(relationship) {
 }
 
 // ─── Token Type System ─────────────────────────────────────────────────────────
-// Each stimulus word can be rendered as one of these token types
-export const TOKEN_TYPES = ['meaningful', 'nonsense', 'garbage', 'emoji', 'voronoi_emoji', 'random_string', 'voronoi'];
+// Token types for words in verbal stimuli
+export const TOKEN_TYPES = ['meaningful', 'nonsense', 'garbage', 'emoji', 'voronoi_emoji', 'random_string'];
 
 // Meaningful words grouped by semantic field
 const MEANINGFUL_POOLS = {
@@ -122,10 +135,6 @@ const VORONOI_EMOJI_POOL = [
   '⬤','⭕','🔷','🔶','🔹','🔸','🔺','🔻','💠','🔘','🔳','🔲',
 ];
 
-// voronoi seed: a short unique-ish string used as RNG seed for the pattern
-function makeVoronoiSeed() { return makeGarbage(5) + Math.floor(Math.random() * 999); }
-const VORONOI_TOKEN_PREFIX = '\x00V:';
-export function encodeVoronoiToken(seed) { return VORONOI_TOKEN_PREFIX + seed; }
 
 export function pickTokenWord(type, garbageLen = 3) {
   switch (type) {
@@ -135,20 +144,18 @@ export function pickTokenWord(type, garbageLen = 3) {
     case 'emoji':         return EMOJI_POOL[Math.floor(Math.random() * EMOJI_POOL.length)];
     case 'voronoi_emoji': return VORONOI_EMOJI_POOL[Math.floor(Math.random() * VORONOI_EMOJI_POOL.length)];
     case 'random_string': return makeRandomString();
-    case 'voronoi':       return encodeVoronoiToken(makeVoronoiSeed());
     default:              return pickMeaningful();
   }
 }
 
 // Token type weights — can be overridden from the UI
 let _tokenWeights = {
-  meaningful:    22,
-  emoji:         14,
-  voronoi_emoji: 12,
-  nonsense:      12,
-  garbage:       12,
-  random_string: 14,
-  voronoi:       14,
+  meaningful:    25,
+  emoji:         15,
+  voronoi_emoji: 15,
+  nonsense:      15,
+  garbage:       15,
+  random_string: 15,
 };
 
 export function setTokenWeights(weights) {
@@ -391,6 +398,7 @@ export function buildVerbalDisplay(relationship, pair) {
 }
 
 export const isVerbal = (rel) => RELATIONSHIP_CATEGORIES.VERBAL.includes(rel);
+export const isVisual = (rel) => RELATIONSHIP_CATEGORIES.VISUAL.includes(rel);
 
 // ─── Timing & probability constants ───────────────────────────────────────────
 export const MATCH_CHANCE = 0.3;
