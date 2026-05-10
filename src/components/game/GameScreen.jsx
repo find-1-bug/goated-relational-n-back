@@ -190,14 +190,16 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   ];
 
   const numStreams = streamStimuli.length;
-  // cols: 1→1, 2→2, 3→3, 4→2(2×2), 5→3, 6→3, 7→4, 8→4, 9→3(3×3) ...
-  const cols = numStreams === 1 ? 1
+  // Desktop cols: 1→1, 2→2, 3→3, 4→2(2×2), 5→3, 6→3, 7→4, 8→4, 9→3(3×3)
+  // Mobile (< 768px): 2+ streams → 1 col (vertical stack)
+  const desktopCols = numStreams === 1 ? 1
     : numStreams === 2 ? 2
     : numStreams === 3 ? 3
     : numStreams === 4 ? 2
     : numStreams <= 6 ? 3
     : numStreams <= 8 ? 4
     : Math.ceil(Math.sqrt(numStreams));
+  const cols = numStreams > 1 ? 1 : desktopCols; // Mobile: stack vertically if multi-stream
   const rows = Math.ceil(numStreams / cols);
 
   return (
@@ -227,7 +229,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
       {/* Stream canvases — fill remaining vertical space */}
       <div
-        className="flex-1 min-h-0 grid gap-2"
+        className="flex-1 min-h-0 grid gap-2 md:grid-cols-none"
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gridTemplateRows: `repeat(${rows}, 1fr)`,
