@@ -13,9 +13,14 @@ export default function Game() {
   const [suggestedN, setSuggestedN] = useState(null);
   const [rounds, setRounds] = useState(20);
   const [speedMs, setSpeedMs] = useState(2800);
+  const [extraStreams, setExtraStreams] = useState([]);
+  const [streamA, setStreamA] = useState({ key: 'Space', keyDisplay: 'SPACE' });
 
-  // Last-used settings to restore on StartScreen
-  const [lastSettings, setLastSettings] = useState(null);
+  // Persisted settings restored on mount
+  const [lastSettings, setLastSettings] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('nback_last_settings')) || null; }
+    catch { return null; }
+  });
 
   const handleStart = (n, selectedModes, poolRels, totalRounds, stimulusMs, extraSettings) => {
     setNLevel(n);
@@ -23,7 +28,10 @@ export default function Game() {
     setRelationshipPool(poolRels && poolRels.length > 0 ? poolRels : null);
     setRounds(totalRounds || 20);
     setSpeedMs(stimulusMs || 2800);
-    setLastSettings({
+    setExtraStreams(extraSettings?.extraStreams || []);
+    setStreamA(extraSettings?.streamA || { key: 'Space', keyDisplay: 'SPACE' });
+
+    const settings = {
       n, modes: selectedModes,
       rels: extraSettings?.rels || poolRels,
       rounds: totalRounds || 20,
@@ -31,13 +39,16 @@ export default function Game() {
       catWeights: extraSettings?.catWeights,
       useCustomMix: extraSettings?.useCustomMix,
       tokenWeights: extraSettings?.tokenWeights,
-    });
+      extraStreams: extraSettings?.extraStreams || [],
+      streamA: extraSettings?.streamA || { key: 'Space', keyDisplay: 'SPACE' },
+    };
+    setLastSettings(settings);
+    try { localStorage.setItem('nback_last_settings', JSON.stringify(settings)); } catch {}
     setScreen('playing');
   };
 
   const handleFinish = (state) => {
     setFinalState(state);
-    // Compute adaptive N for next session
     if (state.modes?.includes('adaptive')) {
       const results = calculateResults(state);
       const nextN = computeNextNLevel(state.nLevel, results);
@@ -48,10 +59,7 @@ export default function Game() {
 
   const handleRestart = (nextN) => {
     setFinalState(null);
-    // If adaptive mode is on, apply the suggested N
-    if (modes.includes('adaptive') && nextN) {
-      setNLevel(nextN);
-    }
+    if (modes.includes('adaptive') && nextN) setNLevel(nextN);
     setScreen('playing');
   };
 
@@ -73,6 +81,8 @@ export default function Game() {
           relationshipPool={relationshipPool}
           totalRounds={rounds}
           stimulusDuration={speedMs}
+          extraStreams={extraStreams}
+          streamA={streamA}
           onFinish={handleFinish}
           onExit={handleBack}
         />
