@@ -21,6 +21,7 @@ import {
   pickTokenWord,
   makeInverseStimulus,
   INVERSE_RELATIONSHIP,
+  filterTransitiveRelationships,
 } from './gameConstants';
 
 import { createRINTState, createRINTStates, generateRINTStimulus, RINT_MIN_N } from './relationalIntegration.js';
@@ -124,16 +125,24 @@ function rollTrialMode(modes, effectiveN) {
 // Generate stimulus for a single stream, given its own history/typeHistory/rintState
 // streamConfig: { trialMode, binaryMode, binaryOp, hierHistory } for Hierarchical and Binary Logic
 function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex, hierHistory, binaryMode, binaryOp }) {
-  let stim, isPrimaryTarget = false, nextRINTState = rintState;
-  const canTarget = history.length >= effectiveN;
+   let stim, isPrimaryTarget = false, nextRINTState = rintState;
+   const canTarget = history.length >= effectiveN;
+
+   // Filter pool for RINT/Type modes to only transitive relationships
+   const isRINTMode = trialMode === 'rint';
+   const isTypeMode = trialMode === 'type';
+   const effectivePool = (isRINTMode || isTypeMode) 
+     ? filterTransitiveRelationships(pool, isRINTMode, isTypeMode)
+     : pool;
+   const finalPool = effectivePool.length > 0 ? effectivePool : pool;
 
   if (trialMode === 'rint') {
-    const rintResult = generateRINTStimulus(rintState, pool, effectiveN, matchChance);
+    const rintResult = generateRINTStimulus(rintState, finalPool, effectiveN, matchChance);
     stim = rintResult.stim;
     isPrimaryTarget = rintResult.isTarget;
     nextRINTState = rintResult.rintState;
   } else if (trialMode === 'type') {
-    const forcedRel = Math.random() < matchChance ? pickTypeNbackTargetRel(typeHistory, pool, effectiveN) : null;
+    const forcedRel = Math.random() < matchChance ? pickTypeNbackTargetRel(typeHistory, finalPool, effectiveN) : null;
     if (forcedRel) {
       const entries = getTypeHistory(typeHistory, forcedRel);
       const targetEntry = entries[entries.length - effectiveN];
@@ -142,9 +151,9 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
         : maybeInvertVisual(makeStimulusEntry(forcedRel));
       isPrimaryTarget = true;
     } else {
-      stim = makeStimulusEntry(pickRandom(pool));
+      stim = makeStimulusEntry(pickRandom(finalPool));
     }
-  } else {
+    } else {
     // normal
     const nBackEntry = canTarget ? history[history.length - effectiveN] : null;
     if (canTarget && nBackEntry && Math.random() < matchChance) {
@@ -156,9 +165,9 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
       stim = makeStimulusEntry(makeDistractor(nBackEntry.rel, pool));
     } else {
       const exc = canTarget ? history[history.length - effectiveN]?.rel : null;
-      stim = makeStimulusEntry(exc ? pickRandomExcluding(pool, exc) : pickRandom(pool));
+      stim = makeStimulusEntry(exc ? pickRandomExcluding(finalPool, exc) : pickRandom(finalPool));
     }
-  }
+    }
 
   // Hierarchical signal: is the category of this stim the same as N back?
   let isHierTarget = false;

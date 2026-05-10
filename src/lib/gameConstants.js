@@ -68,6 +68,49 @@ export const RELATIONSHIPS = [
   ...RELATIONSHIP_CATEGORIES.VERBAL,
 ];
 
+// Transitive 3D relationships (support logical chaining)
+export const TRANSITIVE_3D_SPATIAL = [
+  'NESTED_VOLUME',
+  'DEPTH_LAYERED',
+];
+
+// Helper: filter relationships to only transitive ones for RINT/Type modes
+export function filterTransitiveRelationships(rels, isRINTMode, isTypeMode) {
+  if (!isRINTMode && !isTypeMode) return rels;
+  
+  // Non-transitive spatial/3D relationships
+  const nonTransitiveRels = new Set([
+    // Spatial
+    'INSIDE', 'OVERLAPPING', 'TOUCHING',
+    'ABOVE_BELOW', 'DIAGONAL', 'BETWEEN',
+    'SURROUNDED', 'LEFT_RIGHT', 'STACKED',
+    'NESTED_3', 'MIRRORED', 'SCATTERED',
+    // Spatial 3D (non-transitive)
+    'ORBITING', 'ROTATING_PAIR',
+    'ASCENDING_SPIRAL', 'COLLIDING',
+    'REPELLING', 'BOUND_BY_GRAVITY', 'INTERSECTING_PLANES',
+    'IN_FRONT_OF', 'BEHIND', 'STACKED_3D',
+    'LEANING_AGAINST', 'FLOATING_ABOVE', 'CASTING_SHADOW',
+    // Trait
+    'HOLLOW_VS_SOLID', 'ONE_SHARED_TRAIT', 'ROTATED',
+    'CONNECTED', 'SAME_COLOR', 'SAME_SHAPE',
+    'OPPOSITE_COLORS', 'SIZE_GRADIENT', 'BORDER_ONLY',
+    'SHADOW_COPY', 'STRIPED', 'DASHED_OUTLINE',
+    // Quant
+    'SIZE_MISMATCH', 'ONE_TO_MANY', 'EQUAL_COUNT',
+    'TWO_TO_ONE', 'PYRAMID', 'THREE_TO_ONE',
+    'ONE_TO_FIVE', 'DECREASING_ROW', 'INCREASING_ROW',
+    'BALANCED_SCALE',
+    // Non-transitive Semantic
+    'SAME_AS', 'OPPOSITE_OF', 'PART_OF',
+    'ONE_SHARED_TRAIT', 'ROTATED', 'CONNECTED',
+    'SAME_COLOR', 'SAME_SHAPE', 'OPPOSITE_COLORS',
+    'MATCHES', 'NEGATES',
+  ]);
+  
+  return rels.filter(r => !nonTransitiveRels.has(r));
+}
+
 // For the HUD category label
 export const CATEGORY_LABELS = {
   SPATIAL: 'Spatial',
