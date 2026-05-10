@@ -116,6 +116,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   }, [phase, allStreams, isHier]);
 
   // Get current stimulus & rel for each stream (A + extras)
+  const allTrialModes = [gameState.trialMode, ...(gameState.extraTrialModes || [])];
   const streamStimuli = [
     { rel: gameState.currentRelationship, stimulus: gameState.currentStimulusA, responded: gameState.respondedA },
     ...(gameState.extraCurrentRels || []).map((rel, i) => ({
@@ -175,45 +176,48 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           gridTemplateRows: `repeat(${rows}, 1fr)`,
         }}
       >
-        {streamStimuli.map((s, idx) => (
-          <div key={idx} className={`relative rounded-xl bg-secondary/30 border ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]}`}>
-            <GameCanvas
-              relationship={!clearCanvas ? s.rel : null}
-              stimulus={s.stimulus}
-              clearCanvas={clearCanvas}
-            />
-            <div className="absolute top-2 left-3">
-              <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx % STREAM_COLORS.length]} opacity-70`}>
-                Stream {STREAM_LABELS[idx]}
-              </span>
-            </div>
-            {s.responded && phase === 'stimulus' && (
-              <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx]}`} />
-            )}
-            {phase === 'wipe' && (
-              <div className="absolute inset-0 bg-background/90 rounded-xl flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-pulse" />
+        {streamStimuli.map((s, idx) => {
+          const rintChain = gameState.rintStates?.[idx]?.chainLog;
+          const showRintChain = phase === 'stimulus' && allTrialModes[idx] === 'rint' && rintChain?.length > 0;
+          return (
+            <div key={idx} className={`relative rounded-xl bg-secondary/30 border ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]} flex flex-col overflow-hidden`}>
+              <div className="flex-1 min-h-0 relative">
+                <GameCanvas
+                  relationship={!clearCanvas ? s.rel : null}
+                  stimulus={s.stimulus}
+                  clearCanvas={clearCanvas}
+                />
+                <div className="absolute top-2 left-3">
+                  <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx % STREAM_COLORS.length]} opacity-70`}>
+                    Stream {STREAM_LABELS[idx]}
+                  </span>
+                </div>
+                {s.responded && phase === 'stimulus' && (
+                  <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx]}`} />
+                )}
+                {phase === 'wipe' && (
+                  <div className="absolute inset-0 bg-background/90 rounded-xl flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-pulse" />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
+              {showRintChain && (
+                <div className="shrink-0 px-2 py-1 border-t border-emerald-500/20 bg-emerald-500/5 font-mono text-xs overflow-x-auto whitespace-nowrap text-center">
+                  {rintChain.slice(-(gameState.nLevel + 1)).map((fact, i, arr) => (
+                    <span key={i}>
+                      <span className="text-cyan-300">{fact.entityA}</span>
+                      <span className="text-emerald-400/70 mx-1">{fact.rel.replace(/_/g, ' ').toLowerCase()}</span>
+                      <span className="text-violet-300">{fact.entityB}</span>
+                      {i < arr.length - 1 && <span className="text-muted-foreground/40 mx-1">·</span>}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* RINT chain breadcrumb — shows stream A chain */}
-      {(modes.includes('rint') || modes.includes('mixed_rint') || modes.includes('impossible')) &&
-        gameState.rintStates?.[0]?.chainLog?.length > 0 && phase === 'stimulus' && (
-        <div className="mt-1 shrink-0 px-3 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/5 font-mono text-xs text-center overflow-x-auto whitespace-nowrap">
-          <span className="text-emerald-400/50 mr-2">A chain:</span>
-          {gameState.rintStates[0].chainLog.slice(-(gameState.nLevel + 1)).map((fact, i, arr) => (
-            <span key={i}>
-              <span className="text-cyan-300">{fact.entityA}</span>
-              <span className="text-emerald-400/70 mx-1">{fact.rel.replace(/_/g, ' ').toLowerCase()}</span>
-              <span className="text-violet-300">{fact.entityB}</span>
-              {i < arr.length - 1 && <span className="text-muted-foreground/40 mx-1">·</span>}
-            </span>
-          ))}
-        </div>
-      )}
 
       {/* Hierarchical category display */}
       {isHier && gameState.currentCategory && phase === 'stimulus' && (
