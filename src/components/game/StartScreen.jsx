@@ -535,14 +535,19 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
               allStreamKeys={allStreamKeys} thisKey={streamAKey}
             />
             {/* Extra streams */}
-            {extraStreams.map((stream, idx) => (
-              <StreamRow key={idx}
-                label={`Stream ${STREAM_LABELS[1 + idx]}`} labelColor={STREAM_COLORS[1 + idx]} borderColor="border-accent/20"
-                keyCode={stream.key} onKeyChange={code => setStreamKey(idx, code)}
-                allStreamKeys={allStreamKeys} thisKey={stream.key}
-                onRemove={() => removeStream(idx)}
-              />
-            ))}
+            {extraStreams.map((stream, idx) => {
+              const label = STREAM_LABELS[1 + idx] || String(2 + idx);
+              const color = STREAM_COLORS[1 + idx] || 'text-primary';
+              const border = 'border-accent/20';
+              return (
+                <StreamRow key={idx}
+                  label={`Stream ${label}`} labelColor={color} borderColor={border}
+                  keyCode={stream.key} onKeyChange={code => setStreamKey(idx, code)}
+                  allStreamKeys={allStreamKeys} thisKey={stream.key}
+                  onRemove={() => removeStream(idx)}
+                />
+              );
+            })}
             {/* Add stream button */}
             <button onClick={addStream}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary/30 border border-dashed border-border hover:border-muted-foreground/40 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">
