@@ -632,9 +632,9 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                 {KEY_OPTIONS.find(k => k.code === streamAKey)?.display || 'SPACE'}
               </kbd> = Stream A
               {extraStreams.map((s, i) => (
-                <React.Fragment key={i}>
+                <span key={i}>
                   {' '}&nbsp;<kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-semibold">{s.keyDisplay}</kbd> = Stream {STREAM_LABELS[1 + i]}
-                </React.Fragment>
+                </span>
               ))}
 
             </span>
