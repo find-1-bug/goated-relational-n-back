@@ -69,12 +69,19 @@ export function render3DRelationship(canvas, relationship, colors) {
   const size1 = 2 + Math.random() * 1.5;
   const size2 = 2 + Math.random() * 1.5;
 
-  // Convert color numbers to hex strings
-  const color1 = typeof colors[0] === 'number' ? '#' + colors[0].toString(16).padStart(6, '0') : colors[0];
-  const color2 = typeof colors[1] === 'number' ? '#' + colors[1].toString(16).padStart(6, '0') : colors[1];
+  // Ensure colors are valid THREE.js hex values
+  const toThreeColor = (c) => {
+    if (typeof c === 'number') {
+      return c; // Already a number like 0xRRGGBB
+    }
+    if (typeof c === 'string' && c.startsWith('#')) {
+      return parseInt(c.slice(1), 16); // Convert #RRGGBB to 0xRRGGBB
+    }
+    return 0xffffff; // Fallback to white
+  };
 
-  const mesh1 = createShape3D(shape1, size1, color1);
-  const mesh2 = createShape3D(shape2, size2, color2);
+  const mesh1 = createShape3D(shape1, size1, toThreeColor(colors[0]));
+  const mesh2 = createShape3D(shape2, size2, toThreeColor(colors[1]));
 
   // Position based on relationship
   switch (relationship) {
