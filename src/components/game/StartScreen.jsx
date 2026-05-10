@@ -434,21 +434,21 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                           <span className="text-xs font-mono text-muted-foreground">{useCustomMix ? `${pct}%` : 'equal'}</span>
                         </div>
                         {useCustomMix && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 md:gap-3">
                             <input
                               type="range"
                               min={0}
                               max={100}
                               value={catWeights[cat] ?? 25}
                               onChange={e => setCatWeight(cat, e.target.value)}
-                              className="flex-1 h-1.5 rounded-full cursor-pointer"
+                              className="hidden md:flex flex-1 h-1.5 rounded-full cursor-pointer"
                               style={{ accentColor }}
                             />
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 flex-1 md:flex-none">
                               <button onClick={() => setCatWeight(cat, Math.max(0, (catWeights[cat] ?? 25) - 5))}
-                                className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">−</button>
+                                className="flex-1 md:w-5 h-8 md:h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs md:text-xs transition-colors font-semibold">−</button>
                               <button onClick={() => setCatWeight(cat, Math.min(100, (catWeights[cat] ?? 25) + 5))}
-                                className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">+</button>
+                                className="flex-1 md:w-5 h-8 md:h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs md:text-xs transition-colors font-semibold">+</button>
                             </div>
                           </div>
                         )}
@@ -483,28 +483,28 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                 <div className="space-y-3 pt-1 px-1">
                   {TOKEN_META.map(({ id, label, color, desc }) => (
                     <div key={id} className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
                           <span className="text-xs font-mono font-semibold" style={{ color }}>{label}</span>
-                          <span className="text-xs font-mono text-muted-foreground/50 ml-2">{desc}</span>
+                          <span className="hidden md:inline text-xs font-mono text-muted-foreground/50 ml-2">{desc}</span>
                         </div>
-                        <span className="text-xs font-mono text-muted-foreground">{tokenPct(id)}%</span>
+                        <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{tokenPct(id)}%</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 md:gap-3">
                         <input
                           type="range"
                           min={0}
                           max={100}
                           value={tokenWeights[id]}
                           onChange={e => setTokenWeight(id, e.target.value)}
-                          className="flex-1 h-1.5 rounded-full cursor-pointer"
+                          className="hidden md:flex flex-1 h-1.5 rounded-full cursor-pointer"
                           style={{ accentColor: color }}
                         />
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 flex-1 md:flex-none">
                           <button onClick={() => setTokenWeight(id, Math.max(0, tokenWeights[id] - 5))}
-                            className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">−</button>
+                            className="flex-1 md:w-5 h-8 md:h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors font-semibold">−</button>
                           <button onClick={() => setTokenWeight(id, Math.min(100, tokenWeights[id] + 5))}
-                            className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">+</button>
+                            className="flex-1 md:w-5 h-8 md:h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors font-semibold">+</button>
                         </div>
                       </div>
                     </div>
