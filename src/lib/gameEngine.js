@@ -20,6 +20,7 @@ import {
   pickTokenType,
   pickTokenWord,
   makeInverseStimulus,
+  INVERSE_RELATIONSHIP,
 } from './gameConstants';
 
 // Visual inverse map: relationships where swapping A↔B gives the semantic inverse
@@ -67,9 +68,29 @@ function maybeInvertVisual(entry) {
   };
 }
 
-function stimuliMatch(a, b) {
-  if (!a || !b) return false;
-  return a === b;
+// Check if two rels are considered equivalent (same or semantic inverse)
+function relsMatch(relA, relB) {
+  if (!relA || !relB) return false;
+  if (relA === relB) return true;
+  return INVERSE_RELATIONSHIP[relA] === relB;
+}
+
+// Given a per-type history map and a rel, return the list of past entries for
+// this rel AND its semantic inverse (they share the same "type slot").
+function getTypeHistory(typeHistoryMap, rel) {
+  const inv = INVERSE_RELATIONSHIP[rel];
+  const own = typeHistoryMap.get(rel) || [];
+  const invEntries = (inv && inv !== rel) ? (typeHistoryMap.get(inv) || []) : [];
+  // Merge and sort by insertion order (each entry has a .trialIndex)
+  return [...own, ...invEntries].sort((a, b) => a.trialIndex - b.trialIndex);
+}
+
+// Push a new entry into the per-type history map
+function pushTypeHistory(typeHistoryMap, rel, entry) {
+  const next = new Map(typeHistoryMap);
+  const existing = next.get(rel) || [];
+  next.set(rel, [...existing, entry]);
+  return next;
 }
 
 // ─── State Creation ──────────────────────────────────────────────────────────
@@ -84,12 +105,14 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds }
 
     // Stream A: primary relationship (stores {rel, wordA?, wordB?} entries)
     historyA: [],
+    typeHistoryA: new Map(), // Map<rel, [{...entry, trialIndex}]> for type_nback mode
     currentRelationship: null,
     currentStimulusA: null,  // full entry for renderer
     isTargetA: false,
 
     // Stream B: secondary relationship (dual mode)
     historyB: [],
+    typeHistoryB: new Map(), // Map<rel, [{...entry, trialIndex}]> for type_nback mode
     currentRelationshipB: null,
     currentStimulusB: null,
     isTargetB: false,
@@ -141,12 +164,36 @@ function makeDistractor(targetRelationship, pool) {
 
 // ─── Stimulus Generation ──────────────────────────────────────────────────────
 
+// ─── Type N-back helpers ──────────────────────────────────────────────────────
+
+// Determine if a stimulus should be a type-nback target for a given stream.
+// Returns { isTarget, targetEntry } where targetEntry is the N-back entry to replay.
+function checkTypeNbackTarget(rel, typeHistoryMap, effectiveN) {
+  const typeHistory = getTypeHistory(typeHistoryMap, rel);
+  // Need at least N prior occurrences of this rel (or its inverse) to have a target
+  if (typeHistory.length < effectiveN) return { isTarget: false, targetEntry: null };
+  const targetEntry = typeHistory[typeHistory.length - effectiveN];
+  return { isTarget: true, targetEntry };
+}
+
+// Build a type-nback stimulus: when we want to force a match, pick a rel that
+// already has ≥ effectiveN entries in its per-type history.
+function pickTypeNbackTargetRel(typeHistoryMap, pool, effectiveN) {
+  const candidates = pool.filter(rel => {
+    const h = getTypeHistory(typeHistoryMap, rel);
+    return h.length >= effectiveN;
+  });
+  if (candidates.length === 0) return null;
+  return pickRandom(candidates);
+}
+
 export function generateNextStimulus(state) {
-  const { nLevel, round, historyA, historyB, historyCategory, modes, relationshipPool } = state;
+  const { nLevel, round, historyA, historyB, historyCategory, typeHistoryA, typeHistoryB, modes, relationshipPool } = state;
   const pool = (relationshipPool && relationshipPool.length > 0) ? relationshipPool : ALL_RELATIONSHIPS;
   const isDual = modes.includes('dual');
   const isHier = modes.includes('hierarchical');
   const hasDistractors = modes.includes('distractors');
+  const isTypeNback = modes.includes('type_nback');
   const canTarget = round >= nLevel;
 
   // ── Variable N: pick effective N for this trial ──
@@ -155,80 +202,127 @@ export function generateNextStimulus(state) {
   if (isVariableN && canTarget) {
     const delta = Math.random() < 0.5 ? 1 : -1;
     const candidate = nLevel + delta;
-    // Bug 2 fix: ensure candidate is valid AND the history entry actually exists
-    if (candidate >= 1 && candidate <= round && historyA.length >= candidate) {
-      effectiveN = candidate;
+    if (candidate >= 1) {
+      if (isTypeNback) {
+        // For type_nback: just bound-check; per-type history guards will handle validity
+        effectiveN = candidate;
+      } else if (candidate <= round && historyA.length >= candidate) {
+        effectiveN = candidate;
+      }
     }
   }
-  const canTargetEffective = round >= effectiveN && historyA.length >= effectiveN;
+  const canTargetEffective = isTypeNback ? true : (round >= effectiveN && historyA.length >= effectiveN);
 
   // ── Stream A ──
   let stimA, isTargetA, isDistractor = false;
-  const nBackEntryA = canTargetEffective ? historyA[historyA.length - effectiveN] : null;
-  if (canTargetEffective && nBackEntryA && Math.random() < MATCH_CHANCE) {
-    if (isVerbal(nBackEntryA.rel)) {
-      // 35% chance: produce the semantic inverse (B inv-rel A) instead of exact replay
-      const inv = Math.random() < 0.35 ? makeInverseStimulus(nBackEntryA) : null;
-      stimA = inv || nBackEntryA;
+
+  if (isTypeNback) {
+    // Type N-back: match against per-type history
+    if (Math.random() < MATCH_CHANCE) {
+      const forcedRel = pickTypeNbackTargetRel(typeHistoryA, pool, effectiveN);
+      if (forcedRel) {
+        const { targetEntry } = checkTypeNbackTarget(forcedRel, typeHistoryA, effectiveN);
+        if (isVerbal(forcedRel)) {
+          // 35% chance: replay as semantic inverse
+          const inv = Math.random() < 0.35 ? makeInverseStimulus(targetEntry) : null;
+          stimA = inv || makeStimulusEntry(forcedRel);
+        } else {
+          stimA = maybeInvertVisual(makeStimulusEntry(forcedRel));
+        }
+        isTargetA = true;
+      } else {
+        // Not enough history yet — just pick random
+        stimA = makeStimulusEntry(pickRandom(pool));
+        isTargetA = false;
+      }
     } else {
-      stimA = maybeInvertVisual(makeStimulusEntry(nBackEntryA.rel));
+      // Non-target: pick any rel
+      stimA = makeStimulusEntry(pickRandom(pool));
+      isTargetA = false;
     }
-    isTargetA = true;
   } else {
-    if (hasDistractors && canTargetEffective && nBackEntryA && Math.random() < DISTRACTOR_CHANCE) {
-      stimA = makeStimulusEntry(makeDistractor(nBackEntryA.rel, pool));
-      isDistractor = true;
+    // Classic global N-back
+    const nBackEntryA = canTargetEffective ? historyA[historyA.length - effectiveN] : null;
+    if (canTargetEffective && nBackEntryA && Math.random() < MATCH_CHANCE) {
+      if (isVerbal(nBackEntryA.rel)) {
+        const inv = Math.random() < 0.35 ? makeInverseStimulus(nBackEntryA) : null;
+        stimA = inv || nBackEntryA;
+      } else {
+        stimA = maybeInvertVisual(makeStimulusEntry(nBackEntryA.rel));
+      }
+      isTargetA = true;
     } else {
-      const excludeRel = nBackEntryA?.rel;
-      stimA = makeStimulusEntry(excludeRel ? pickRandomExcluding(pool, excludeRel) : pickRandom(pool));
+      if (hasDistractors && canTargetEffective && nBackEntryA && Math.random() < DISTRACTOR_CHANCE) {
+        stimA = makeStimulusEntry(makeDistractor(nBackEntryA.rel, pool));
+        isDistractor = true;
+      } else {
+        const excludeRel = nBackEntryA?.rel;
+        stimA = makeStimulusEntry(excludeRel ? pickRandomExcluding(pool, excludeRel) : pickRandom(pool));
+      }
+      isTargetA = false;
     }
-    isTargetA = false;
   }
   const relA = stimA.rel;
   const categoryA = getCategory(relA);
 
   // ── Stream B (dual mode) ──
-  // Bug 3 fix: use historyB.length for index guard (not historyA) since B may be shorter
   let stimB = null, relB = null, isTargetB = false;
   if (isDual) {
-    const canTargetB = round >= nLevel && historyB.length >= nLevel;
-    const nBackEntryB = canTargetB ? historyB[historyB.length - nLevel] : null;
-    if (canTargetB && nBackEntryB && Math.random() < DUAL_MATCH_CHANCE) {
-      if (isVerbal(nBackEntryB.rel)) {
-        const inv = Math.random() < 0.35 ? makeInverseStimulus(nBackEntryB) : null;
-        stimB = inv || nBackEntryB;
+    if (isTypeNback) {
+      if (Math.random() < DUAL_MATCH_CHANCE) {
+        const forcedRel = pickTypeNbackTargetRel(typeHistoryB, pool, effectiveN);
+        if (forcedRel) {
+          const { targetEntry } = checkTypeNbackTarget(forcedRel, typeHistoryB, effectiveN);
+          if (isVerbal(forcedRel)) {
+            const inv = Math.random() < 0.35 ? makeInverseStimulus(targetEntry) : null;
+            stimB = inv || makeStimulusEntry(forcedRel);
+          } else {
+            stimB = maybeInvertVisual(makeStimulusEntry(forcedRel));
+          }
+          isTargetB = true;
+        } else {
+          stimB = makeStimulusEntry(pickRandom(pool));
+          isTargetB = false;
+        }
       } else {
-        stimB = maybeInvertVisual(makeStimulusEntry(nBackEntryB.rel));
+        stimB = makeStimulusEntry(pickRandom(pool));
+        isTargetB = false;
       }
-      isTargetB = true;
     } else {
-      const excludeRel = nBackEntryB?.rel;
-      stimB = makeStimulusEntry(excludeRel ? pickRandomExcluding(pool, excludeRel) : pickRandom(pool));
-      isTargetB = false;
+      const canTargetB = round >= nLevel && historyB.length >= nLevel;
+      const nBackEntryB = canTargetB ? historyB[historyB.length - nLevel] : null;
+      if (canTargetB && nBackEntryB && Math.random() < DUAL_MATCH_CHANCE) {
+        if (isVerbal(nBackEntryB.rel)) {
+          const inv = Math.random() < 0.35 ? makeInverseStimulus(nBackEntryB) : null;
+          stimB = inv || nBackEntryB;
+        } else {
+          stimB = maybeInvertVisual(makeStimulusEntry(nBackEntryB.rel));
+        }
+        isTargetB = true;
+      } else {
+        const excludeRel = nBackEntryB?.rel;
+        stimB = makeStimulusEntry(excludeRel ? pickRandomExcluding(pool, excludeRel) : pickRandom(pool));
+        isTargetB = false;
+      }
     }
     relB = stimB.rel;
   }
 
   // ── Category / Hierarchical stream ──
-  // Bug 1 fix: when dice say "make a category target", force stimA to use a rel from nBackCat's category
   let isTargetCategory = false;
   if (isHier) {
     const canTargetCat = round >= nLevel && historyCategory.length >= nLevel;
     const nBackCat = canTargetCat ? historyCategory[historyCategory.length - nLevel] : null;
     if (canTargetCat && nBackCat && Math.random() < HIER_MATCH_CHANCE) {
-      // Force stimA to be from the same category as nBackCat
       const catPool = (RELATIONSHIP_CATEGORIES[nBackCat] || []).filter(r => pool.includes(r));
       if (catPool.length > 0) {
         const forcedRel = pickRandom(catPool);
         stimA = makeStimulusEntry(forcedRel);
-        // Update relA and categoryA to reflect the forced stimulus
-        const forcedRelA = stimA.rel;
-        const forcedCatA = getCategory(forcedRelA);
+        const forcedCatA = getCategory(stimA.rel);
         isTargetCategory = true;
-        // Patch the values that will be returned
         return {
-          stimA, relA: forcedRelA, stimB, relB,
-          isTargetA: false, // forcing category match means this is NOT a rel match
+          stimA, relA: stimA.rel, stimB, relB,
+          isTargetA: false,
           isTargetB, categoryA: forcedCatA, isTargetCategory, isDistractor, effectiveN
         };
       }
@@ -242,12 +336,19 @@ export function generateNextStimulus(state) {
 
 export function advanceRound(state, stimulus) {
   const { stimA, relA, stimB, relB, isTargetA, isTargetB, categoryA, isTargetCategory, isDistractor, effectiveN } = stimulus;
+  const trialIndex = state.round;
+  const nextTypeHistoryA = pushTypeHistory(state.typeHistoryA, relA, { ...stimA, trialIndex });
+  const nextTypeHistoryB = (stimB !== null)
+    ? pushTypeHistory(state.typeHistoryB, relB, { ...stimB, trialIndex })
+    : state.typeHistoryB;
   return {
     ...state,
     round: state.round + 1,
     currentEffectiveN: effectiveN ?? state.nLevel,
     historyA: [...state.historyA, stimA],
+    typeHistoryA: nextTypeHistoryA,
     historyB: stimB !== null ? [...state.historyB, stimB] : state.historyB,
+    typeHistoryB: nextTypeHistoryB,
     historyCategory: [...state.historyCategory, categoryA],
     currentRelationship: relA,
     currentStimulusA: stimA,
