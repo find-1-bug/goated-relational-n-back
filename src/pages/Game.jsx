@@ -129,9 +129,9 @@ export default function Game() {
           onBack={handleBack}
         />
       )}
-      {/* Top nav with stats link */}
+      {/* Top nav — stats link from start screen only (exit handled by GameScreen) */}
       <div className="fixed top-3 right-3 z-10">
-        {screen !== 'start' && (
+        {screen === 'start' && (
           <Link to="/stats" className="px-3 py-1.5 rounded-lg bg-secondary border border-border text-muted-foreground hover:text-foreground text-xs font-mono transition-colors">
             Stats
           </Link>
