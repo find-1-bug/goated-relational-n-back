@@ -314,7 +314,7 @@ export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisu
   const visuals = getVisuals(stimulus);
   const cx = canvasW / 2;
   const cy = canvasH / 2;
-  const scale = Math.min(1, canvasH / 180); // Scale down shapes if canvas height < 180px
+  const scale = Math.min(1, Math.max(canvasH / 140, 0.5)); // Aggressive scaling for small canvases
   ctx.clearRect(0, 0, canvasW, canvasH);
 
   switch (relationship) {

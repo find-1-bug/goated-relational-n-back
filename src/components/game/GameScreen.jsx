@@ -229,17 +229,17 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
       {/* Stream canvases — fill remaining vertical space */}
       <div
-        className="flex-1 min-h-0 flex flex-col md:grid gap-2"
+        className="flex-1 min-h-0 grid gap-2"
         style={{
-          gridTemplateColumns: numStreams > 1 ? undefined : `repeat(${desktopCols}, 1fr)`,
-          gridTemplateRows: numStreams > 1 ? undefined : `repeat(${rows}, 1fr)`,
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gridTemplateRows: `repeat(${rows}, 1fr)`,
         }}
       >
         {streamStimuli.map((s, idx) => {
           const rintChain = gameState.rintStates?.[idx]?.chainLog;
           const showRintChain = phase === 'stimulus' && allTrialModes[idx] === 'rint' && rintChain?.length > 0;
           return (
-            <div key={idx} className={`relative rounded-xl bg-secondary/30 border ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]} flex flex-col overflow-hidden md:flex-1 md:min-h-0`}>
+            <div key={idx} className={`relative rounded-xl bg-secondary/30 border ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]} flex flex-col overflow-hidden`}>
               <div className="flex-1 min-h-0 relative">
                 <GameCanvas
                   relationship={!clearCanvas ? s.rel : null}
