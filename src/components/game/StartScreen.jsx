@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Brain, Zap, TrendingUp, Layers, GitBranch, Shuffle, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RELATIONSHIP_CATEGORIES, setTokenWeights, getTokenWeights } from '@/lib/gameConstants';
+import { RELATIONSHIP_CATEGORIES, setTokenWeights, getTokenWeights, filterTransitiveRelationships } from '@/lib/gameConstants';
 
 // Build a weighted pool from category weights + enabled rels
 // Each category's rels are repeated proportionally to its weight
@@ -366,8 +366,16 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                   {Object.entries(RELATIONSHIP_CATEGORIES).map(([cat, members]) => {
                     const meta = CATEGORY_META[cat];
                     if (!meta) return null; // Skip categories without metadata
-                    const allOn = members.every(r => enabledRels.has(r));
-                    const someOn = members.some(r => enabledRels.has(r));
+
+                    // Check if RINT or Type N-Back is active
+                    const isRINTMode = modes.includes('rint') || modes.includes('mixed_rint') || modes.includes('impossible');
+                    const isTypeMode = modes.includes('type_nback') || modes.includes('mixed_nback') || modes.includes('mixed_rint') || modes.includes('impossible');
+                    const restrictedRels = (isRINTMode || isTypeMode) 
+                      ? new Set(filterTransitiveRelationships(members, isRINTMode, isTypeMode))
+                      : new Set(members);
+
+                    const allOn = members.every(r => enabledRels.has(r) && restrictedRels.has(r));
+                    const someOn = members.some(r => enabledRels.has(r) && restrictedRels.has(r));
                     return (
                       <div key={cat} className={`rounded-lg border p-3 space-y-2 ${someOn ? meta.border : 'border-border'} ${someOn ? meta.bg : 'bg-secondary/20'}`}>
                         {/* Category header toggle */}
@@ -381,7 +389,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                             </div>
                             <span className={`text-xs font-mono font-semibold ${meta.color}`}>{meta.label}</span>
                             <span className="text-xs font-mono text-muted-foreground">
-                              ({members.filter(r => enabledRels.has(r)).length}/{members.length})
+                              ({members.filter(r => enabledRels.has(r) && restrictedRels.has(r)).length}/{restrictedRels.size})
                             </span>
                           </button>
                         </div>
@@ -389,10 +397,13 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                         <div className="flex flex-wrap gap-1.5">
                           {members.map(rel => {
                             const on = enabledRels.has(rel);
+                            const allowed = restrictedRels.has(rel);
+                            const disabled = !allowed && (isRINTMode || isTypeMode);
                             return (
-                              <button key={rel} onClick={() => toggleRel(rel, cat)}
+                              <button key={rel} onClick={() => allowed && toggleRel(rel, cat)}
+                                disabled={disabled}
                                 className={`px-2 py-0.5 rounded text-xs font-mono transition-all border
-                                  ${on ? `${meta.bg} ${meta.border} ${meta.color}` : 'border-border text-muted-foreground/50 hover:border-muted-foreground/30'}`}>
+                                  ${disabled ? 'border-border/30 text-muted-foreground/30 cursor-not-allowed' : on ? `${meta.bg} ${meta.border} ${meta.color}` : 'border-border text-muted-foreground/50 hover:border-muted-foreground/30'}`}>
                                 {REL_DISPLAY[rel] || rel}
                               </button>
                             );
