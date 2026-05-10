@@ -81,6 +81,30 @@ const REL_DISPLAY = {
   INSIDE_OF: 'Inside Of', OUTSIDE_OF: 'Outside Of', NEXT_TO: 'Next To', FAR_FROM: 'Far From',
 };
 
+const KEY_OPTIONS = [
+  { code: 'Space',  display: 'SPACE' },
+  { code: 'KeyA',   display: 'A' },
+  { code: 'KeyS',   display: 'S' },
+  { code: 'KeyD',   display: 'D' },
+  { code: 'KeyF',   display: 'F' },
+  { code: 'KeyG',   display: 'G' },
+  { code: 'KeyH',   display: 'H' },
+  { code: 'KeyJ',   display: 'J' },
+  { code: 'KeyK',   display: 'K' },
+  { code: 'KeyZ',   display: 'Z' },
+  { code: 'KeyX',   display: 'X' },
+  { code: 'KeyC',   display: 'C' },
+  { code: 'KeyV',   display: 'V' },
+  { code: 'Digit1', display: '1' },
+  { code: 'Digit2', display: '2' },
+  { code: 'Digit3', display: '3' },
+  { code: 'Digit4', display: '4' },
+  { code: 'Digit5', display: '5' },
+];
+
+const STREAM_COLORS = ['text-primary', 'text-accent', 'text-chart-3', 'text-chart-4', 'text-chart-5'];
+const STREAM_LABELS = ['A', 'B', 'C', 'D', 'E'];
+
 const SPEED_OPTIONS = [
   { label: 'Slow',   ms: 4000 },
   { label: 'Normal', ms: 2800 },
@@ -94,6 +118,28 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
   const [nLevel, setNLevel] = React.useState(suggestedN || lastSettings?.n || 2);
   const [modes, setModes] = React.useState(lastSettings?.modes || []);
+
+  // Multi-stream config: stream A key + extra streams
+  const [streamAKey, setStreamAKey] = React.useState(
+    lastSettings?.streamA?.key || 'Space'
+  );
+  const [extraStreams, setExtraStreams] = React.useState(
+    lastSettings?.extraStreams || []
+  );
+  // extra stream: { key, keyDisplay, label }
+  const allStreamKeys = [streamAKey, ...extraStreams.map(s => s.key)];
+  const addStream = () => {
+    const nextLabel = STREAM_LABELS[1 + extraStreams.length] || String(2 + extraStreams.length);
+    const available = KEY_OPTIONS.find(k => !allStreamKeys.includes(k.code));
+    if (!available) return;
+    setExtraStreams(prev => [...prev, { key: available.code, keyDisplay: available.display, label: nextLabel }]);
+  };
+  const removeStream = (idx) => setExtraStreams(prev => prev.filter((_, i) => i !== idx));
+  const setStreamKey = (idx, code) => {
+    const opt = KEY_OPTIONS.find(k => k.code === code);
+    if (!opt) return;
+    setExtraStreams(prev => prev.map((s, i) => i === idx ? { ...s, key: opt.code, keyDisplay: opt.display } : s));
+  };
   const [showRelTypes, setShowRelTypes] = React.useState(false);
   const [rounds, setRounds] = React.useState(lastSettings?.rounds || 20);
   const [speedMs, setSpeedMs] = React.useState(lastSettings?.speedMs || 2800);
@@ -410,6 +456,55 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
           </AnimatePresence>
         </div>
 
+        {/* Streams */}
+        <div className="space-y-2">
+          <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest">Streams</label>
+          <div className="space-y-2">
+            {/* Stream A */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 border border-primary/20">
+              <span className="text-xs font-mono font-semibold text-primary w-16 shrink-0">Stream A</span>
+              <select
+                value={streamAKey}
+                onChange={e => setStreamAKey(e.target.value)}
+                className="flex-1 bg-secondary border border-border rounded px-2 py-1 text-xs font-mono text-foreground">
+                {KEY_OPTIONS.map(k => (
+                  <option key={k.code} value={k.code} disabled={allStreamKeys.includes(k.code) && k.code !== streamAKey}>
+                    {k.display}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Extra streams */}
+            {extraStreams.map((stream, idx) => (
+              <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 border border-accent/20">
+                <span className={`text-xs font-mono font-semibold w-16 shrink-0 ${STREAM_COLORS[1 + idx]}`}>
+                  Stream {STREAM_LABELS[1 + idx]}
+                </span>
+                <select
+                  value={stream.key}
+                  onChange={e => setStreamKey(idx, e.target.value)}
+                  className="flex-1 bg-secondary border border-border rounded px-2 py-1 text-xs font-mono text-foreground">
+                  {KEY_OPTIONS.map(k => (
+                    <option key={k.code} value={k.code} disabled={allStreamKeys.includes(k.code) && k.code !== stream.key}>
+                      {k.display}
+                    </option>
+                  ))}
+                </select>
+                <button onClick={() => removeStream(idx)}
+                  className="w-6 h-6 rounded bg-secondary border border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 flex items-center justify-center transition-colors text-sm">
+                  ×
+                </button>
+              </div>
+            ))}
+            {/* Add stream button */}
+            <button onClick={addStream}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary/30 border border-dashed border-border hover:border-muted-foreground/40 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">
+              <Plus className="w-3.5 h-3.5" />
+              Add Stream
+            </button>
+          </div>
+        </div>
+
         {/* Session Length & Speed */}
         <div className="grid grid-cols-2 gap-3">
           {/* Trials */}
@@ -470,11 +565,17 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
         {/* Controls hint */}
         <div className="text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-secondary/70 border border-border">
-            <Zap className="w-3.5 h-3.5 text-primary" />
+          <div className="inline-flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-md bg-secondary/70 border border-border justify-center">
+            <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
             <span className="text-xs font-mono text-muted-foreground">
-              <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-semibold">SPACE</kbd> = Match A
-              {modes.includes('dual') && <> &nbsp;<kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-semibold">A</kbd> = Match B</>}
+              <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-semibold">
+                {KEY_OPTIONS.find(k => k.code === streamAKey)?.display || 'SPACE'}
+              </kbd> = Stream A
+              {extraStreams.map((s, i) => (
+                <React.Fragment key={i}>
+                  {' '}&nbsp;<kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-semibold">{s.keyDisplay}</kbd> = Stream {STREAM_LABELS[1 + i]}
+                </React.Fragment>
+              ))}
               {modes.includes('hierarchical') && <> &nbsp;<kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-semibold">L</kbd> = Category</>}
             </span>
           </div>
@@ -485,7 +586,8 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
           <Button
             onClick={() => {
               setTokenWeights(tokenWeights);
-              onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights });
+              const streamAObj = { key: streamAKey, keyDisplay: KEY_OPTIONS.find(k => k.code === streamAKey)?.display || 'SPACE' };
+              onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights, streamA: streamAObj, extraStreams, streams: [streamAObj, ...extraStreams] });
             }}
             className="h-12 px-10 font-mono font-semibold text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90">
             Start Training
