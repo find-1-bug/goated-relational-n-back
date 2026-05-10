@@ -27,35 +27,51 @@ function createShape3D(shapeType, size, color) {
     default:
       geometry = new THREE.BoxGeometry(size, size, size);
   }
-  const material = new THREE.MeshStandardMaterial({ color, metalness: 0.3, roughness: 0.4 });
-  return new THREE.Mesh(geometry, material);
+  const material = new THREE.MeshStandardMaterial({ 
+    color, 
+    metalness: 0.2, 
+    roughness: 0.5,
+    side: THREE.FrontSide
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
 }
 
 function setupScene(canvas) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0f172a);
+  scene.background = new THREE.Color(0x0a0f1a);
 
   const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-  camera.position.z = 10;
+  camera.position.set(0, 3, 8);
+  camera.lookAt(0, 0, 0);
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setSize(canvas.clientWidth, canvas.clientHeight);
   renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
 
   // Lighting
-  const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
-  light1.position.set(10, 10, 10);
+  const light1 = new THREE.DirectionalLight(0xffffff, 1);
+  light1.position.set(8, 10, 8);
   light1.castShadow = true;
   light1.shadow.mapSize.width = 2048;
   light1.shadow.mapSize.height = 2048;
+  light1.shadow.camera.far = 50;
+  light1.shadow.camera.left = -15;
+  light1.shadow.camera.right = 15;
+  light1.shadow.camera.top = 15;
+  light1.shadow.camera.bottom = -15;
   scene.add(light1);
 
-  const light2 = new THREE.PointLight(0x22d3ee, 0.5);
-  light2.position.set(-10, -10, 10);
-  scene.add(light2);
-
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   scene.add(ambientLight);
+
+  // Grid floor
+  const gridHelper = new THREE.GridHelper(20, 20, 0x2d3748, 0x1a202c);
+  gridHelper.position.y = -2.5;
+  scene.add(gridHelper);
 
   return { scene, camera, renderer };
 }
@@ -158,6 +174,31 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
         mesh1.position.set(-1, 0, 0);
         mesh2.position.set(1, 0, 0);
         mesh2.rotation.z = Math.PI / 4;
+        break;
+      case 'IN_FRONT_OF':
+        mesh1.position.z = 2;
+        mesh2.position.z = -1;
+        break;
+      case 'BEHIND':
+        mesh1.position.z = -2;
+        mesh2.position.z = 1;
+        break;
+      case 'STACKED_3D':
+        mesh1.position.set(0, 0.8, 0);
+        mesh2.position.set(0, -0.8, 0);
+        break;
+      case 'LEANING_AGAINST':
+        mesh1.position.set(-1.5, 0, 0);
+        mesh1.rotation.z = 0.3;
+        mesh2.position.set(1.5, 0, 0);
+        break;
+      case 'FLOATING_ABOVE':
+        mesh1.position.set(0, 2, 0);
+        mesh2.position.set(0, -1, 0);
+        break;
+      case 'CASTING_SHADOW':
+        mesh1.position.set(-1, 1.5, 1);
+        mesh2.position.set(-1, -1.5, -2);
         break;
     }
     
