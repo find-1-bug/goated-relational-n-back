@@ -103,10 +103,10 @@ export default function Tutorial() {
           <h2 className="text-lg font-mono font-semibold text-accent mb-4">Enhancement Modes</h2>
           <div className="space-y-4 text-sm font-mono text-foreground/90">
             <div>
-              <span className="text-accent font-semibold">Type N-Back:</span> Match by <span className="text-foreground font-semibold">relationship category only</span>, not trial distance. If you've seen "Inside" relationships 3 times, all "Inside" entries count as matches, regardless of when they appeared. Tests <span className="text-foreground">semantic memory & categorization</span>.
+              <span className="text-accent font-semibold">Type N-Back:</span> Match by <span className="text-foreground font-semibold">relationship category only</span>, not trial distance. If you've seen "Inside" relationships 3 times, all "Inside" entries count as matches, regardless of when they appeared. In this mode, only <span className="text-foreground">transitive relationships</span> are used to ensure logical consistency. Tests <span className="text-foreground">semantic memory & categorization</span>.
             </div>
             <div>
-              <span className="text-accent font-semibold">RINT (Relational Integration):</span> Use <span className="text-foreground font-semibold">logical reasoning</span> to chain facts. E.g., "A &gt; B" + "B &gt; C" logically proves "A &gt; C"—that's a match. Tests <span className="text-foreground">transitive reasoning & working memory</span>. Requires N≥2.
+              <span className="text-accent font-semibold">RINT (Relational Integration):</span> Use <span className="text-foreground font-semibold">logical reasoning</span> to chain facts. E.g., "A &gt; B" + "B &gt; C" logically proves "A &gt; C"—that's a match. Only uses <span className="text-foreground">transitive relationships</span> (comparisons, directions, temporal) to ensure valid logical chains. Tests <span className="text-foreground">transitive reasoning & working memory</span>. Requires N≥2.
             </div>
             <div>
               <span className="text-accent font-semibold">Mixed N-Back:</span> Randomly <span className="text-foreground font-semibold">switches between Normal and Type</span> each trial. You never know which rule applies, forcing <span className="text-foreground">cognitive flexibility</span>.
