@@ -178,7 +178,9 @@ export function generateNextStimulus(state) {
   const pool = (relationshipPool && relationshipPool.length > 0) ? relationshipPool : ALL_RELATIONSHIPS;
   const isHier = modes.includes('hierarchical');
   const hasDistractors = modes.includes('distractors');
-  const isTypeNback = modes.includes('type_nback');
+  const isMixed = modes.includes('mixed_nback');
+  // For mixed mode: randomly pick type_nback or normal each trial
+  const isTypeNback = modes.includes('type_nback') || (isMixed && Math.random() < 0.5);
 
   // Variable N
   const isVariableN = modes.includes('variable_n');
