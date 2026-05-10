@@ -25,15 +25,21 @@ function buildWeightedPool(enabledRels, catWeights) {
 }
 
 const MODE_OPTIONS = [
-  { id: 'type_nback',   icon: Brain,      label: 'Type N-Back',  desc: 'Each relation type has its own N-back queue. Match fires when this relation appeared N times ago in its own history — regardless of trial distance. Very hard.' },
-  { id: 'rint',         icon: GitBranch,  label: 'Relational Integration', desc: 'Entities (alpha, beta…) persist across trials. A target fires when the current stimulus is a VALID logical conclusion from chaining the N previous facts (e.g. A>B, B>C → A>C). Requires N≥2. Works on transitive relations only.', minN: 2 },
-  { id: 'mixed_nback',  icon: Shuffle,    label: 'Mixed N-Back', desc: 'Randomly switches between normal N-back and Type N-back each trial. You never know which rule applies — very challenging.' },
-  { id: 'mixed_rint',   icon: Shuffle,    label: 'Mixed RINT',   desc: 'Three-way random mix: normal N-back, Type N-back, or Relational Integration each trial. Maximum cognitive flexibility demand. Requires N≥2.', minN: 2 },
-  { id: 'variable_n',   icon: Shuffle,    label: 'Variable N',   desc: 'N changes randomly each trial (±1 around your chosen N). Forces flexible updating.' },
-  { id: 'adaptive',     icon: TrendingUp, label: 'Adaptive N',   desc: 'N auto-adjusts between sessions based on accuracy (≥80% → up, ≤50% → down)' },
-  { id: 'dual',         icon: Layers,     label: 'Dual Stream',  desc: 'Track two independent relationship streams simultaneously (SPACE + A)' },
-  { id: 'hierarchical', icon: GitBranch,  label: 'Hierarchical', desc: 'Also track relationship category N-back (L)' },
-  { id: 'distractors',  icon: Shuffle,    label: 'Distractors',  desc: 'Near-match stimuli from the same category create interference' },
+  { id: 'type_nback',   icon: Brain,      label: 'Type N-Back',       desc: 'Each relation type has its own N-back queue. Match fires when this relation appeared N times ago in its own history — regardless of trial distance. Very hard.' },
+  { id: 'rint',         icon: GitBranch,  label: 'Relational Integration', desc: 'Entities (alpha, beta…) persist across trials. A target fires when the current stimulus is a VALID logical conclusion from chaining the N previous facts (e.g. A>B, B>C → A>C). Requires N≥2.', minN: 2 },
+  { id: 'mixed_nback',  icon: Shuffle,    label: 'Mixed N-Back',      desc: 'Randomly switches between Normal and Type N-back each trial. You never know which rule applies.' },
+  { id: 'mixed_rint',   icon: Shuffle,    label: 'Mixed RINT',        desc: 'Three-way random per trial: Normal / Type / RINT. Maximum flexibility demand. Requires N≥2.', minN: 2 },
+  { id: 'impossible',   icon: Zap,        label: 'Impossible',        desc: 'Each stream independently randomizes between Normal, Type, and RINT every trial — different rules per stream simultaneously. Requires ≥2 streams and N≥2.', minN: 2, minStreams: 2 },
+  { id: 'variable_n',   icon: Shuffle,    label: 'Variable N',        desc: 'N changes randomly each trial (±1 around your chosen N). Forces flexible updating.' },
+  { id: 'adaptive',     icon: TrendingUp, label: 'Adaptive N',        desc: 'N auto-adjusts between sessions based on accuracy (≥80% → up, ≤50% → down).' },
+  { id: 'hierarchical', icon: GitBranch,  label: 'Hierarchical',      desc: 'Also track relationship category N-back (L key). Independent of stream count.' },
+  { id: 'distractors',  icon: Shuffle,    label: 'Distractors',       desc: 'Near-match stimuli from the same category create interference in normal mode.' },
+];
+
+// Modes that are mutually exclusive with each other (only one from each group active)
+const EXCLUSIVE_GROUPS = [
+  ['type_nback', 'mixed_nback', 'mixed_rint', 'impossible'],
+  ['rint', 'mixed_rint', 'impossible'],
 ];
 
 const CATEGORY_META = {
@@ -191,10 +197,24 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
   const toggleMode = (id) => {
     const opt = MODE_OPTIONS.find(m => m.id === id);
-    if (opt?.minN && nLevel < opt.minN) {
-      setNLevel(opt.minN);
+    const isActive = modes.includes(id);
+    if (!isActive) {
+      if (opt?.minN && nLevel < opt.minN) setNLevel(opt.minN);
+      // Enforce stream requirement
+      if (opt?.minStreams && (1 + extraStreams.length) < opt.minStreams) {
+        // Auto-add a stream if missing
+        const available = KEY_OPTIONS.find(k => ![streamAKey, ...extraStreams.map(s => s.key)].includes(k.code));
+        if (available) setExtraStreams(prev => [...prev, { key: available.code, keyDisplay: available.display, label: STREAM_LABELS[1 + prev.length] || String(2 + prev.length) }]);
+      }
+      // Remove conflicting modes from exclusive groups
+      const toRemove = new Set();
+      EXCLUSIVE_GROUPS.forEach(group => {
+        if (group.includes(id)) group.forEach(m => { if (m !== id) toRemove.add(m); });
+      });
+      setModes(prev => [...prev.filter(m => !toRemove.has(m)), id]);
+    } else {
+      setModes(prev => prev.filter(m => m !== id));
     }
-    setModes(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
   };
 
   const toggleCat = (cat) => {
@@ -555,13 +575,18 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
         <div className="space-y-2">
           <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest">Enhancement Modes</label>
           <div className="grid grid-cols-1 gap-2">
-            {MODE_OPTIONS.map(({ id, icon: Icon, label, desc, minN }) => {
+            {MODE_OPTIONS.map(({ id, icon: Icon, label, desc, minN, minStreams }) => {
               const active = modes.includes(id);
               const needsHigherN = minN && nLevel < minN;
+              const needsMoreStreams = minStreams && (1 + extraStreams.length) < minStreams;
+              // Check if this mode is blocked by an active exclusive mode
+              const blockedBy = !active && EXCLUSIVE_GROUPS.some(g => g.includes(id) && g.some(m => m !== id && modes.includes(m)))
+                ? EXCLUSIVE_GROUPS.find(g => g.includes(id) && g.some(m => m !== id && modes.includes(m)))?.find(m => m !== id && modes.includes(m))
+                : null;
               return (
                 <button key={id} onClick={() => toggleMode(id)}
                   className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all duration-150
-                    ${active ? 'border-primary bg-primary/10' : 'border-border bg-secondary/40 hover:border-muted-foreground/40'}`}>
+                    ${active ? 'border-primary bg-primary/10' : blockedBy ? 'border-border bg-secondary/20 opacity-50' : 'border-border bg-secondary/40 hover:border-muted-foreground/40'}`}>
                   <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -571,11 +596,16 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                           N≥{minN}
                         </span>
                       )}
+                      {minStreams && (
+                        <span className={`text-xs font-mono px-1.5 py-0.5 rounded border ${needsMoreStreams ? 'border-amber-500/40 text-amber-400 bg-amber-500/10' : 'border-border text-muted-foreground/50'}`}>
+                          ≥{minStreams} streams
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs font-mono text-muted-foreground/60 mt-0.5">{desc}</div>
-                    {active && needsHigherN && (
-                      <div className="text-xs font-mono text-amber-400 mt-1">↑ N bumped to {minN}</div>
-                    )}
+                    {active && needsHigherN && <div className="text-xs font-mono text-amber-400 mt-1">↑ N bumped to {minN}</div>}
+                    {active && needsMoreStreams && <div className="text-xs font-mono text-amber-400 mt-1">↑ Stream added automatically</div>}
+                    {blockedBy && <div className="text-xs font-mono text-muted-foreground/40 mt-1">conflicts with {blockedBy.replace(/_/g,' ')}</div>}
                   </div>
                 </button>
               );

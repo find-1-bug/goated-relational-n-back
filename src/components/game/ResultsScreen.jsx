@@ -86,9 +86,11 @@ export default function ResultsScreen({ gameState, onRestart, onBack }) {
 
         {/* Per-stream results */}
         <div className="space-y-4">
-          <StreamResults title="Stream A — Relationship" stats={results.A} color="text-primary" />
-          {results.B && <StreamResults title="Stream B — Dual" stats={results.B} color="text-accent" />}
-          {results.C && <StreamResults title="Category — Hierarchical" stats={results.C} color="text-chart-3" />}
+          <StreamResults title="Stream A" stats={results.A} color="text-primary" />
+          {(results.extra || []).map((s, i) => (
+            <StreamResults key={i} title={`Stream ${String.fromCharCode(66 + i)}`} stats={s} color={['text-accent','text-chart-3','text-chart-4','text-chart-5'][i] || 'text-accent'} />
+          ))}
+          {results.C && <StreamResults title="Category (Hierarchical)" stats={results.C} color="text-chart-3" />}
         </div>
 
         {/* Actions */}

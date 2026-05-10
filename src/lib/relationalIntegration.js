@@ -93,11 +93,14 @@ function deriveConclusion(factA, factB) {
 
 export function createRINTState() {
   return {
-    // fact graph: array of { entityA, rel, entityB }
     facts: [],
-    // last N facts for chaining (same as facts tail, kept for clarity)
     chainLog: [],
   };
+}
+
+// Create an array of independent RINT states (one per stream)
+export function createRINTStates(n) {
+  return Array.from({ length: n }, () => createRINTState());
 }
 
 // ─── Stimulus Generation ──────────────────────────────────────────────────────

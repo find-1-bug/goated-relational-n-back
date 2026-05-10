@@ -23,7 +23,9 @@ import {
   INVERSE_RELATIONSHIP,
 } from './gameConstants';
 
-import { createRINTState, generateRINTStimulus, RINT_MIN_N } from './relationalIntegration.js';
+import { createRINTState, createRINTStates, generateRINTStimulus, RINT_MIN_N } from './relationalIntegration.js';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeStimulusEntry(rel) {
   const shapeA = pickRandom(SHAPES);
@@ -76,52 +78,83 @@ function makeDistractor(targetRelationship, pool) {
   return pickRandomExcluding(candidates, targetRelationship);
 }
 
-// Generate one stream's stimulus (shared logic for all extra streams)
-function generateStreamStimulus(history, typeHistory, pool, nLevel, effectiveN, modes, isTypeNback, matchChance) {
-  const canTarget = history.length >= effectiveN;
-  let stim, isTarget = false;
+// Roll a random trial mode for a single stream given the global modes config
+// Returns 'normal' | 'type' | 'rint'
+function rollTrialMode(modes, effectiveN) {
+  const isImpossible = modes.includes('impossible');
+  const isMixedRINT = modes.includes('mixed_rint');
+  const isMixed = modes.includes('mixed_nback');
+  const isTypeNback = modes.includes('type_nback');
+  const isRINT = modes.includes('rint');
 
-  if (isTypeNback) {
-    if (Math.random() < matchChance) {
-      const forcedRel = pickTypeNbackTargetRel(typeHistory, pool, effectiveN);
-      if (forcedRel) {
-        const entries = getTypeHistory(typeHistory, forcedRel);
-        const targetEntry = entries[entries.length - effectiveN];
-        if (isVerbal(forcedRel)) {
-          const inv = Math.random() < 0.35 ? makeInverseStimulus(targetEntry) : null;
-          stim = inv || makeStimulusEntry(forcedRel);
-        } else {
-          stim = maybeInvertVisual(makeStimulusEntry(forcedRel));
-        }
-        isTarget = true;
-      } else {
-        stim = makeStimulusEntry(pickRandom(pool));
-      }
+  if (isImpossible) {
+    // Three-way random, RINT only if N>=2
+    const r = Math.random();
+    if (r < 0.33) return 'normal';
+    if (r < 0.66) return 'type';
+    return effectiveN >= RINT_MIN_N ? 'rint' : 'type';
+  }
+  if (isMixedRINT) {
+    const r = Math.random();
+    if (r < 0.33) return 'normal';
+    if (r < 0.66) return 'type';
+    return effectiveN >= RINT_MIN_N ? 'rint' : 'normal';
+  }
+  if (isMixed) {
+    return Math.random() < 0.5 ? 'type' : 'normal';
+  }
+  if (isRINT && effectiveN >= RINT_MIN_N) return 'rint';
+  if (isTypeNback) return 'type';
+  return 'normal';
+}
+
+// Generate stimulus for a single stream, given its own history/typeHistory/rintState
+function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex }) {
+  let stim, isTarget = false, nextRINTState = rintState;
+  const canTarget = history.length >= effectiveN;
+
+  if (trialMode === 'rint') {
+    const rintResult = generateRINTStimulus(rintState, pool, effectiveN, matchChance);
+    stim = rintResult.stim;
+    isTarget = rintResult.isTarget;
+    nextRINTState = rintResult.rintState;
+  } else if (trialMode === 'type') {
+    const forcedRel = Math.random() < matchChance ? pickTypeNbackTargetRel(typeHistory, pool, effectiveN) : null;
+    if (forcedRel) {
+      const entries = getTypeHistory(typeHistory, forcedRel);
+      const targetEntry = entries[entries.length - effectiveN];
+      stim = isVerbal(forcedRel)
+        ? (Math.random() < 0.35 ? makeInverseStimulus(targetEntry) : null) || makeStimulusEntry(forcedRel)
+        : maybeInvertVisual(makeStimulusEntry(forcedRel));
+      isTarget = true;
     } else {
       stim = makeStimulusEntry(pickRandom(pool));
     }
   } else {
+    // normal
     const nBackEntry = canTarget ? history[history.length - effectiveN] : null;
     if (canTarget && nBackEntry && Math.random() < matchChance) {
-      if (isVerbal(nBackEntry.rel)) {
-        const inv = Math.random() < 0.35 ? makeInverseStimulus(nBackEntry) : null;
-        stim = inv || nBackEntry;
-      } else {
-        stim = maybeInvertVisual(makeStimulusEntry(nBackEntry.rel));
-      }
+      stim = isVerbal(nBackEntry.rel)
+        ? (Math.random() < 0.35 ? makeInverseStimulus(nBackEntry) : null) || nBackEntry
+        : maybeInvertVisual(makeStimulusEntry(nBackEntry.rel));
       isTarget = true;
+    } else if (hasDistractors && canTarget && nBackEntry && Math.random() < DISTRACTOR_CHANCE) {
+      stim = makeStimulusEntry(makeDistractor(nBackEntry.rel, pool));
     } else {
-      const excludeRel = nBackEntry?.rel;
-      stim = makeStimulusEntry(excludeRel ? pickRandomExcluding(pool, excludeRel) : pickRandom(pool));
+      const exc = canTarget ? history[history.length - effectiveN]?.rel : null;
+      stim = makeStimulusEntry(exc ? pickRandomExcluding(pool, exc) : pickRandom(pool));
     }
   }
-  return { stim, isTarget };
+
+  return { stim, isTarget, nextRINTState };
 }
 
 // ─── State Creation ──────────────────────────────────────────────────────────
 
 export function createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams = [] }) {
   const numExtra = extraStreams.length;
+  const totalStreams = 1 + numExtra; // stream A + extras
+
   return {
     nLevel,
     modes,
@@ -129,7 +162,9 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     round: 0,
     totalRounds: totalRounds || TOTAL_ROUNDS,
     numExtraStreams: numExtra,
-    rintState: createRINTState(),
+
+    // Per-stream RINT states (index 0 = stream A, 1..N = extra streams)
+    rintStates: createRINTStates(Math.max(1, totalStreams)),
 
     // Stream A
     historyA: [],
@@ -138,7 +173,7 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     currentStimulusA: null,
     isTargetA: false,
 
-    // Extra streams (dynamic array)
+    // Extra streams
     extraHistories: Array.from({ length: numExtra }, () => []),
     extraTypeHistories: Array.from({ length: numExtra }, () => new Map()),
     extraCurrentRels: Array(numExtra).fill(null),
@@ -149,7 +184,6 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     extraMisses: Array(numExtra).fill(0),
     extraFalseAlarms: Array(numExtra).fill(0),
     extraCorrectRejections: Array(numExtra).fill(0),
-
     // Hierarchical stream
     historyCategory: [],
     currentCategory: null,
@@ -169,6 +203,8 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     falseAlarmsC: 0,
     correctRejectionsC: 0,
 
+    trialMode: 'normal',
+    extraTrialModes: Array(numExtra).fill('normal'),
     finished: false,
   };
 }
@@ -176,127 +212,112 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
 // ─── Stimulus Generation ──────────────────────────────────────────────────────
 
 export function generateNextStimulus(state) {
-  const { nLevel, round, historyA, historyCategory, typeHistoryA, modes, relationshipPool,
-          extraHistories, extraTypeHistories } = state;
+  const {
+    nLevel, round, historyA, historyCategory, typeHistoryA, modes, relationshipPool,
+    extraHistories, extraTypeHistories, rintStates,
+  } = state;
+
   const pool = (relationshipPool && relationshipPool.length > 0) ? relationshipPool : ALL_RELATIONSHIPS;
   const isHier = modes.includes('hierarchical');
   const hasDistractors = modes.includes('distractors');
-  const isMixed = modes.includes('mixed_nback');
-  const isMixedRINT = modes.includes('mixed_rint');
+  const isImpossible = modes.includes('impossible');
 
-  // Variable N — must be computed first so effectiveN is available for RINT check
+  // Variable N
   const isVariableN = modes.includes('variable_n');
   let effectiveN = nLevel;
   if (isVariableN && round >= nLevel) {
     const delta = Math.random() < 0.5 ? 1 : -1;
     const candidate = nLevel + delta;
-    if (candidate >= 1 && (historyA.length >= candidate)) {
-      effectiveN = candidate;
-    }
+    if (candidate >= 1 && historyA.length >= candidate) effectiveN = candidate;
   }
 
-  // For mixed mode: randomly pick type_nback, rint, or normal each trial
-  const mixedRoll = isMixed || isMixedRINT ? Math.random() : -1;
-  let trialIsTypeNback = false;
-  let trialIsRINT = false;
-  if (isMixedRINT) {
-    // three-way: 33% normal, 33% type, 33% rint (but rint only if n>=2)
-    if (mixedRoll < 0.33) trialIsTypeNback = false;
-    else if (mixedRoll < 0.66) trialIsTypeNback = true;
-    else trialIsRINT = (effectiveN >= RINT_MIN_N);
-  } else if (isMixed) {
-    trialIsTypeNback = mixedRoll < 0.5;
-  }
-  const isTypeNback = modes.includes('type_nback') || trialIsTypeNback;
-  const isRINT = (modes.includes('rint') || trialIsRINT) && effectiveN >= RINT_MIN_N;
+  const trialIndex = round;
 
-  // ── Stream A ──
-  let stimA, isTargetA = false, isDistractor = false;
-  let nextRINTState = state.rintState;
-  const canTargetA = isTypeNback ? true : (round >= effectiveN && historyA.length >= effectiveN);
+  // ── Stream A: roll its own trial mode ──
+  const trialModeA = rollTrialMode(modes, effectiveN);
+  const rintStateA = (rintStates && rintStates[0]) ? rintStates[0] : createRINTState();
 
-  if (isRINT) {
-    const rintResult = generateRINTStimulus(state.rintState, pool, effectiveN, MATCH_CHANCE);
-    stimA = rintResult.stim;
-    isTargetA = rintResult.isTarget;
-    nextRINTState = rintResult.rintState;
-  } else if (isTypeNback) {
-    const forcedRel = Math.random() < MATCH_CHANCE ? pickTypeNbackTargetRel(typeHistoryA, pool, effectiveN) : null;
-    if (forcedRel) {
-      const entries = getTypeHistory(typeHistoryA, forcedRel);
-      const targetEntry = entries[entries.length - effectiveN];
-      stimA = isVerbal(forcedRel)
-        ? (Math.random() < 0.35 ? makeInverseStimulus(targetEntry) : null) || makeStimulusEntry(forcedRel)
-        : maybeInvertVisual(makeStimulusEntry(forcedRel));
-      isTargetA = true;
-    } else {
-      stimA = makeStimulusEntry(pickRandom(pool));
-    }
-  } else {
-    const nBackEntryA = canTargetA ? historyA[historyA.length - effectiveN] : null;
-    if (canTargetA && nBackEntryA && Math.random() < MATCH_CHANCE) {
-      stimA = isVerbal(nBackEntryA.rel)
-        ? (Math.random() < 0.35 ? makeInverseStimulus(nBackEntryA) : null) || nBackEntryA
-        : maybeInvertVisual(makeStimulusEntry(nBackEntryA.rel));
-      isTargetA = true;
-    } else if (hasDistractors && canTargetA && historyA[historyA.length - effectiveN] && Math.random() < DISTRACTOR_CHANCE) {
-      stimA = makeStimulusEntry(makeDistractor(historyA[historyA.length - effectiveN].rel, pool));
-      isDistractor = true;
-    } else {
-      const exc = canTargetA ? historyA[historyA.length - effectiveN]?.rel : null;
-      stimA = makeStimulusEntry(exc ? pickRandomExcluding(pool, exc) : pickRandom(pool));
-    }
-  }
-  // Tag trial mode
-  const trialMode = isRINT ? 'rint' : isTypeNback ? 'type' : 'normal';
+  const { stim: stimA, isTarget: isTargetA, nextRINTState: nextRINTStateA } = generateOneStreamStimulus({
+    history: historyA,
+    typeHistory: typeHistoryA,
+    rintState: rintStateA,
+    pool,
+    effectiveN,
+    trialMode: trialModeA,
+    matchChance: MATCH_CHANCE,
+    hasDistractors,
+    trialIndex,
+  });
+
   const relA = stimA.rel;
   const categoryA = getCategory(relA);
 
-  // ── Hierarchical category check override ──
+  // ── Hierarchical override for category stream ──
+  let isTargetCategory = false;
+  let finalStimA = stimA;
   if (isHier) {
     const canTargetCat = round >= nLevel && historyCategory.length >= nLevel;
     const nBackCat = canTargetCat ? historyCategory[historyCategory.length - nLevel] : null;
     if (canTargetCat && nBackCat && Math.random() < HIER_MATCH_CHANCE) {
       const catPool = (RELATIONSHIP_CATEGORIES[nBackCat] || []).filter(r => pool.includes(r));
       if (catPool.length > 0) {
-        stimA = makeStimulusEntry(pickRandom(catPool));
-        const extraStimuli = (extraHistories || []).map((hist, i) =>
-          generateStreamStimulus(hist, extraTypeHistories[i], pool, nLevel, effectiveN, modes, isTypeNback, DUAL_MATCH_CHANCE)
-        );
-        return {
-          stimA, relA: stimA.rel,
-          extraStimuli: extraStimuli.map(e => e.stim),
-          extraIsTargets: extraStimuli.map(e => e.isTarget),
-          categoryA: getCategory(stimA.rel),
-          isTargetA: false, isTargetCategory: true, isDistractor, effectiveN,
-          trialIsTypeNback: isTypeNback, trialIsRINT: isRINT, trialMode,
-          nextRINTState,
-        };
+        finalStimA = makeStimulusEntry(pickRandom(catPool));
+        isTargetCategory = true;
       }
     }
   }
 
-  // ── Extra streams ──
-  const extraStimResults = (extraHistories || []).map((hist, i) =>
-    generateStreamStimulus(hist, extraTypeHistories[i], pool, nLevel, effectiveN, modes, isTypeNback, DUAL_MATCH_CHANCE)
+  // ── Extra streams: each rolls its OWN trial mode (Impossible) or inherits global ──
+  const extraStreamModes = (extraHistories || []).map(() =>
+    isImpossible ? rollTrialMode(modes, effectiveN) : trialModeA
   );
 
+  const extraResults = (extraHistories || []).map((hist, i) => {
+    const streamRINTState = (rintStates && rintStates[1 + i]) ? rintStates[1 + i] : createRINTState();
+    return generateOneStreamStimulus({
+      history: hist,
+      typeHistory: extraTypeHistories[i] || new Map(),
+      rintState: streamRINTState,
+      pool,
+      effectiveN,
+      trialMode: extraStreamModes[i],
+      matchChance: DUAL_MATCH_CHANCE,
+      hasDistractors,
+      trialIndex,
+    });
+  });
+
+  // Compute next RINT states array
+  const nextRINTStates = (rintStates || []).map((rs, i) => {
+    if (i === 0) return nextRINTStateA;
+    const res = extraResults[i - 1];
+    return res ? res.nextRINTState : rs;
+  });
+
   return {
-    stimA, relA,
-    extraStimuli: extraStimResults.map(e => e.stim),
-    extraIsTargets: extraStimResults.map(e => e.isTarget),
-    isTargetA, categoryA, isTargetCategory: false, isDistractor, effectiveN,
-    trialIsTypeNback: isTypeNback,
-    trialIsRINT: isRINT,
-    trialMode,
-    nextRINTState,
+    stimA: finalStimA,
+    relA: finalStimA.rel,
+    isTargetA: isTargetCategory ? false : isTargetA,
+    isTargetCategory,
+    categoryA: getCategory(finalStimA.rel),
+    isDistractor: false,
+    effectiveN,
+    trialMode: trialModeA,
+    extraTrialModes: extraStreamModes,
+    extraStimuli: extraResults.map(r => r.stim),
+    extraIsTargets: extraResults.map(r => r.isTarget),
+    nextRINTStates,
   };
 }
 
 // ─── Advance Round ────────────────────────────────────────────────────────────
 
 export function advanceRound(state, stimulus) {
-  const { stimA, relA, extraStimuli, extraIsTargets, isTargetA, categoryA, isTargetCategory, isDistractor, effectiveN, trialIsTypeNback, trialIsRINT, trialMode, nextRINTState } = stimulus;
+  const {
+    stimA, relA, extraStimuli, extraIsTargets,
+    isTargetA, categoryA, isTargetCategory, isDistractor,
+    effectiveN, trialMode, extraTrialModes, nextRINTStates,
+  } = stimulus;
   const trialIndex = state.round;
 
   const nextTypeHistoryA = pushTypeHistory(state.typeHistoryA, relA, { ...stimA, trialIndex });
@@ -320,6 +341,7 @@ export function advanceRound(state, stimulus) {
     extraCurrentStimuli: extraStimuli || [],
     extraIsTargets: extraIsTargets || [],
     extraResponded: Array(state.numExtraStreams).fill(false),
+    extraTrialModes: extraTrialModes || Array(state.numExtraStreams).fill('normal'),
     historyCategory: [...state.historyCategory, categoryA],
     currentRelationship: relA,
     currentStimulusA: stimA,
@@ -327,10 +349,8 @@ export function advanceRound(state, stimulus) {
     isTargetA,
     isTargetCategory,
     isDistractor,
-    trialIsTypeNback: trialIsTypeNback ?? state.trialIsTypeNback ?? false,
-    trialIsRINT: trialIsRINT ?? state.trialIsRINT ?? false,
-    trialMode: trialMode ?? state.trialMode ?? 'normal',
-    rintState: nextRINTState ?? state.rintState,
+    trialMode: trialMode ?? 'normal',
+    rintStates: nextRINTStates ?? state.rintStates,
     respondedA: false,
     respondedCategory: false,
     finished: state.round + 1 >= state.totalRounds,
@@ -392,8 +412,14 @@ function streamStats(hits, misses, falseAlarms, correctRejections) {
 export function calculateResults(state) {
   const A = streamStats(state.hitsA, state.missesA, state.falseAlarmsA, state.correctRejectionsA);
 
+  // extra[] maps to all extra streams (stream B, C, D…)
   const extra = (state.extraHits || []).map((h, i) =>
-    streamStats(h || 0, (state.extraMisses || [])[i] || 0, (state.extraFalseAlarms || [])[i] || 0, (state.extraCorrectRejections || [])[i] || 0)
+    streamStats(
+      h || 0,
+      (state.extraMisses || [])[i] || 0,
+      (state.extraFalseAlarms || [])[i] || 0,
+      (state.extraCorrectRejections || [])[i] || 0
+    )
   );
 
   const C = state.modes.includes('hierarchical')
