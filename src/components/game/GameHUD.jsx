@@ -52,19 +52,7 @@ export default function GameHUD({ round, totalRounds, nLevel, effectiveN, hitsA,
           </div>
         )}
 
-        {/* Per-stream mode badges (stream A + extras) */}
-        {showModeBadges && (
-          <div className="flex items-center gap-1">
-            <span className="text-xs font-mono text-muted-foreground/40 mr-0.5">A:</span>
-            <ModeBadge mode={trialMode} />
-            {extraTrialModes.map((m, i) => (
-              <React.Fragment key={i}>
-                <span className="text-xs font-mono text-muted-foreground/40">{String.fromCharCode(66 + i)}:</span>
-                <ModeBadge mode={m} />
-              </React.Fragment>
-            ))}
-          </div>
-        )}
+
       </div>
 
       {/* Center: category label */}

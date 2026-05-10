@@ -187,10 +187,17 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
                   stimulus={s.stimulus}
                   clearCanvas={clearCanvas}
                 />
-                <div className="absolute top-2 left-3">
+                <div className="absolute top-2 left-3 flex items-center gap-1.5">
                   <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx % STREAM_COLORS.length]} opacity-70`}>
                     Stream {STREAM_LABELS[idx]}
                   </span>
+                  {allTrialModes[idx] && allTrialModes[idx] !== 'normal' && (
+                    <span className={`px-1 py-0.5 rounded border font-mono text-xs font-semibold leading-none
+                      ${allTrialModes[idx] === 'rint' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                      : 'bg-chart-4/10 border-chart-4/30 text-chart-4'}`}>
+                      {allTrialModes[idx] === 'rint' ? 'RINT' : 'TYPE'}
+                    </span>
+                  )}
                 </div>
                 {s.responded && phase === 'stimulus' && (
                   <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx]}`} />
