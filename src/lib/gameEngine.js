@@ -155,15 +155,18 @@ export function generateNextStimulus(state) {
   if (isVariableN && canTarget) {
     const delta = Math.random() < 0.5 ? 1 : -1;
     const candidate = nLevel + delta;
-    if (candidate >= 1 && candidate <= round) effectiveN = candidate;
+    // Bug 2 fix: ensure candidate is valid AND the history entry actually exists
+    if (candidate >= 1 && candidate <= round && historyA.length >= candidate) {
+      effectiveN = candidate;
+    }
   }
-  const canTargetEffective = round >= effectiveN;
+  const canTargetEffective = round >= effectiveN && historyA.length >= effectiveN;
 
   // ── Stream A ──
   let stimA, isTargetA, isDistractor = false;
   const nBackEntryA = canTargetEffective ? historyA[historyA.length - effectiveN] : null;
-  if (canTargetEffective && Math.random() < MATCH_CHANCE) {
-    if (isVerbal(nBackEntryA?.rel)) {
+  if (canTargetEffective && nBackEntryA && Math.random() < MATCH_CHANCE) {
+    if (isVerbal(nBackEntryA.rel)) {
       // 35% chance: produce the semantic inverse (B inv-rel A) instead of exact replay
       const inv = Math.random() < 0.35 ? makeInverseStimulus(nBackEntryA) : null;
       stimA = inv || nBackEntryA;
@@ -172,8 +175,8 @@ export function generateNextStimulus(state) {
     }
     isTargetA = true;
   } else {
-    if (hasDistractors && canTargetEffective && Math.random() < DISTRACTOR_CHANCE) {
-      stimA = makeStimulusEntry(makeDistractor(nBackEntryA?.rel, pool));
+    if (hasDistractors && canTargetEffective && nBackEntryA && Math.random() < DISTRACTOR_CHANCE) {
+      stimA = makeStimulusEntry(makeDistractor(nBackEntryA.rel, pool));
       isDistractor = true;
     } else {
       const excludeRel = nBackEntryA?.rel;
@@ -185,11 +188,13 @@ export function generateNextStimulus(state) {
   const categoryA = getCategory(relA);
 
   // ── Stream B (dual mode) ──
+  // Bug 3 fix: use historyB.length for index guard (not historyA) since B may be shorter
   let stimB = null, relB = null, isTargetB = false;
   if (isDual) {
-    const nBackEntryB = canTarget ? historyB[historyB.length - nLevel] : null;
-    if (canTarget && Math.random() < DUAL_MATCH_CHANCE) {
-      if (isVerbal(nBackEntryB?.rel)) {
+    const canTargetB = round >= nLevel && historyB.length >= nLevel;
+    const nBackEntryB = canTargetB ? historyB[historyB.length - nLevel] : null;
+    if (canTargetB && nBackEntryB && Math.random() < DUAL_MATCH_CHANCE) {
+      if (isVerbal(nBackEntryB.rel)) {
         const inv = Math.random() < 0.35 ? makeInverseStimulus(nBackEntryB) : null;
         stimB = inv || nBackEntryB;
       } else {
@@ -205,11 +210,28 @@ export function generateNextStimulus(state) {
   }
 
   // ── Category / Hierarchical stream ──
+  // Bug 1 fix: when dice say "make a category target", force stimA to use a rel from nBackCat's category
   let isTargetCategory = false;
   if (isHier) {
-    const nBackCat = canTarget ? historyCategory[historyCategory.length - nLevel] : null;
-    if (canTarget && Math.random() < HIER_MATCH_CHANCE) {
-      isTargetCategory = (categoryA === nBackCat);
+    const canTargetCat = round >= nLevel && historyCategory.length >= nLevel;
+    const nBackCat = canTargetCat ? historyCategory[historyCategory.length - nLevel] : null;
+    if (canTargetCat && nBackCat && Math.random() < HIER_MATCH_CHANCE) {
+      // Force stimA to be from the same category as nBackCat
+      const catPool = (RELATIONSHIP_CATEGORIES[nBackCat] || []).filter(r => pool.includes(r));
+      if (catPool.length > 0) {
+        const forcedRel = pickRandom(catPool);
+        stimA = makeStimulusEntry(forcedRel);
+        // Update relA and categoryA to reflect the forced stimulus
+        const forcedRelA = stimA.rel;
+        const forcedCatA = getCategory(forcedRelA);
+        isTargetCategory = true;
+        // Patch the values that will be returned
+        return {
+          stimA, relA: forcedRelA, stimB, relB,
+          isTargetA: false, // forcing category match means this is NOT a rel match
+          isTargetB, categoryA: forcedCatA, isTargetCategory, isDistractor, effectiveN
+        };
+      }
     }
   }
 
