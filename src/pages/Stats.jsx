@@ -54,11 +54,16 @@ export default function Stats() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <BarChart3 className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-mono font-bold text-foreground">Progress & Stats</h1>
-        </div>
+         {/* Header */}
+         <div className="flex items-center justify-between gap-3 mb-8">
+           <div className="flex items-center gap-3">
+             <BarChart3 className="w-8 h-8 text-primary" />
+             <h1 className="text-3xl font-mono font-bold text-foreground">Progress & Stats</h1>
+           </div>
+           <Link to="/" className="px-3 py-1.5 rounded-lg bg-secondary border border-border text-muted-foreground hover:text-foreground text-xs font-mono transition-colors">
+             Dashboard
+           </Link>
+         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
