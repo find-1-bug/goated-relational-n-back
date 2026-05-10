@@ -54,8 +54,10 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   const respondedRefs = useRef(allStreams.map(() => false));
   const phaseTimerRef = useRef(null);
   const gameStateRef = useRef(gameState);
+  const phaseRef = useRef(phase);
 
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   const startRound = useCallback((currentState, historicalState = null) => {
     const nextState = historicalState || (() => {
@@ -114,8 +116,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
   const handleNextTrial = useCallback(() => {
     // In noob mode, can advance from stimulus phase; otherwise only from feedback
-    if (noobMode && phase !== 'stimulus') return;
-    if (!noobMode && phase !== 'feedback') return;
+    if (noobMode && phaseRef.current !== 'stimulus') return;
+    if (!noobMode && phaseRef.current !== 'feedback') return;
     
     const state = gameStateRef.current;
     const pressedA = respondedRefs.current[0];
@@ -136,7 +138,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
         startRound(updatedState);
       }
     }
-  }, [phase, noobMode, onFinish, startRound, trialStates, allStreams.length]);
+  }, [noobMode, onFinish, startRound, trialStates, allStreams.length]);
 
   const handlePrevTrial = useCallback(() => {
     const currentRound = gameStateRef.current?.round ?? 0;
