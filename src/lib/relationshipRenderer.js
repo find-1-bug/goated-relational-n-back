@@ -314,46 +314,47 @@ export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisu
   const visuals = getVisuals(stimulus);
   const cx = canvasW / 2;
   const cy = canvasH / 2;
+  const scale = Math.min(1, canvasH / 180); // Scale down shapes if canvas height < 180px
   ctx.clearRect(0, 0, canvasW, canvasH);
 
   switch (relationship) {
-    case 'INSIDE':             renderInside(ctx, cx, cy, visuals); break;
-    case 'OVERLAPPING':        renderOverlapping(ctx, cx, cy, visuals); break;
-    case 'TOUCHING':           renderTouching(ctx, cx, cy, visuals); break;
-    case 'SIZE_MISMATCH':      renderSizeMismatch(ctx, cx, cy, visuals); break;
-    case 'HOLLOW_VS_SOLID':    renderHollowVsSolid(ctx, cx, cy, visuals); break;
-    case 'ONE_SHARED_TRAIT':   renderOneSharedTrait(ctx, cx, cy, visuals); break;
-    case 'ONE_TO_MANY':        renderOneToMany(ctx, cx, cy, canvasW, canvasH, visuals); break;
-    case 'ABOVE_BELOW':        renderAboveBelow(ctx, cx, cy, visuals); break;
-    case 'DIAGONAL':           renderDiagonal(ctx, cx, cy, visuals); break;
-    case 'ROTATED':            renderRotated(ctx, cx, cy, visuals); break;
-    case 'EQUAL_COUNT':        renderEqualCount(ctx, cx, cy, visuals); break;
-    case 'TWO_TO_ONE':         renderTwoToOne(ctx, cx, cy, visuals); break;
-    case 'PYRAMID':            renderPyramid(ctx, cx, cy, visuals); break;
-    case 'CONNECTED':          renderConnected(ctx, cx, cy, visuals); break;
-    case 'SURROUNDED':         renderSurrounded(ctx, cx, cy, visuals); break;
-    case 'BETWEEN':            renderBetween(ctx, cx, cy, visuals); break;
+    case 'INSIDE':             renderInside(ctx, cx, cy, visuals, scale); break;
+    case 'OVERLAPPING':        renderOverlapping(ctx, cx, cy, visuals, scale); break;
+    case 'TOUCHING':           renderTouching(ctx, cx, cy, visuals, scale); break;
+    case 'SIZE_MISMATCH':      renderSizeMismatch(ctx, cx, cy, visuals, scale); break;
+    case 'HOLLOW_VS_SOLID':    renderHollowVsSolid(ctx, cx, cy, visuals, scale); break;
+    case 'ONE_SHARED_TRAIT':   renderOneSharedTrait(ctx, cx, cy, visuals, scale); break;
+    case 'ONE_TO_MANY':        renderOneToMany(ctx, cx, cy, canvasW, canvasH, visuals, scale); break;
+    case 'ABOVE_BELOW':        renderAboveBelow(ctx, cx, cy, visuals, scale); break;
+    case 'DIAGONAL':           renderDiagonal(ctx, cx, cy, visuals, scale); break;
+    case 'ROTATED':            renderRotated(ctx, cx, cy, visuals, scale); break;
+    case 'EQUAL_COUNT':        renderEqualCount(ctx, cx, cy, visuals, scale); break;
+    case 'TWO_TO_ONE':         renderTwoToOne(ctx, cx, cy, visuals, scale); break;
+    case 'PYRAMID':            renderPyramid(ctx, cx, cy, visuals, scale); break;
+    case 'CONNECTED':          renderConnected(ctx, cx, cy, visuals, scale); break;
+    case 'SURROUNDED':         renderSurrounded(ctx, cx, cy, visuals, scale); break;
+    case 'BETWEEN':            renderBetween(ctx, cx, cy, visuals, scale); break;
     // NEW SPATIAL
-    case 'LEFT_RIGHT':         renderLeftRight(ctx, cx, cy, visuals); break;
-    case 'STACKED':            renderStacked(ctx, cx, cy, visuals); break;
-    case 'NESTED_3':           renderNested3(ctx, cx, cy, visuals); break;
-    case 'MIRRORED':           renderMirrored(ctx, cx, cy, visuals); break;
-    case 'SCATTERED':          renderScattered(ctx, cx, cy, canvasW, canvasH, visuals); break;
+    case 'LEFT_RIGHT':         renderLeftRight(ctx, cx, cy, visuals, scale); break;
+    case 'STACKED':            renderStacked(ctx, cx, cy, visuals, scale); break;
+    case 'NESTED_3':           renderNested3(ctx, cx, cy, visuals, scale); break;
+    case 'MIRRORED':           renderMirrored(ctx, cx, cy, visuals, scale); break;
+    case 'SCATTERED':          renderScattered(ctx, cx, cy, canvasW, canvasH, visuals, scale); break;
     // NEW TRAIT
-    case 'SAME_COLOR':         renderSameColor(ctx, cx, cy, visuals); break;
-    case 'SAME_SHAPE':         renderSameShape(ctx, cx, cy, visuals); break;
-    case 'OPPOSITE_COLORS':    renderOppositeColors(ctx, cx, cy, visuals); break;
-    case 'SIZE_GRADIENT':      renderSizeGradient(ctx, cx, cy, visuals); break;
-    case 'BORDER_ONLY':        renderBorderOnly(ctx, cx, cy, visuals); break;
-    case 'SHADOW_COPY':        renderShadowCopy(ctx, cx, cy, visuals); break;
-    case 'STRIPED':            renderStriped(ctx, cx, cy, visuals); break;
-    case 'DASHED_OUTLINE':     renderDashedOutline(ctx, cx, cy, visuals); break;
+    case 'SAME_COLOR':         renderSameColor(ctx, cx, cy, visuals, scale); break;
+    case 'SAME_SHAPE':         renderSameShape(ctx, cx, cy, visuals, scale); break;
+    case 'OPPOSITE_COLORS':    renderOppositeColors(ctx, cx, cy, visuals, scale); break;
+    case 'SIZE_GRADIENT':      renderSizeGradient(ctx, cx, cy, visuals, scale); break;
+    case 'BORDER_ONLY':        renderBorderOnly(ctx, cx, cy, visuals, scale); break;
+    case 'SHADOW_COPY':        renderShadowCopy(ctx, cx, cy, visuals, scale); break;
+    case 'STRIPED':            renderStriped(ctx, cx, cy, visuals, scale); break;
+    case 'DASHED_OUTLINE':     renderDashedOutline(ctx, cx, cy, visuals, scale); break;
     // NEW QUANT
-    case 'THREE_TO_ONE':       renderThreeToOne(ctx, cx, cy, visuals); break;
-    case 'ONE_TO_FIVE':        renderOneToFive(ctx, cx, cy, canvasW, canvasH, visuals); break;
-    case 'DECREASING_ROW':     renderDecreasingRow(ctx, cx, cy, visuals); break;
-    case 'INCREASING_ROW':     renderIncreasingRow(ctx, cx, cy, visuals); break;
-    case 'BALANCED_SCALE':     renderBalancedScale(ctx, cx, cy, visuals); break;
+    case 'THREE_TO_ONE':       renderThreeToOne(ctx, cx, cy, visuals, scale); break;
+    case 'ONE_TO_FIVE':        renderOneToFive(ctx, cx, cy, canvasW, canvasH, visuals, scale); break;
+    case 'DECREASING_ROW':     renderDecreasingRow(ctx, cx, cy, visuals, scale); break;
+    case 'INCREASING_ROW':     renderIncreasingRow(ctx, cx, cy, visuals, scale); break;
+    case 'BALANCED_SCALE':     renderBalancedScale(ctx, cx, cy, visuals, scale); break;
     default: break;
   }
 
@@ -362,16 +363,16 @@ export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisu
 
 // ─── Original visuals ──────────────────────────────────────────────────────────
 
-function renderInside(ctx, cx, cy, v) {
-  const outerSize = randomBetween(120, 160);
-  const innerSize = randomBetween(30, outerSize * 0.4);
+function renderInside(ctx, cx, cy, v, scale = 1) {
+  const outerSize = randomBetween(100, 130) * scale;
+  const innerSize = randomBetween(20, outerSize * 0.4);
   drawShape(ctx, v.shapeB, cx, cy, outerSize, v.colorB, true);
-  drawShape(ctx, v.shapeA, cx + randomBetween(-10, 10), cy + randomBetween(-10, 10), innerSize, v.colorA, true);
+  drawShape(ctx, v.shapeA, cx + randomBetween(-8, 8), cy + randomBetween(-8, 8), innerSize, v.colorA, true);
 }
 
-function renderOverlapping(ctx, cx, cy, v) {
-  const sizeA = randomBetween(70, 110);
-  const sizeB = randomBetween(70, 110);
+function renderOverlapping(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(55, 85) * scale;
+  const sizeB = randomBetween(55, 85) * scale;
   const offset = Math.min(sizeA, sizeB) * 0.4;
   ctx.globalAlpha = 0.85;
   drawShape(ctx, v.shapeA, cx - offset, cy, sizeA, v.colorA, true);
@@ -379,29 +380,29 @@ function renderOverlapping(ctx, cx, cy, v) {
   ctx.globalAlpha = 1;
 }
 
-function renderTouching(ctx, cx, cy, v) {
-  const sizeA = randomBetween(60, 90);
-  const sizeB = randomBetween(60, 90);
+function renderTouching(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(48, 70) * scale;
+  const sizeB = randomBetween(48, 70) * scale;
   const gap = (sizeA + sizeB) / 2;
   drawShape(ctx, v.shapeA, cx - gap / 2, cy, sizeA, v.colorA, true);
   drawShape(ctx, v.shapeB, cx + gap / 2, cy, sizeB, v.colorB, true);
 }
 
-function renderSizeMismatch(ctx, cx, cy, v) {
-  const bigSize = randomBetween(130, 170);
+function renderSizeMismatch(ctx, cx, cy, v, scale = 1) {
+  const bigSize = randomBetween(100, 130) * scale;
   const smallSize = bigSize / randomBetween(3, 4.5);
-  drawShape(ctx, v.shapeA, cx - 60, cy, bigSize, v.colorA, true);
-  drawShape(ctx, v.shapeB, cx + 80, cy, smallSize, v.colorB, true);
+  drawShape(ctx, v.shapeA, cx - 50 * scale, cy, bigSize, v.colorA, true);
+  drawShape(ctx, v.shapeB, cx + 60 * scale, cy, smallSize, v.colorB, true);
 }
 
-function renderHollowVsSolid(ctx, cx, cy, v) {
-  const sizeA = randomBetween(70, 110);
-  const sizeB = randomBetween(70, 110);
-  drawShape(ctx, v.shapeA, cx - 70, cy, sizeA, v.colorA, true);
-  drawShape(ctx, v.shapeB, cx + 70, cy, sizeB, v.colorB, false);
+function renderHollowVsSolid(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(55, 85) * scale;
+  const sizeB = randomBetween(55, 85) * scale;
+  drawShape(ctx, v.shapeA, cx - 55 * scale, cy, sizeA, v.colorA, true);
+  drawShape(ctx, v.shapeB, cx + 55 * scale, cy, sizeB, v.colorB, false);
 }
 
-function renderOneSharedTrait(ctx, cx, cy, v) {
+function renderOneSharedTrait(ctx, cx, cy, v, scale = 1) {
   const shareColor = Math.random() < 0.5;
   let shapeA, shapeB, colorA, colorB;
   if (shareColor) {
@@ -411,8 +412,8 @@ function renderOneSharedTrait(ctx, cx, cy, v) {
     shapeA = v.shapeA; shapeB = v.shapeA;
     colorA = v.colorA; colorB = pickRandomExcluding(COLORS, colorA);
   }
-  drawShape(ctx, shapeA, cx - 75, cy, randomBetween(60, 100), colorA, true);
-  drawShape(ctx, shapeB, cx + 75, cy, randomBetween(60, 100), colorB, true);
+  drawShape(ctx, shapeA, cx - 60 * scale, cy, randomBetween(48, 80) * scale, colorA, true);
+  drawShape(ctx, shapeB, cx + 60 * scale, cy, randomBetween(48, 80) * scale, colorB, true);
 }
 
 function renderOneToMany(ctx, cx, cy, canvasW, canvasH, v) {
@@ -422,69 +423,69 @@ function renderOneToMany(ctx, cx, cy, canvasW, canvasH, v) {
     .forEach(p => drawShape(ctx, v.shapeB, p.x, p.y, sizeB, v.colorB, true));
 }
 
-function renderAboveBelow(ctx, cx, cy, v) {
-  const sizeA = randomBetween(55, 85);
-  const sizeB = randomBetween(55, 85);
-  const gap = (sizeA + sizeB) / 2 + 20;
+function renderAboveBelow(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(44, 68) * scale;
+  const sizeB = randomBetween(44, 68) * scale;
+  const gap = ((sizeA + sizeB) / 2 + 15) * scale;
   drawShape(ctx, v.shapeA, cx, cy - gap / 2, sizeA, v.colorA, true);
   drawShape(ctx, v.shapeB, cx, cy + gap / 2, sizeB, v.colorB, true);
 }
 
-function renderDiagonal(ctx, cx, cy, v) {
-  const sizeA = randomBetween(55, 85);
-  const sizeB = randomBetween(55, 85);
-  const dx = randomBetween(60, 90) * (Math.random() < 0.5 ? -1 : 1);
-  const dy = randomBetween(40, 70) * (dx > 0 ? -1 : 1);
+function renderDiagonal(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(44, 68) * scale;
+  const sizeB = randomBetween(44, 68) * scale;
+  const dx = randomBetween(48, 72) * scale * (Math.random() < 0.5 ? -1 : 1);
+  const dy = randomBetween(32, 56) * scale * (dx > 0 ? -1 : 1);
   drawShape(ctx, v.shapeA, cx + dx, cy + dy, sizeA, v.colorA, true);
   drawShape(ctx, v.shapeB, cx - dx, cy - dy, sizeB, v.colorB, true);
 }
 
-function renderRotated(ctx, cx, cy, v) {
+function renderRotated(ctx, cx, cy, v, scale = 1) {
   const shape = v.shapeA;
-  const size = randomBetween(65, 95);
-  drawShape(ctx, shape, cx - 75, cy, size, v.colorA, true);
+  const size = randomBetween(52, 76) * scale;
+  drawShape(ctx, shape, cx - 60 * scale, cy, size, v.colorA, true);
   ctx.save();
-  ctx.translate(cx + 75, cy);
+  ctx.translate(cx + 60 * scale, cy);
   ctx.rotate(Math.PI / 4);
-  ctx.translate(-(cx + 75), -cy);
-  drawShape(ctx, shape, cx + 75, cy, size, v.colorB, true);
+  ctx.translate(-(cx + 60 * scale), -cy);
+  drawShape(ctx, shape, cx + 60 * scale, cy, size, v.colorB, true);
   ctx.restore();
 }
 
-function renderEqualCount(ctx, cx, cy, v) {
-  const sizeA = randomBetween(45, 65);
-  const sizeB = randomBetween(45, 65);
-  drawShape(ctx, v.shapeA, cx - 90, cy - 38, sizeA, v.colorA, true);
-  drawShape(ctx, v.shapeA, cx - 90, cy + 38, sizeA, v.colorA, true);
-  drawShape(ctx, v.shapeB, cx + 90, cy - 38, sizeB, v.colorB, true);
-  drawShape(ctx, v.shapeB, cx + 90, cy + 38, sizeB, v.colorB, true);
+function renderEqualCount(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(36, 52) * scale;
+  const sizeB = randomBetween(36, 52) * scale;
+  drawShape(ctx, v.shapeA, cx - 70 * scale, cy - 30 * scale, sizeA, v.colorA, true);
+  drawShape(ctx, v.shapeA, cx - 70 * scale, cy + 30 * scale, sizeA, v.colorA, true);
+  drawShape(ctx, v.shapeB, cx + 70 * scale, cy - 30 * scale, sizeB, v.colorB, true);
+  drawShape(ctx, v.shapeB, cx + 70 * scale, cy + 30 * scale, sizeB, v.colorB, true);
 }
 
-function renderTwoToOne(ctx, cx, cy, v) {
-  const sizeA = randomBetween(50, 70);
-  drawShape(ctx, v.shapeA, cx - 90, cy - 38, sizeA, v.colorA, true);
-  drawShape(ctx, v.shapeA, cx - 90, cy + 38, sizeA, v.colorA, true);
-  drawShape(ctx, v.shapeB, cx + 70, cy, randomBetween(60, 90), v.colorB, true);
+function renderTwoToOne(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(40, 56) * scale;
+  drawShape(ctx, v.shapeA, cx - 70 * scale, cy - 30 * scale, sizeA, v.colorA, true);
+  drawShape(ctx, v.shapeA, cx - 70 * scale, cy + 30 * scale, sizeA, v.colorA, true);
+  drawShape(ctx, v.shapeB, cx + 56 * scale, cy, randomBetween(48, 72) * scale, v.colorB, true);
 }
 
-function renderPyramid(ctx, cx, cy, v) {
-  const sizeA = randomBetween(50, 70);
-  const sizeB = randomBetween(45, 65);
-  const vertGap = (sizeA + sizeB) / 2 + 15;
+function renderPyramid(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(40, 56) * scale;
+  const sizeB = randomBetween(36, 52) * scale;
+  const vertGap = (sizeA + sizeB) / 2 + 12 * scale;
   drawShape(ctx, v.shapeA, cx, cy - vertGap / 2, sizeA, v.colorA, true);
-  drawShape(ctx, v.shapeB, cx - sizeB - 10, cy + vertGap / 2, sizeB, v.colorB, true);
-  drawShape(ctx, v.shapeB, cx + sizeB + 10, cy + vertGap / 2, sizeB, v.colorB, true);
+  drawShape(ctx, v.shapeB, cx - sizeB - 8 * scale, cy + vertGap / 2, sizeB, v.colorB, true);
+  drawShape(ctx, v.shapeB, cx + sizeB + 8 * scale, cy + vertGap / 2, sizeB, v.colorB, true);
 }
 
-function renderConnected(ctx, cx, cy, v) {
-  const sizeA = randomBetween(55, 80);
-  const sizeB = randomBetween(55, 80);
-  const leftX = cx - 90, rightX = cx + 90;
+function renderConnected(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(44, 64) * scale;
+  const sizeB = randomBetween(44, 64) * scale;
+  const leftX = cx - 72 * scale, rightX = cx + 72 * scale;
   drawShape(ctx, v.shapeA, leftX, cy, sizeA, v.colorA, true);
   drawShape(ctx, v.shapeB, rightX, cy, sizeB, v.colorB, true);
   ctx.save();
   ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = Math.max(1.5, 2.5 * scale);
   ctx.setLineDash([6, 4]);
   ctx.beginPath();
   ctx.moveTo(leftX + sizeA / 2, cy);
@@ -494,46 +495,46 @@ function renderConnected(ctx, cx, cy, v) {
   ctx.restore();
 }
 
-function renderSurrounded(ctx, cx, cy, v) {
-  const sizeA = randomBetween(50, 70);
-  const sizeB = randomBetween(35, 50);
-  const radius = sizeA / 2 + sizeB / 2 + 20;
+function renderSurrounded(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(40, 56) * scale;
+  const sizeB = randomBetween(28, 40) * scale;
+  const radius = sizeA / 2 + sizeB / 2 + 16 * scale;
   drawShape(ctx, v.shapeA, cx, cy, sizeA, v.colorA, true);
   [{ x: 0, y: -radius }, { x: radius, y: 0 }, { x: 0, y: radius }, { x: -radius, y: 0 }]
     .forEach(o => drawShape(ctx, v.shapeB, cx + o.x, cy + o.y, sizeB, v.colorB, true));
 }
 
-function renderBetween(ctx, cx, cy, v) {
-  const sizeOuter = randomBetween(55, 75);
-  const sizeMiddle = randomBetween(45, 65);
+function renderBetween(ctx, cx, cy, v, scale = 1) {
+  const sizeOuter = randomBetween(44, 60) * scale;
+  const sizeMiddle = randomBetween(36, 52) * scale;
   const colorC = COLORS.find(c => c !== v.colorA && c !== v.colorB) || v.colorA;
   const shapeC = pickRandomExcluding(SHAPES, v.shapeA);
-  drawShape(ctx, v.shapeA, cx - 110, cy, sizeOuter, v.colorA, true);
+  drawShape(ctx, v.shapeA, cx - 88 * scale, cy, sizeOuter, v.colorA, true);
   drawShape(ctx, shapeC,   cx,       cy, sizeMiddle, colorC,  true);
-  drawShape(ctx, v.shapeB, cx + 110, cy, sizeOuter, v.colorB, true);
+  drawShape(ctx, v.shapeB, cx + 88 * scale, cy, sizeOuter, v.colorB, true);
 }
 
 // ─── New Spatial ───────────────────────────────────────────────────────────────
 
-function renderLeftRight(ctx, cx, cy, v) {
-  const sizeA = randomBetween(55, 90);
-  const sizeB = randomBetween(55, 90);
-  drawShape(ctx, v.shapeA, cx - 90, cy, sizeA, v.colorA, true);
-  drawShape(ctx, v.shapeB, cx + 90, cy, sizeB, v.colorB, true);
+function renderLeftRight(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(44, 72) * scale;
+  const sizeB = randomBetween(44, 72) * scale;
+  drawShape(ctx, v.shapeA, cx - 72 * scale, cy, sizeA, v.colorA, true);
+  drawShape(ctx, v.shapeB, cx + 72 * scale, cy, sizeB, v.colorB, true);
   // label
   ctx.save();
   ctx.fillStyle = 'hsla(210,10%,50%,0.5)';
-  ctx.font = '11px JetBrains Mono, monospace';
+  ctx.font = `${Math.max(8, 9 * scale)}px JetBrains Mono, monospace`;
   ctx.textAlign = 'center';
-  ctx.fillText('L', cx - 90, cy + sizeA / 2 + 18);
-  ctx.fillText('R', cx + 90, cy + sizeB / 2 + 18);
+  ctx.fillText('L', cx - 72 * scale, cy + sizeA / 2 + 14 * scale);
+  ctx.fillText('R', cx + 72 * scale, cy + sizeB / 2 + 14 * scale);
   ctx.restore();
 }
 
-function renderStacked(ctx, cx, cy, v) {
+function renderStacked(ctx, cx, cy, v, scale = 1) {
   // 3 shapes vertically stacked
-  const size = randomBetween(48, 65);
-  const gap = size + 12;
+  const size = randomBetween(38, 52) * scale;
+  const gap = size + 10 * scale;
   const colorC = COLORS.find(c => c !== v.colorA && c !== v.colorB) || v.colorA;
   const shapeC = pickRandomExcluding(SHAPES, v.shapeA, v.shapeB);
   drawShape(ctx, v.shapeA, cx, cy - gap, size, v.colorA, true);
@@ -541,33 +542,35 @@ function renderStacked(ctx, cx, cy, v) {
   drawShape(ctx, v.shapeB, cx, cy + gap, size, v.colorB, true);
 }
 
-function renderNested3(ctx, cx, cy, v) {
+function renderNested3(ctx, cx, cy, v, scale = 1) {
   // 3 concentric shapes
   const colorC = COLORS.find(c => c !== v.colorA && c !== v.colorB) || '#14B8A6';
-  drawShape(ctx, v.shapeB, cx, cy, 160, v.colorB, false);
-  drawShape(ctx, v.shapeA, cx, cy, 105, v.colorA, false);
-  drawShape(ctx, 'circle', cx, cy, 50,  colorC,   true);
+  drawShape(ctx, v.shapeB, cx, cy, 130 * scale, v.colorB, false);
+  drawShape(ctx, v.shapeA, cx, cy, 85 * scale, v.colorA, false);
+  drawShape(ctx, 'circle', cx, cy, 40 * scale,  colorC,   true);
 }
 
-function renderMirrored(ctx, cx, cy, v) {
-  const size = randomBetween(60, 90);
-  drawShape(ctx, v.shapeA, cx - 75, cy, size, v.colorA, true);
+function renderMirrored(ctx, cx, cy, v, scale = 1) {
+  const size = randomBetween(48, 72) * scale;
+  drawShape(ctx, v.shapeA, cx - 60 * scale, cy, size, v.colorA, true);
   ctx.save();
-  ctx.translate(cx + 75, cy);
+  ctx.translate(cx + 60 * scale, cy);
   ctx.scale(-1, 1);
   drawShape(ctx, v.shapeA, 0, 0, size, v.colorB, true);
   ctx.restore();
 }
 
-function renderScattered(ctx, cx, cy, canvasW, canvasH, v) {
+function renderScattered(ctx, cx, cy, canvasW, canvasH, v, scale = 1) {
   // 5 random small shapes scattered across canvas
-  const size = randomBetween(30, 50);
+  const size = randomBetween(24, 40) * scale;
+  const xOffset = canvasW * 0.35;
+  const yOffset = canvasH * 0.35;
   const positions = [
-    { x: cx - 110, y: cy - 55 },
-    { x: cx + 95,  y: cy - 70 },
-    { x: cx - 60,  y: cy + 65 },
-    { x: cx + 120, y: cy + 40 },
-    { x: cx - 10,  y: cy - 10 },
+    { x: cx - xOffset, y: cy - yOffset * 0.7 },
+    { x: cx + xOffset * 0.9, y: cy - yOffset },
+    { x: cx - xOffset * 0.6, y: cy + yOffset * 0.8 },
+    { x: cx + xOffset, y: cy + yOffset * 0.5 },
+    { x: cx, y: cy - yOffset * 0.1 },
   ];
   const colors = [v.colorA, v.colorB, v.colorA, v.colorB, v.colorA];
   positions.forEach((p, i) =>
@@ -577,56 +580,57 @@ function renderScattered(ctx, cx, cy, canvasW, canvasH, v) {
 
 // ─── New Trait ────────────────────────────────────────────────────────────────
 
-function renderSameColor(ctx, cx, cy, v) {
-  const size = randomBetween(60, 90);
+function renderSameColor(ctx, cx, cy, v, scale = 1) {
+  const size = randomBetween(48, 72) * scale;
   const shapeB = pickRandomExcluding(SHAPES, v.shapeA);
-  drawShape(ctx, v.shapeA, cx - 80, cy, size, v.colorA, true);
-  drawShape(ctx, shapeB,   cx + 80, cy, size, v.colorA, true); // same color!
+  drawShape(ctx, v.shapeA, cx - 64 * scale, cy, size, v.colorA, true);
+  drawShape(ctx, shapeB,   cx + 64 * scale, cy, size, v.colorA, true); // same color!
 }
 
-function renderSameShape(ctx, cx, cy, v) {
-  const size = randomBetween(60, 90);
-  drawShape(ctx, v.shapeA, cx - 80, cy, size, v.colorA, true);
-  drawShape(ctx, v.shapeA, cx + 80, cy, size, v.colorB, true); // same shape, diff color
+function renderSameShape(ctx, cx, cy, v, scale = 1) {
+  const size = randomBetween(48, 72) * scale;
+  drawShape(ctx, v.shapeA, cx - 64 * scale, cy, size, v.colorA, true);
+  drawShape(ctx, v.shapeA, cx + 64 * scale, cy, size, v.colorB, true); // same shape, diff color
 }
 
-function renderOppositeColors(ctx, cx, cy, v) {
-  const size = randomBetween(65, 95);
+function renderOppositeColors(ctx, cx, cy, v, scale = 1) {
+  const size = randomBetween(52, 76) * scale;
   // Draw one on dark bg, one inverted
   ctx.save();
   ctx.fillStyle = v.colorA;
-  ctx.beginPath(); ctx.roundRect(cx - 120, cy - size / 1.4, size * 1.4, size * 1.4 * 1.2 + 2, 8); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(cx - 96 * scale, cy - size / 1.4, size * 1.4, size * 1.4 * 1.2 + 2, 8); ctx.fill();
   ctx.restore();
-  drawShape(ctx, v.shapeA, cx - 75, cy, size * 0.7, '#1e293b', true);
-  drawShape(ctx, v.shapeB, cx + 75, cy, size * 0.7, v.colorA,  true);
+  drawShape(ctx, v.shapeA, cx - 60 * scale, cy, size * 0.7, '#1e293b', true);
+  drawShape(ctx, v.shapeB, cx + 60 * scale, cy, size * 0.7, v.colorA,  true);
 }
 
-function renderSizeGradient(ctx, cx, cy, v) {
+function renderSizeGradient(ctx, cx, cy, v, scale = 1) {
   // 4 same shapes in a row, increasing size
-  const sizes = [28, 44, 62, 82];
-  const xs = [cx - 105, cx - 45, cx + 25, cx + 105];
+  const sizes = [22, 35, 50, 66].map(s => s * scale);
+  const gap = 40 * scale;
+  const xs = [cx - gap * 1.5, cx - gap * 0.5, cx + gap * 0.5, cx + gap * 1.5];
   sizes.forEach((s, i) => drawShape(ctx, v.shapeA, xs[i], cy, s, v.colorA, true));
 }
 
-function renderBorderOnly(ctx, cx, cy, v) {
-  const size = randomBetween(65, 95);
-  drawShape(ctx, v.shapeA, cx - 80, cy, size, v.colorA, false); // outline only
-  drawShape(ctx, v.shapeB, cx + 80, cy, size, v.colorB, false); // outline only
+function renderBorderOnly(ctx, cx, cy, v, scale = 1) {
+  const size = randomBetween(52, 76) * scale;
+  drawShape(ctx, v.shapeA, cx - 64 * scale, cy, size, v.colorA, false); // outline only
+  drawShape(ctx, v.shapeB, cx + 64 * scale, cy, size, v.colorB, false); // outline only
 }
 
-function renderShadowCopy(ctx, cx, cy, v) {
-  const size = randomBetween(65, 90);
+function renderShadowCopy(ctx, cx, cy, v, scale = 1) {
+  const size = randomBetween(52, 72) * scale;
   // Draw shadow (offset, semi-transparent)
   ctx.save();
   ctx.globalAlpha = 0.25;
-  drawShape(ctx, v.shapeA, cx + 12, cy + 12, size, '#000000', true);
+  drawShape(ctx, v.shapeA, cx + 10 * scale, cy + 10 * scale, size, '#000000', true);
   ctx.globalAlpha = 1;
   drawShape(ctx, v.shapeA, cx, cy, size, v.colorA, true);
   ctx.restore();
 }
 
-function renderStriped(ctx, cx, cy, v) {
-  const size = randomBetween(70, 100);
+function renderStriped(ctx, cx, cy, v, scale = 1) {
+  const size = randomBetween(56, 80) * scale;
   // Draw shape then clip stripes inside
   ctx.save();
   ctx.beginPath();
@@ -636,8 +640,8 @@ function renderStriped(ctx, cx, cy, v) {
   ctx.fillStyle = v.colorA;
   ctx.fillRect(cx - size, cy - size, size * 2, size * 2);
   ctx.strokeStyle = 'hsla(220,20%,6%,0.5)';
-  ctx.lineWidth = 7;
-  for (let i = -size; i < size * 2; i += 16) {
+  ctx.lineWidth = Math.max(4, 5.6 * scale);
+  for (let i = -size; i < size * 2; i += 13) {
     ctx.beginPath();
     ctx.moveTo(cx - size + i, cy - size);
     ctx.lineTo(cx - size + i, cy + size);
@@ -647,82 +651,92 @@ function renderStriped(ctx, cx, cy, v) {
   drawShape(ctx, v.shapeA, cx, cy, size, v.colorA, false);
 }
 
-function renderDashedOutline(ctx, cx, cy, v) {
-  const sizeA = randomBetween(65, 90);
-  const sizeB = randomBetween(65, 90);
+function renderDashedOutline(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(52, 72) * scale;
+  const sizeB = randomBetween(52, 72) * scale;
   // A = solid, B = dashed outline
-  drawShape(ctx, v.shapeA, cx - 80, cy, sizeA, v.colorA, true);
+  drawShape(ctx, v.shapeA, cx - 64 * scale, cy, sizeA, v.colorA, true);
   ctx.save();
   ctx.setLineDash([8, 5]);
-  ctx.lineWidth = 3;
+  ctx.lineWidth = Math.max(1.5, 2.4 * scale);
   ctx.strokeStyle = v.colorB;
-  drawShape(ctx, v.shapeB, cx + 80, cy, sizeB, v.colorB, false);
+  drawShape(ctx, v.shapeB, cx + 64 * scale, cy, sizeB, v.colorB, false);
   ctx.setLineDash([]);
   ctx.restore();
 }
 
 // ─── New Quant ────────────────────────────────────────────────────────────────
 
-function renderThreeToOne(ctx, cx, cy, v) {
-  const sizeA = randomBetween(42, 58);
-  const sizeB = randomBetween(65, 90);
-  [{ x: cx - 105, y: cy - 38 }, { x: cx - 105, y: cy + 38 }, { x: cx - 60, y: cy }]
+function renderThreeToOne(ctx, cx, cy, v, scale = 1) {
+  const sizeA = randomBetween(33, 46) * scale;
+  const sizeB = randomBetween(52, 72) * scale;
+  const leftX = cx - 84 * scale, midX = cx - 48 * scale, rightX = cx + 64 * scale;
+  const dy = 30 * scale;
+  [{ x: leftX, y: cy - dy }, { x: leftX, y: cy + dy }, { x: midX, y: cy }]
     .forEach(p => drawShape(ctx, v.shapeA, p.x, p.y, sizeA, v.colorA, true));
-  drawShape(ctx, v.shapeB, cx + 80, cy, sizeB, v.colorB, true);
+  drawShape(ctx, v.shapeB, rightX, cy, sizeB, v.colorB, true);
 }
 
-function renderOneToFive(ctx, cx, cy, canvasW, canvasH, v) {
-  drawShape(ctx, v.shapeA, cx - 105, cy, randomBetween(55, 75), v.colorA, true);
-  const sizeB = randomBetween(30, 42);
+function renderOneToFive(ctx, cx, cy, canvasW, canvasH, v, scale = 1) {
+  const sizeA = randomBetween(44, 60) * scale;
+  const sizeB = randomBetween(24, 34) * scale;
+  const leftX = cx - 84 * scale;
+  const topY = cy - 44 * scale, bottomY = cy + 16 * scale;
+  const gapX = 40 * scale;
+  drawShape(ctx, v.shapeA, leftX, cy, sizeA, v.colorA, true);
   const positions = [
-    { x: cx + 40, y: cy - 55 }, { x: cx + 90, y: cy - 55 },
-    { x: cx + 140, y: cy - 55 }, { x: cx + 65, y: cy + 20 },
-    { x: cx + 115, y: cy + 20 },
+    { x: cx + 32 * scale, y: topY }, { x: cx + 72 * scale, y: topY },
+    { x: cx + 112 * scale, y: topY }, { x: cx + 52 * scale, y: bottomY },
+    { x: cx + 92 * scale, y: bottomY },
   ];
   positions.forEach(p => drawShape(ctx, v.shapeB, p.x, p.y, sizeB, v.colorB, true));
 }
 
-function renderDecreasingRow(ctx, cx, cy, v) {
+function renderDecreasingRow(ctx, cx, cy, v, scale = 1) {
   // 4 shapes in a row, decreasing size left→right
-  const sizes = [85, 65, 46, 30];
-  const xs = [cx - 105, cx - 38, cx + 22, cx + 72];
+  const sizes = [68, 52, 37, 24].map(s => s * scale);
+  const gap = 42 * scale;
+  const xs = [cx - gap * 1.5, cx - gap * 0.5, cx + gap * 0.5, cx + gap * 1.5];
   sizes.forEach((s, i) => drawShape(ctx, v.shapeA, xs[i], cy, s, v.colorA, true));
 }
 
-function renderIncreasingRow(ctx, cx, cy, v) {
-  const sizes = [30, 46, 65, 85];
-  const xs = [cx - 105, cx - 52, cx + 15, cx + 90];
+function renderIncreasingRow(ctx, cx, cy, v, scale = 1) {
+  const sizes = [24, 37, 52, 68].map(s => s * scale);
+  const gap = 42 * scale;
+  const xs = [cx - gap * 1.5, cx - gap * 0.5, cx + gap * 0.5, cx + gap * 1.5];
   sizes.forEach((s, i) => drawShape(ctx, v.shapeA, xs[i], cy, s, v.colorB, true));
 }
 
-function renderBalancedScale(ctx, cx, cy, v) {
+function renderBalancedScale(ctx, cx, cy, v, scale = 1) {
   // Beam
   ctx.save();
   ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(cx - 120, cy - 10); ctx.lineTo(cx + 120, cy - 10); ctx.stroke();
+  ctx.lineWidth = Math.max(1.5, 2.4 * scale);
+  const beamW = 96 * scale;
+  ctx.beginPath(); ctx.moveTo(cx - beamW, cy - 8 * scale); ctx.lineTo(cx + beamW, cy - 8 * scale); ctx.stroke();
   // Pivot
-  ctx.beginPath(); ctx.moveTo(cx, cy - 10); ctx.lineTo(cx, cy + 30); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy - 8 * scale); ctx.lineTo(cx, cy + 24 * scale); ctx.stroke();
   ctx.restore();
   // Pans
-  const sizeA = randomBetween(42, 60);
-  const sizeB = randomBetween(42, 60);
+  const sizeA = randomBetween(33, 48) * scale;
+  const sizeB = randomBetween(33, 48) * scale;
+  const panX = 80 * scale;
   // Left pan
   ctx.save();
   ctx.strokeStyle = '#64748b';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = Math.max(1, 1.2 * scale);
   ctx.setLineDash([4, 3]);
-  ctx.beginPath(); ctx.moveTo(cx - 100, cy - 10); ctx.lineTo(cx - 100, cy + 20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - panX, cy - 8 * scale); ctx.lineTo(cx - panX, cy + 16 * scale); ctx.stroke();
   ctx.setLineDash([]);
   ctx.restore();
-  drawShape(ctx, v.shapeA, cx - 100, cy + 20 + sizeA / 2, sizeA, v.colorA, true);
+  drawShape(ctx, v.shapeA, cx - panX, cy + 16 * scale + sizeA / 2, sizeA, v.colorA, true);
   // Right pan
   ctx.save();
   ctx.strokeStyle = '#64748b';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = Math.max(1, 1.2 * scale);
   ctx.setLineDash([4, 3]);
-  ctx.beginPath(); ctx.moveTo(cx + 100, cy - 10); ctx.lineTo(cx + 100, cy + 20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx + panX, cy - 8 * scale); ctx.lineTo(cx + panX, cy + 16 * scale); ctx.stroke();
   ctx.setLineDash([]);
   ctx.restore();
-  drawShape(ctx, v.shapeB, cx + 100, cy + 20 + sizeB / 2, sizeB, v.colorB, true);
+  drawShape(ctx, v.shapeB, cx + panX, cy + 16 * scale + sizeB / 2, sizeB, v.colorB, true);
 }
