@@ -86,6 +86,7 @@ export default function Game() {
           onFinish={handleFinish}
           onExit={handleBack}
         />
+
       )}
       {screen === 'results' && finalState && (
         <ResultsScreen

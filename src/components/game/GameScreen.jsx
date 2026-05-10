@@ -13,14 +13,16 @@ import {
   FEEDBACK_DURATION,
 } from '@/lib/gameConstants';
 
-function StreamModeBadge({ mode }) {
-  if (!mode || mode === 'normal') return null;
+function StreamModeBadge({ mode, alwaysShow }) {
+  if (!mode) return null;
   const cfg = {
+    normal:       { label: 'NRM',  cls: 'bg-secondary border-border text-muted-foreground' },
     type:         { label: 'TYPE', cls: 'bg-chart-4/10 border-chart-4/30 text-chart-4' },
     rint:         { label: 'RINT', cls: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' },
     hierarchical: { label: 'HIER', cls: 'bg-violet-500/10 border-violet-500/30 text-violet-400' },
   }[mode];
   if (!cfg) return null;
+  if (mode === 'normal' && !alwaysShow) return null;
   return (
     <span className={`px-1 py-0.5 rounded border font-mono text-xs font-semibold leading-none ${cfg.cls}`}>
       {cfg.label}
@@ -33,7 +35,7 @@ const STREAM_BORDER_COLORS = ['border-border', 'border-accent/20', 'border-chart
 const STREAM_DOT_COLORS = ['bg-primary/60', 'bg-accent/60', 'bg-chart-3/60', 'bg-chart-4/60', 'bg-chart-5/60', 'bg-primary/60', 'bg-accent/60', 'bg-chart-3/60', 'bg-chart-4/60'];
 const STREAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
 
-export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, extraStreams, streamA, streamConfigs, onFinish, onExit }) {
+export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, extraStreams, streamA, onFinish, onExit }) {
   // extraStreams: [{ key, label, keyDisplay }]
   const allStreams = [
     { key: streamA?.key || 'Space', keyDisplay: streamA?.keyDisplay || 'SPACE', label: 'A' },
@@ -42,7 +44,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   const numExtra = (extraStreams || []).length;
 
   const [gameState, setGameState] = useState(() =>
-    createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams: extraStreams || [], streamConfigs: streamConfigs || [] })
+    createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams: extraStreams || [] })
   );
   const [phase, setPhase] = useState('stimulus');
   const [clearCanvas, setClearCanvas] = useState(false);
@@ -120,7 +122,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
   // Get current stimulus & rel for each stream (A + extras)
   const allTrialModes = [gameState.trialMode, ...(gameState.extraTrialModes || [])];
-  const allStreamConfigs = gameState.streamConfigs || [];
+  const allTrialBinaryConfigs = gameState.trialBinaryConfigs || [];
+  const isBinaryLogic = modes.includes('binary_logic');
   const streamStimuli = [
     { rel: gameState.currentRelationship, stimulus: gameState.currentStimulusA, responded: gameState.respondedA },
     ...(gameState.extraCurrentRels || []).map((rel, i) => ({
@@ -189,17 +192,19 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
                   <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx % STREAM_COLORS.length]} opacity-70 shrink-0`}>
                     {STREAM_LABELS[idx]}
                   </span>
-                  <StreamModeBadge mode={allTrialModes[idx]} />
-                  {(() => {
-                    const cfg = allStreamConfigs[idx];
-                    if (!cfg?.binaryMode) return null;
+                  {isBinaryLogic ? (() => {
+                    const bc = allTrialBinaryConfigs[idx];
+                    if (!bc) return null;
                     return (
                       <>
-                        <span className="text-muted-foreground/30 font-mono text-xs">{(cfg.binaryOp || 'AND').replace('_', ' ')}</span>
-                        <StreamModeBadge mode={cfg.binaryMode} />
+                        <StreamModeBadge mode={bc.primaryMode} alwaysShow />
+                        <span className="text-muted-foreground/40 font-mono text-xs leading-none">{(bc.binaryOp || 'AND').replace('_', ' ')}</span>
+                        <StreamModeBadge mode={bc.binaryMode} alwaysShow />
                       </>
                     );
-                  })()}
+                  })() : (
+                    <StreamModeBadge mode={allTrialModes[idx]} />
+                  )}
                 </div>
                 {s.responded && phase === 'stimulus' && (
                   <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx]}`} />

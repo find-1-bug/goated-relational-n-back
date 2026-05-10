@@ -25,6 +25,7 @@ import {
 
 import { createRINTState, createRINTStates, generateRINTStimulus, RINT_MIN_N } from './relationalIntegration.js';
 
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeStimulusEntry(rel) {
@@ -194,15 +195,25 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
   return { stim, isTarget, isPrimaryTarget, isHierTarget, nextRINTState };
 }
 
+// Random binary config for a single stream
+const BINARY_MODES = ['normal', 'type', 'rint', 'hierarchical'];
+const BINARY_OPS = ['AND', 'OR', 'XOR', 'AND_NOT'];
+
+function randomBinaryConfig(effectiveN) {
+  const modes = effectiveN >= RINT_MIN_N ? BINARY_MODES : BINARY_MODES.filter(m => m !== 'rint');
+  const primary = pickRandom(modes);
+  // secondary must differ from primary
+  const secondaryPool = modes.filter(m => m !== primary);
+  const secondary = pickRandom(secondaryPool);
+  const op = pickRandom(BINARY_OPS);
+  return { primaryMode: primary, binaryMode: secondary, binaryOp: op };
+}
+
 // ─── State Creation ──────────────────────────────────────────────────────────
 
-export function createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams = [], streamConfigs = [] }) {
+export function createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams = [] }) {
   const numExtra = extraStreams.length;
   const totalStreams = 1 + numExtra;
-
-  // streamConfigs[i]: { binaryMode, binaryOp } for each stream (index 0 = A)
-  // binaryMode: null | 'normal' | 'type' | 'rint' | 'hierarchical'
-  // binaryOp: 'AND' | 'OR' | 'XOR' | 'AND_NOT'
 
   return {
     nLevel,
@@ -211,7 +222,8 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     round: 0,
     totalRounds: totalRounds || TOTAL_ROUNDS,
     numExtraStreams: numExtra,
-    streamConfigs: streamConfigs.length > 0 ? streamConfigs : Array(totalStreams).fill(null).map(() => ({ binaryMode: null, binaryOp: 'AND' })),
+    // Per-trial randomized binary configs (only used when binary_logic mode is active)
+    trialBinaryConfigs: Array(totalStreams).fill(null).map(() => ({ primaryMode: 'normal', binaryMode: null, binaryOp: 'AND' })),
 
     // Per-stream RINT states (index 0 = stream A, 1..N = extra streams)
     rintStates: createRINTStates(Math.max(1, totalStreams)),
@@ -274,12 +286,23 @@ export function generateNextStimulus(state) {
   }
 
   const trialIndex = round;
-  const configs = streamConfigs || [];
+  const isBinaryLogic = modes.includes('binary_logic');
+
+  // Generate per-trial binary configs if binary_logic mode is active
+  const totalStreams = 1 + (extraHistories || []).length;
+  const trialBinaryConfigs = isBinaryLogic
+    ? Array.from({ length: totalStreams }, () => randomBinaryConfig(effectiveN))
+    : Array(totalStreams).fill({ primaryMode: 'normal', binaryMode: null, binaryOp: 'AND' });
 
   // ── Stream A ──
-  const trialModeA = rollTrialMode(modes, effectiveN);
+  // When binary_logic: override trialMode with the randomized primary mode
+  const trialModeA = isBinaryLogic
+    ? (trialBinaryConfigs[0].primaryMode === 'rint' && effectiveN >= RINT_MIN_N ? 'rint'
+        : trialBinaryConfigs[0].primaryMode === 'type' ? 'type' : 'normal')
+    : rollTrialMode(modes, effectiveN);
+
   const rintStateA = (rintStates && rintStates[0]) ? rintStates[0] : createRINTState();
-  const cfgA = configs[0] || { binaryMode: null, binaryOp: 'AND' };
+  const cfgA = trialBinaryConfigs[0];
 
   const resultA = generateOneStreamStimulus({
     history: historyA,
@@ -290,7 +313,7 @@ export function generateNextStimulus(state) {
     matchChance: MATCH_CHANCE,
     hasDistractors, trialIndex,
     hierHistory: (hierHistories || [])[0] || [],
-    binaryMode: cfgA.binaryMode,
+    binaryMode: isBinaryLogic ? cfgA.binaryMode : null,
     binaryOp: cfgA.binaryOp,
   });
 
@@ -298,13 +321,17 @@ export function generateNextStimulus(state) {
   const categoryA = getCategory(stimA.rel);
 
   // ── Extra streams ──
-  const extraStreamModes = (extraHistories || []).map(() =>
-    isImpossible ? rollTrialMode(modes, effectiveN) : trialModeA
-  );
+  const extraStreamModes = (extraHistories || []).map((_, i) => {
+    if (isBinaryLogic) {
+      const pm = trialBinaryConfigs[1 + i]?.primaryMode;
+      return pm === 'rint' && effectiveN >= RINT_MIN_N ? 'rint' : pm === 'type' ? 'type' : 'normal';
+    }
+    return isImpossible ? rollTrialMode(modes, effectiveN) : trialModeA;
+  });
 
   const extraResults = (extraHistories || []).map((hist, i) => {
     const streamRINTState = (rintStates && rintStates[1 + i]) ? rintStates[1 + i] : createRINTState();
-    const cfg = configs[1 + i] || { binaryMode: null, binaryOp: 'AND' };
+    const cfg = trialBinaryConfigs[1 + i] || { primaryMode: 'normal', binaryMode: null, binaryOp: 'AND' };
     return generateOneStreamStimulus({
       history: hist,
       typeHistory: extraTypeHistories[i] || new Map(),
@@ -314,7 +341,7 @@ export function generateNextStimulus(state) {
       matchChance: DUAL_MATCH_CHANCE,
       hasDistractors, trialIndex,
       hierHistory: (hierHistories || [])[1 + i] || [],
-      binaryMode: cfg.binaryMode,
+      binaryMode: isBinaryLogic ? cfg.binaryMode : null,
       binaryOp: cfg.binaryOp,
     });
   });
@@ -338,6 +365,7 @@ export function generateNextStimulus(state) {
     extraStimuli: extraResults.map(r => r.stim),
     extraIsTargets: extraResults.map(r => r.isTarget),
     nextRINTStates,
+    trialBinaryConfigs,
     // Per-stream categories for hierarchical history update
     allCategories: [categoryA, ...extraResults.map(r => getCategory(r.stim.rel))],
   };
@@ -349,7 +377,7 @@ export function advanceRound(state, stimulus) {
   const {
     stimA, relA, extraStimuli, extraIsTargets,
     isTargetA, categoryA, isDistractor,
-    effectiveN, trialMode, extraTrialModes, nextRINTStates, allCategories,
+    effectiveN, trialMode, extraTrialModes, nextRINTStates, allCategories, trialBinaryConfigs,
   } = stimulus;
   const trialIndex = state.round;
 
@@ -389,6 +417,7 @@ export function advanceRound(state, stimulus) {
     isDistractor,
     trialMode: trialMode ?? 'normal',
     rintStates: nextRINTStates ?? state.rintStates,
+    trialBinaryConfigs: trialBinaryConfigs ?? state.trialBinaryConfigs,
     respondedA: false,
     finished: state.round + 1 >= state.totalRounds,
   };
