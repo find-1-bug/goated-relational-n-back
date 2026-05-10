@@ -60,93 +60,134 @@ function setupScene(canvas) {
   return { scene, camera, renderer };
 }
 
-export function render3DRelationship(canvas, relationship, colors) {
+export function render3DRelationship(canvas, relationship, colors, rintChain = null) {
   const { scene, camera, renderer } = setupScene(canvas);
 
-  // Random 3D shapes
-  const shape1 = SHAPES_3D[Math.floor(Math.random() * SHAPES_3D.length)];
-  const shape2 = SHAPES_3D[Math.floor(Math.random() * SHAPES_3D.length)];
-  const size1 = 2 + Math.random() * 1.5;
-  const size2 = 2 + Math.random() * 1.5;
-
-  // Ensure colors are valid THREE.js hex values
   const toThreeColor = (c) => {
-    if (typeof c === 'number') {
-      return c; // Already a number like 0xRRGGBB
-    }
-    if (typeof c === 'string' && c.startsWith('#')) {
-      return parseInt(c.slice(1), 16); // Convert #RRGGBB to 0xRRGGBB
-    }
-    return 0xffffff; // Fallback to white
+    if (typeof c === 'number') return c;
+    if (typeof c === 'string' && c.startsWith('#')) return parseInt(c.slice(1), 16);
+    return 0xffffff;
   };
 
-  const mesh1 = createShape3D(shape1, size1, toThreeColor(colors[0]));
-  const mesh2 = createShape3D(shape2, size2, toThreeColor(colors[1]));
+  let meshes = [];
 
-  // Position based on relationship
-  switch (relationship) {
-    case 'DEPTH_LAYERED':
-      mesh1.position.z = -2;
-      mesh2.position.z = 2;
-      break;
-    case 'ORBITING':
-      mesh1.position.set(0, 0, 0);
-      mesh2.position.set(3, 0, 0);
-      break;
-    case 'ROTATING_PAIR':
-      mesh1.position.set(-2, 0, 0);
-      mesh2.position.set(2, 0, 0);
-      break;
-    case 'NESTED_VOLUME':
-      mesh1.position.set(0, 0, 0);
-      mesh2.position.set(0, 0, 0);
-      mesh2.scale.set(0.5, 0.5, 0.5);
-      break;
-    case 'ASCENDING_SPIRAL':
-      mesh1.position.set(0, -2, 0);
-      mesh2.position.set(2, 2, 0);
-      break;
-    case 'COLLIDING':
-      mesh1.position.set(-1.5, 0, 0);
-      mesh2.position.set(1.5, 0, 0);
-      break;
-    case 'REPELLING':
-      mesh1.position.set(-3, 0, 0);
-      mesh2.position.set(3, 0, 0);
-      break;
-    case 'BOUND_BY_GRAVITY':
-      mesh1.position.set(0, 0, 0);
-      mesh2.position.set(0, -3, 0);
-      break;
-    case 'INTERSECTING_PLANES':
-      mesh1.position.set(-1, 0, 0);
-      mesh2.position.set(1, 0, 0);
-      mesh2.rotation.z = Math.PI / 4;
-      break;
+  if (rintChain && rintChain.length > 0) {
+    // RINT mode: show entity chain (A > B, B > C)
+    const ENTITY_COLORS = {
+      alpha: 0x22d3ee,  // cyan
+      beta:  0xa78bfa,  // purple
+      gamma: 0x34d399,  // emerald
+    };
+    
+    const entities = ['alpha', 'beta', 'gamma'];
+    const positions = [
+      { x: -3.5, y: 0, z: 0 },
+      { x: 0, y: 0, z: 0 },
+      { x: 3.5, y: 0, z: 0 },
+    ];
+
+    entities.forEach((entity, idx) => {
+      const mesh = createShape3D('sphere', 1.2, ENTITY_COLORS[entity]);
+      mesh.position.set(positions[idx].x, positions[idx].y, positions[idx].z);
+      scene.add(mesh);
+      meshes.push(mesh);
+    });
+
+    // Draw relationship lines
+    const lineGeometry = new THREE.BufferGeometry();
+    lineGeometry.setFromPoints([
+      new THREE.Vector3(-3.5, 0, 0),
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(3.5, 0, 0),
+    ]);
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x64748b, linewidth: 2 });
+    const lines = new THREE.Line(lineGeometry, lineMaterial);
+    scene.add(lines);
+  } else {
+    // Normal mode: two random shapes
+    const shape1 = SHAPES_3D[Math.floor(Math.random() * SHAPES_3D.length)];
+    const shape2 = SHAPES_3D[Math.floor(Math.random() * SHAPES_3D.length)];
+    const size1 = 2 + Math.random() * 1.5;
+    const size2 = 2 + Math.random() * 1.5;
+
+    const mesh1 = createShape3D(shape1, size1, toThreeColor(colors[0]));
+    const mesh2 = createShape3D(shape2, size2, toThreeColor(colors[1]));
+    meshes = [mesh1, mesh2];
   }
 
-  scene.add(mesh1);
-  scene.add(mesh2);
+  // Position based on relationship (only for non-RINT mode)
+  if (!rintChain || rintChain.length === 0) {
+    const mesh1 = meshes[0];
+    const mesh2 = meshes[1];
+    
+    switch (relationship) {
+      case 'DEPTH_LAYERED':
+        mesh1.position.z = -2;
+        mesh2.position.z = 2;
+        break;
+      case 'ORBITING':
+        mesh1.position.set(0, 0, 0);
+        mesh2.position.set(3, 0, 0);
+        break;
+      case 'ROTATING_PAIR':
+        mesh1.position.set(-2, 0, 0);
+        mesh2.position.set(2, 0, 0);
+        break;
+      case 'NESTED_VOLUME':
+        mesh1.position.set(0, 0, 0);
+        mesh2.position.set(0, 0, 0);
+        mesh2.scale.set(0.5, 0.5, 0.5);
+        break;
+      case 'ASCENDING_SPIRAL':
+        mesh1.position.set(0, -2, 0);
+        mesh2.position.set(2, 2, 0);
+        break;
+      case 'COLLIDING':
+        mesh1.position.set(-1.5, 0, 0);
+        mesh2.position.set(1.5, 0, 0);
+        break;
+      case 'REPELLING':
+        mesh1.position.set(-3, 0, 0);
+        mesh2.position.set(3, 0, 0);
+        break;
+      case 'BOUND_BY_GRAVITY':
+        mesh1.position.set(0, 0, 0);
+        mesh2.position.set(0, -3, 0);
+        break;
+      case 'INTERSECTING_PLANES':
+        mesh1.position.set(-1, 0, 0);
+        mesh2.position.set(1, 0, 0);
+        mesh2.rotation.z = Math.PI / 4;
+        break;
+    }
+    
+    scene.add(mesh1);
+    scene.add(mesh2);
+  }
 
   // Animation loop
   let animationId;
   const animate = () => {
     animationId = requestAnimationFrame(animate);
 
-    mesh1.rotation.x += 0.003;
-    mesh1.rotation.y += 0.005;
+    meshes.forEach(mesh => {
+      mesh.rotation.x += 0.003;
+      mesh.rotation.y += 0.005;
+    });
 
-    mesh2.rotation.x -= 0.002;
-    mesh2.rotation.y += 0.007;
-
-    if (relationship === 'ORBITING') {
-      const angle = Date.now() * 0.0005;
-      mesh2.position.x = Math.cos(angle) * 4;
-      mesh2.position.z = Math.sin(angle) * 3;
-    } else if (relationship === 'ROTATING_PAIR') {
-      const angle = Date.now() * 0.0005;
-      mesh1.position.x = Math.cos(angle) * 2.5;
-      mesh2.position.x = -Math.cos(angle) * 2.5;
+    if (!rintChain || rintChain.length === 0) {
+      const mesh1 = meshes[0];
+      const mesh2 = meshes[1];
+      
+      if (relationship === 'ORBITING') {
+        const angle = Date.now() * 0.0005;
+        mesh2.position.x = Math.cos(angle) * 4;
+        mesh2.position.z = Math.sin(angle) * 3;
+      } else if (relationship === 'ROTATING_PAIR') {
+        const angle = Date.now() * 0.0005;
+        mesh1.position.x = Math.cos(angle) * 2.5;
+        mesh2.position.x = -Math.cos(angle) * 2.5;
+      }
     }
 
     renderer.render(scene, camera);

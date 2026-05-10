@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { renderRelationship, is3D } from '@/lib/relationshipRenderer';
 import { render3DRelationship } from '@/lib/threeRenderer';
 
-export default function GameCanvas({ relationship, stimulus, clearCanvas }) {
+export default function GameCanvas({ relationship, stimulus, clearCanvas, rintChain }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const cleanupRef = useRef(null);
@@ -38,7 +38,7 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas }) {
       container.appendChild(tempCanvas);
 
       const colors = [Math.random() * 0xffffff, Math.random() * 0xffffff];
-      cleanupRef.current = render3DRelationship(tempCanvas, relationship, colors);
+      cleanupRef.current = render3DRelationship(tempCanvas, relationship, colors, rintChain);
     } else {
       // Use 2D renderer
       if (cleanupRef.current) {
@@ -58,7 +58,7 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas }) {
 
       renderRelationship(ctx, rect.width, rect.height, relationship, null, stimulus);
     }
-  }, [relationship, clearCanvas, stimulus]);
+  }, [relationship, clearCanvas, stimulus, rintChain]);
 
   return (
     <div ref={containerRef} className="w-full h-full" style={{ display: 'block' }}>

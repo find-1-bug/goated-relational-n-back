@@ -245,6 +245,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
                   relationship={!clearCanvas ? s.rel : null}
                   stimulus={s.stimulus}
                   clearCanvas={clearCanvas}
+                  rintChain={gameState.rintStates?.[idx]?.chainLog}
                 />
                 <div className="absolute top-2 left-3 flex items-center gap-1 flex-wrap max-w-[90%]">
                   <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx % STREAM_COLORS.length]} opacity-70 shrink-0`}>
