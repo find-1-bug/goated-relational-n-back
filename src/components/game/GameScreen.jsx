@@ -125,10 +125,15 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     })),
   ];
 
+  const numStreams = streamStimuli.length;
+  // Use a 2-col grid for 2-4 streams on md+, single col otherwise
+  const useGrid = numStreams >= 2;
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4 py-4 select-none">
-      <div className="w-full max-w-xl mb-4 flex items-center gap-2">
-        <div className="flex-1">
+    <div className="flex flex-col min-h-screen h-screen overflow-hidden px-3 py-3 select-none">
+      {/* HUD */}
+      <div className="w-full flex items-center gap-2 mb-2 shrink-0">
+        <div className="flex-1 min-w-0">
           <GameHUD
             round={gameState.round}
             totalRounds={gameState.totalRounds}
@@ -153,36 +158,40 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
         )}
       </div>
 
-      {/* Stream canvases */}
-      {streamStimuli.map((s, idx) => (
-        <div key={idx} className={`relative w-full max-w-xl aspect-[4/3] ${idx > 0 ? 'mt-3' : ''} rounded-xl bg-secondary/30 border ${STREAM_BORDER_COLORS[idx]}`}>
-          <GameCanvas
-            relationship={!clearCanvas ? s.rel : null}
-            stimulus={s.stimulus}
-            clearCanvas={clearCanvas}
-          />
-          {idx > 0 && (
+      {/* Stream canvases — fill remaining vertical space */}
+      <div className={`flex-1 min-h-0 ${useGrid ? 'grid gap-2' : 'flex flex-col gap-2'}`}
+        style={useGrid ? {
+          gridTemplateColumns: numStreams <= 3 ? 'repeat(2, 1fr)' : 'repeat(2, 1fr)',
+          gridTemplateRows: `repeat(${Math.ceil(numStreams / 2)}, 1fr)`,
+        } : {}}>
+        {streamStimuli.map((s, idx) => (
+          <div key={idx} className={`relative rounded-xl bg-secondary/30 border ${STREAM_BORDER_COLORS[idx]} ${!useGrid ? 'flex-1 min-h-0' : ''}`}>
+            <GameCanvas
+              relationship={!clearCanvas ? s.rel : null}
+              stimulus={s.stimulus}
+              clearCanvas={clearCanvas}
+            />
             <div className="absolute top-2 left-3">
-              <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx]}/70`}>
+              <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx]} opacity-70`}>
                 Stream {STREAM_LABELS[idx]}
               </span>
             </div>
-          )}
-          {s.responded && phase === 'stimulus' && (
-            <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx]}`} />
-          )}
-          {phase === 'wipe' && (
-            <div className="absolute inset-0 bg-background/90 rounded-xl flex items-center justify-center">
-              <div className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-pulse" />
-            </div>
-          )}
-        </div>
-      ))}
+            {s.responded && phase === 'stimulus' && (
+              <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx]}`} />
+            )}
+            {phase === 'wipe' && (
+              <div className="absolute inset-0 bg-background/90 rounded-xl flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-pulse" />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
 
       {/* Hierarchical category display */}
       {isHier && gameState.currentCategory && phase === 'stimulus' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="mt-3 px-4 py-2 rounded-lg border border-border font-mono text-xs text-center text-muted-foreground">
+          className="mt-1 shrink-0 px-3 py-1 rounded-lg border border-border font-mono text-xs text-center text-muted-foreground">
           Category: <span className="text-accent font-semibold">
             {{ SPATIAL: 'Spatial', TRAIT: 'Trait', QUANT: 'Quantitative', VERBAL: 'Verbal' }[gameState.currentCategory] || gameState.currentCategory}
           </span>
@@ -191,26 +200,26 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       )}
 
       {/* Controls hint */}
-      <div className="mt-4 text-center space-y-1">
-        <p className="text-xs font-mono text-muted-foreground/50 flex flex-wrap justify-center gap-x-3 gap-y-1">
+      <div className="mt-1 shrink-0 text-center">
+        <p className="text-xs font-mono text-muted-foreground/40 flex flex-wrap justify-center gap-x-2 gap-y-0.5">
           {allStreams.map((stream, idx) => (
             <span key={idx}>
-              <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-semibold text-xs">{stream.keyDisplay}</kbd>
-              {' '}= Stream {STREAM_LABELS[idx]}
+              <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-semibold text-xs">{stream.keyDisplay}</kbd>
+              {' '}={' '}{STREAM_LABELS[idx]}
             </span>
           ))}
           {isHier && (
             <span>
-              <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-semibold text-xs">L</kbd>
-              {' '}= Category
+              <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-semibold text-xs">L</kbd>
+              {' '}=Cat
             </span>
           )}
+          <span className="text-muted-foreground/25 ml-1">· N={gameState.nLevel}</span>
         </p>
-        <p className="text-xs font-mono text-muted-foreground/30">Match from {gameState.nLevel} turn{gameState.nLevel > 1 ? 's' : ''} ago</p>
       </div>
 
       {/* Mobile buttons */}
-      <div className="mt-3 md:hidden flex gap-2 w-full max-w-xs">
+      <div className="mt-1 shrink-0 md:hidden flex gap-2 w-full max-w-lg mx-auto">
         {allStreams.map((stream, idx) => (
           <button key={idx}
             className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx]}`}
