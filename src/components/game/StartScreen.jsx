@@ -187,7 +187,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
   // Category mix weights (0–100 sliders, equal by default)
   const [catWeights, setCatWeights] = React.useState(
-    lastSettings?.catWeights || { SPATIAL: 25, TRAIT: 25, QUANT: 25, VERBAL: 25 }
+    lastSettings?.catWeights || { SPATIAL: 25, SPATIAL_3D: 15, TRAIT: 25, QUANT: 25, VERBAL: 10 }
   );
   const [useCustomMix, setUseCustomMix] = React.useState(lastSettings?.useCustomMix || false);
   const [showStimuliMix, setShowStimuliMix] = React.useState(false);
@@ -360,6 +360,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                 <div className="space-y-3 pt-1">
                   {Object.entries(RELATIONSHIP_CATEGORIES).map(([cat, members]) => {
                     const meta = CATEGORY_META[cat];
+                    if (!meta) return null; // Skip categories without metadata
                     const allOn = members.every(r => enabledRels.has(r));
                     const someOn = members.some(r => enabledRels.has(r));
                     return (
@@ -423,7 +424,9 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                 className="overflow-hidden">
                 <div className="space-y-3 pt-1 px-1">
                   {Object.entries(CATEGORY_META).map(([cat, meta]) => {
-                    const hasMembersEnabled = RELATIONSHIP_CATEGORIES[cat].some(r => enabledRels.has(r));
+                    const members = RELATIONSHIP_CATEGORIES[cat];
+                    if (!members) return null; // Skip if category doesn't exist
+                    const hasMembersEnabled = members.some(r => enabledRels.has(r));
                     if (!hasMembersEnabled) return null;
                     const pct = normalizedPct(cat);
                     const accentColor = cat === 'SPATIAL' ? '#22d3ee' : cat === 'TRAIT' ? '#a78bfa' : cat === 'QUANT' ? '#fbbf24' : '#34d399';
