@@ -69,8 +69,12 @@ export function render3DRelationship(canvas, relationship, colors) {
   const size1 = 2 + Math.random() * 1.5;
   const size2 = 2 + Math.random() * 1.5;
 
-  const mesh1 = createShape3D(shape1, size1, colors[0]);
-  const mesh2 = createShape3D(shape2, size2, colors[1]);
+  // Convert color numbers to hex strings
+  const color1 = typeof colors[0] === 'number' ? '#' + colors[0].toString(16).padStart(6, '0') : colors[0];
+  const color2 = typeof colors[1] === 'number' ? '#' + colors[1].toString(16).padStart(6, '0') : colors[1];
+
+  const mesh1 = createShape3D(shape1, size1, color1);
+  const mesh2 = createShape3D(shape2, size2, color2);
 
   // Position based on relationship
   switch (relationship) {
