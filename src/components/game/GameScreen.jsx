@@ -155,6 +155,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
             modes={modes}
             isDistractor={gameState.isDistractor}
             numStreams={allStreams.length}
+            trialIsTypeNback={gameState.trialIsTypeNback}
           />
         </div>
         {onExit && (

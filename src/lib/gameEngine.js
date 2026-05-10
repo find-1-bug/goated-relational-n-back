@@ -180,7 +180,8 @@ export function generateNextStimulus(state) {
   const hasDistractors = modes.includes('distractors');
   const isMixed = modes.includes('mixed_nback');
   // For mixed mode: randomly pick type_nback or normal each trial
-  const isTypeNback = modes.includes('type_nback') || (isMixed && Math.random() < 0.5);
+  const trialIsTypeNback = isMixed ? Math.random() < 0.5 : false;
+  const isTypeNback = modes.includes('type_nback') || trialIsTypeNback;
 
   // Variable N
   const isVariableN = modes.includes('variable_n');
@@ -259,13 +260,14 @@ export function generateNextStimulus(state) {
     extraStimuli: extraStimResults.map(e => e.stim),
     extraIsTargets: extraStimResults.map(e => e.isTarget),
     isTargetA, categoryA, isTargetCategory: false, isDistractor, effectiveN,
+    trialIsTypeNback: isTypeNback,
   };
 }
 
 // ─── Advance Round ────────────────────────────────────────────────────────────
 
 export function advanceRound(state, stimulus) {
-  const { stimA, relA, extraStimuli, extraIsTargets, isTargetA, categoryA, isTargetCategory, isDistractor, effectiveN } = stimulus;
+  const { stimA, relA, extraStimuli, extraIsTargets, isTargetA, categoryA, isTargetCategory, isDistractor, effectiveN, trialIsTypeNback } = stimulus;
   const trialIndex = state.round;
 
   const nextTypeHistoryA = pushTypeHistory(state.typeHistoryA, relA, { ...stimA, trialIndex });
@@ -296,6 +298,7 @@ export function advanceRound(state, stimulus) {
     isTargetA,
     isTargetCategory,
     isDistractor,
+    trialIsTypeNback: trialIsTypeNback ?? state.trialIsTypeNback ?? false,
     respondedA: false,
     respondedCategory: false,
     finished: state.round + 1 >= state.totalRounds,

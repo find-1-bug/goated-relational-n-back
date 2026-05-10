@@ -2,8 +2,9 @@ import React from 'react';
 
 const CAT_LABEL = { SPATIAL: 'Spatial', TRAIT: 'Trait', QUANT: 'Quantitative', VERBAL: 'Verbal' };
 
-export default function GameHUD({ round, totalRounds, nLevel, effectiveN, hitsA, missesA, falseAlarmsA, relationship, category, phase, modes = [], isDistractor, numStreams }) {
+export default function GameHUD({ round, totalRounds, nLevel, effectiveN, hitsA, missesA, falseAlarmsA, relationship, category, phase, modes = [], isDistractor, numStreams, trialIsTypeNback }) {
   const isHier = modes.includes('hierarchical');
+  const isMixed = modes.includes('mixed_nback');
 
   return (
     <div className="flex items-center justify-between w-full px-2 gap-2 flex-wrap">
@@ -27,6 +28,13 @@ export default function GameHUD({ round, totalRounds, nLevel, effectiveN, hitsA,
         {isHier && (
           <div className="px-2 py-0.5 rounded bg-chart-3/10 border border-chart-3/20">
             <span className="font-mono text-xs font-semibold text-chart-3">HIER</span>
+          </div>
+        )}
+        {isMixed && phase === 'stimulus' && (
+          <div className={`px-2 py-0.5 rounded border transition-all ${trialIsTypeNback ? 'bg-chart-4/10 border-chart-4/30' : 'bg-secondary border-border'}`}>
+            <span className={`font-mono text-xs font-semibold ${trialIsTypeNback ? 'text-chart-4' : 'text-muted-foreground'}`}>
+              {trialIsTypeNback ? 'TYPE' : 'NORMAL'}
+            </span>
           </div>
         )}
       </div>
