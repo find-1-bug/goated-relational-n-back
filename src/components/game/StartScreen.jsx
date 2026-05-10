@@ -32,9 +32,17 @@ const MODE_OPTIONS = [
   { id: 'impossible',   icon: Zap,        label: 'Impossible',        desc: 'Each stream independently randomizes between Normal, Type, and RINT every trial — different rules per stream simultaneously. Requires ≥2 streams and N≥2.', minN: 2, minStreams: 2 },
   { id: 'variable_n',   icon: Shuffle,    label: 'Variable N',        desc: 'N changes randomly each trial (±1 around your chosen N). Forces flexible updating.' },
   { id: 'adaptive',     icon: TrendingUp, label: 'Adaptive N',        desc: 'N auto-adjusts between sessions based on accuracy (≥80% → up, ≤50% → down).' },
-  { id: 'hierarchical', icon: GitBranch,  label: 'Hierarchical',      desc: 'Also track relationship category N-back (L key). Independent of stream count.' },
   { id: 'distractors',  icon: Shuffle,    label: 'Distractors',       desc: 'Near-match stimuli from the same category create interference in normal mode.' },
 ];
+
+// Secondary N-back type options for binary logic per stream
+const BINARY_MODE_OPTIONS = [
+  { id: 'normal',        label: 'NRM',  color: 'text-muted-foreground' },
+  { id: 'type',          label: 'TYPE', color: 'text-chart-4' },
+  { id: 'rint',          label: 'RINT', color: 'text-emerald-400' },
+  { id: 'hierarchical',  label: 'HIER', color: 'text-violet-400' },
+];
+const BINARY_OP_OPTIONS = ['AND', 'OR', 'XOR', 'AND_NOT'];
 
 // Modes that are mutually exclusive with each other (only one from each group active)
 const EXCLUSIVE_GROUPS = [
@@ -122,6 +130,64 @@ const SPEED_OPTIONS = [
   { label: 'Turbo',  ms: 1000 },
 ];
 
+function StreamRow({ label, labelColor, borderColor, keyCode, onKeyChange, allStreamKeys, thisKey, cfg, onCfgChange, nLevel, onRemove }) {
+  const hasBinary = !!cfg.binaryMode;
+  return (
+    <div className={`rounded-lg bg-secondary/50 border ${borderColor} space-y-1.5 p-2`}>
+      <div className="flex items-center gap-2">
+        <span className={`text-xs font-mono font-semibold ${labelColor} w-16 shrink-0`}>{label}</span>
+        <select
+          value={keyCode}
+          onChange={e => onKeyChange(e.target.value)}
+          className="flex-1 bg-secondary border border-border rounded px-2 py-1 text-xs font-mono text-foreground">
+          {KEY_OPTIONS.map(k => (
+            <option key={k.code} value={k.code} disabled={allStreamKeys.includes(k.code) && k.code !== thisKey}>
+              {k.display}
+            </option>
+          ))}
+        </select>
+        {onRemove && (
+          <button onClick={onRemove}
+            className="w-6 h-6 rounded bg-secondary border border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 flex items-center justify-center transition-colors text-sm shrink-0">
+            ×
+          </button>
+        )}
+      </div>
+      {/* Binary Logic row */}
+      <div className="flex items-center gap-1.5 flex-wrap pl-1">
+        <span className="text-xs font-mono text-muted-foreground/50 shrink-0">+</span>
+        {BINARY_MODE_OPTIONS.map(opt => {
+          const active = cfg.binaryMode === opt.id;
+          const isRint = opt.id === 'rint' && nLevel < 2;
+          return (
+            <button key={opt.id}
+              onClick={() => onCfgChange({ binaryMode: active ? null : opt.id })}
+              disabled={isRint}
+              className={`px-1.5 py-0.5 rounded border font-mono text-xs transition-all leading-none
+                ${active ? `border-current bg-current/10 ${opt.color}` : 'border-border text-muted-foreground/40 hover:border-muted-foreground/30'}
+                ${isRint ? 'opacity-30 cursor-not-allowed' : ''}`}>
+              {opt.label}
+            </button>
+          );
+        })}
+        {hasBinary && (
+          <>
+            <span className="text-xs font-mono text-muted-foreground/30 mx-0.5">op:</span>
+            {BINARY_OP_OPTIONS.map(op => (
+              <button key={op}
+                onClick={() => onCfgChange({ binaryOp: op })}
+                className={`px-1.5 py-0.5 rounded border font-mono text-xs transition-all leading-none
+                  ${cfg.binaryOp === op ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground/40 hover:border-muted-foreground/30'}`}>
+                {op.replace('_', ' ')}
+              </button>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const allCats = Object.keys(RELATIONSHIP_CATEGORIES);
   const allRels = Object.values(RELATIONSHIP_CATEGORIES).flat();
@@ -136,6 +202,22 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const [extraStreams, setExtraStreams] = React.useState(
     lastSettings?.extraStreams || []
   );
+
+  // Per-stream binary logic config: [{ binaryMode, binaryOp }, ...]  index 0 = stream A
+  const totalStreamCount = 1 + extraStreams.length;
+  const [streamConfigs, setStreamConfigs] = React.useState(() => {
+    const saved = lastSettings?.streamConfigs || [];
+    return Array.from({ length: Math.max(1, totalStreamCount) }, (_, i) =>
+      saved[i] || { binaryMode: null, binaryOp: 'AND' }
+    );
+  });
+  const setStreamConfig = (idx, patch) => setStreamConfigs(prev => {
+    const next = [...prev];
+    while (next.length <= idx) next.push({ binaryMode: null, binaryOp: 'AND' });
+    next[idx] = { ...next[idx], ...patch };
+    return next;
+  });
+
   // extra stream: { key, keyDisplay, label }
   const allStreamKeys = [streamAKey, ...extraStreams.map(s => s.key)];
   const addStream = () => {
@@ -143,8 +225,12 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
     const available = KEY_OPTIONS.find(k => !allStreamKeys.includes(k.code));
     if (!available) return;
     setExtraStreams(prev => [...prev, { key: available.code, keyDisplay: available.display, label: nextLabel }]);
+    setStreamConfigs(prev => [...prev, { binaryMode: null, binaryOp: 'AND' }]);
   };
-  const removeStream = (idx) => setExtraStreams(prev => prev.filter((_, i) => i !== idx));
+  const removeStream = (idx) => {
+    setExtraStreams(prev => prev.filter((_, i) => i !== idx));
+    setStreamConfigs(prev => prev.filter((_, i) => i !== idx + 1));
+  };
   const setStreamKey = (idx, code) => {
     const opt = KEY_OPTIONS.find(k => k.code === code);
     if (!opt) return;
@@ -490,40 +576,25 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
           <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest">Streams</label>
           <div className="space-y-2">
             {/* Stream A */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 border border-primary/20">
-              <span className="text-xs font-mono font-semibold text-primary w-16 shrink-0">Stream A</span>
-              <select
-                value={streamAKey}
-                onChange={e => setStreamAKey(e.target.value)}
-                className="flex-1 bg-secondary border border-border rounded px-2 py-1 text-xs font-mono text-foreground">
-                {KEY_OPTIONS.map(k => (
-                  <option key={k.code} value={k.code} disabled={allStreamKeys.includes(k.code) && k.code !== streamAKey}>
-                    {k.display}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <StreamRow
+              label="Stream A" labelColor="text-primary" borderColor="border-primary/20"
+              keyCode={streamAKey} onKeyChange={setStreamAKey}
+              allStreamKeys={allStreamKeys} thisKey={streamAKey}
+              cfg={streamConfigs[0] || { binaryMode: null, binaryOp: 'AND' }}
+              onCfgChange={patch => setStreamConfig(0, patch)}
+              nLevel={nLevel}
+            />
             {/* Extra streams */}
             {extraStreams.map((stream, idx) => (
-              <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 border border-accent/20">
-                <span className={`text-xs font-mono font-semibold w-16 shrink-0 ${STREAM_COLORS[1 + idx]}`}>
-                  Stream {STREAM_LABELS[1 + idx]}
-                </span>
-                <select
-                  value={stream.key}
-                  onChange={e => setStreamKey(idx, e.target.value)}
-                  className="flex-1 bg-secondary border border-border rounded px-2 py-1 text-xs font-mono text-foreground">
-                  {KEY_OPTIONS.map(k => (
-                    <option key={k.code} value={k.code} disabled={allStreamKeys.includes(k.code) && k.code !== stream.key}>
-                      {k.display}
-                    </option>
-                  ))}
-                </select>
-                <button onClick={() => removeStream(idx)}
-                  className="w-6 h-6 rounded bg-secondary border border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 flex items-center justify-center transition-colors text-sm">
-                  ×
-                </button>
-              </div>
+              <StreamRow key={idx}
+                label={`Stream ${STREAM_LABELS[1 + idx]}`} labelColor={STREAM_COLORS[1 + idx]} borderColor="border-accent/20"
+                keyCode={stream.key} onKeyChange={code => setStreamKey(idx, code)}
+                allStreamKeys={allStreamKeys} thisKey={stream.key}
+                cfg={streamConfigs[1 + idx] || { binaryMode: null, binaryOp: 'AND' }}
+                onCfgChange={patch => setStreamConfig(1 + idx, patch)}
+                nLevel={nLevel}
+                onRemove={() => removeStream(idx)}
+              />
             ))}
             {/* Add stream button */}
             <button onClick={addStream}
@@ -626,7 +697,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                   {' '}&nbsp;<kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-semibold">{s.keyDisplay}</kbd> = Stream {STREAM_LABELS[1 + i]}
                 </React.Fragment>
               ))}
-              {modes.includes('hierarchical') && <> &nbsp;<kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-semibold">L</kbd> = Category</>}
+
             </span>
           </div>
         </div>
@@ -637,7 +708,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
             onClick={() => {
               setTokenWeights(tokenWeights);
               const streamAObj = { key: streamAKey, keyDisplay: KEY_OPTIONS.find(k => k.code === streamAKey)?.display || 'SPACE' };
-              onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights, streamA: streamAObj, extraStreams, streams: [streamAObj, ...extraStreams] });
+              onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights, streamA: streamAObj, extraStreams, streams: [streamAObj, ...extraStreams], streamConfigs });
             }}
             className="h-12 px-10 font-mono font-semibold text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90">
             Start Training

@@ -13,29 +13,42 @@ import {
   FEEDBACK_DURATION,
 } from '@/lib/gameConstants';
 
+function StreamModeBadge({ mode }) {
+  if (!mode || mode === 'normal') return null;
+  const cfg = {
+    type:         { label: 'TYPE', cls: 'bg-chart-4/10 border-chart-4/30 text-chart-4' },
+    rint:         { label: 'RINT', cls: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' },
+    hierarchical: { label: 'HIER', cls: 'bg-violet-500/10 border-violet-500/30 text-violet-400' },
+  }[mode];
+  if (!cfg) return null;
+  return (
+    <span className={`px-1 py-0.5 rounded border font-mono text-xs font-semibold leading-none ${cfg.cls}`}>
+      {cfg.label}
+    </span>
+  );
+}
+
 const STREAM_COLORS = ['text-primary', 'text-accent', 'text-chart-3', 'text-chart-4', 'text-chart-5', 'text-primary', 'text-accent', 'text-chart-3', 'text-chart-4'];
 const STREAM_BORDER_COLORS = ['border-border', 'border-accent/20', 'border-chart-3/20', 'border-chart-4/20', 'border-chart-5/20', 'border-border', 'border-accent/20', 'border-chart-3/20', 'border-chart-4/20'];
 const STREAM_DOT_COLORS = ['bg-primary/60', 'bg-accent/60', 'bg-chart-3/60', 'bg-chart-4/60', 'bg-chart-5/60', 'bg-primary/60', 'bg-accent/60', 'bg-chart-3/60', 'bg-chart-4/60'];
 const STREAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
 
-export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, extraStreams, streamA, onFinish, onExit }) {
+export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, extraStreams, streamA, streamConfigs, onFinish, onExit }) {
   // extraStreams: [{ key, label, keyDisplay }]
   const allStreams = [
     { key: streamA?.key || 'Space', keyDisplay: streamA?.keyDisplay || 'SPACE', label: 'A' },
     ...(extraStreams || []),
   ];
   const numExtra = (extraStreams || []).length;
-  const isHier = modes.includes('hierarchical');
 
   const [gameState, setGameState] = useState(() =>
-    createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams: extraStreams || [] })
+    createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams: extraStreams || [], streamConfigs: streamConfigs || [] })
   );
   const [phase, setPhase] = useState('stimulus');
   const [clearCanvas, setClearCanvas] = useState(false);
 
   // One responded ref per stream (index 0 = stream A, 1..N = extra streams)
   const respondedRefs = useRef(allStreams.map(() => false));
-  const respondedCRef = useRef(false);
   const phaseTimerRef = useRef(null);
   const gameStateRef = useRef(gameState);
 
@@ -46,7 +59,6 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     const nextState = advanceRound(currentState, stimulus);
     setGameState(nextState);
     respondedRefs.current = allStreams.map(() => false);
-    respondedCRef.current = false;
     setClearCanvas(false);
     setPhase('stimulus');
     phaseTimerRef.current = setTimeout(() => endStimulus(nextState), stimulusDuration || 2800);
@@ -59,9 +71,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       const state = gameStateRef.current;
       const pressedA = respondedRefs.current[0];
       const pressedExtra = respondedRefs.current.slice(1);
-      const pressedCategory = respondedCRef.current;
 
-      const updatedState = processResponses(state, { pressedA, pressedExtra, pressedCategory });
+      const updatedState = processResponses(state, { pressedA, pressedExtra });
       setGameState(updatedState);
       setPhase('feedback');
 
@@ -102,21 +113,14 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           }
         }
       });
-      // Category: always 'L' key
-      if (e.code === 'KeyL' && isHier) {
-        e.preventDefault();
-        if (!respondedCRef.current) {
-          respondedCRef.current = true;
-          setGameState(prev => ({ ...prev, respondedCategory: true }));
-        }
-      }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [phase, allStreams, isHier]);
+  }, [phase, allStreams]);
 
   // Get current stimulus & rel for each stream (A + extras)
   const allTrialModes = [gameState.trialMode, ...(gameState.extraTrialModes || [])];
+  const allStreamConfigs = gameState.streamConfigs || [];
   const streamStimuli = [
     { rel: gameState.currentRelationship, stimulus: gameState.currentStimulusA, responded: gameState.respondedA },
     ...(gameState.extraCurrentRels || []).map((rel, i) => ({
@@ -150,14 +154,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
             hitsA={gameState.hitsA}
             missesA={gameState.missesA}
             falseAlarmsA={gameState.falseAlarmsA}
-            relationship={gameState.currentRelationship}
-            category={gameState.currentCategory}
-            phase={phase}
             modes={modes}
-            isDistractor={gameState.isDistractor}
             numStreams={allStreams.length}
-            trialMode={gameState.trialMode}
-            extraTrialModes={gameState.extraTrialModes || []}
           />
         </div>
         {onExit && (
@@ -187,17 +185,21 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
                   stimulus={s.stimulus}
                   clearCanvas={clearCanvas}
                 />
-                <div className="absolute top-2 left-3 flex items-center gap-1.5">
-                  <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx % STREAM_COLORS.length]} opacity-70`}>
-                    Stream {STREAM_LABELS[idx]}
+                <div className="absolute top-2 left-3 flex items-center gap-1 flex-wrap max-w-[90%]">
+                  <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx % STREAM_COLORS.length]} opacity-70 shrink-0`}>
+                    {STREAM_LABELS[idx]}
                   </span>
-                  {allTrialModes[idx] && allTrialModes[idx] !== 'normal' && (
-                    <span className={`px-1 py-0.5 rounded border font-mono text-xs font-semibold leading-none
-                      ${allTrialModes[idx] === 'rint' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                      : 'bg-chart-4/10 border-chart-4/30 text-chart-4'}`}>
-                      {allTrialModes[idx] === 'rint' ? 'RINT' : 'TYPE'}
-                    </span>
-                  )}
+                  <StreamModeBadge mode={allTrialModes[idx]} />
+                  {(() => {
+                    const cfg = allStreamConfigs[idx];
+                    if (!cfg?.binaryMode) return null;
+                    return (
+                      <>
+                        <span className="text-muted-foreground/30 font-mono text-xs">{(cfg.binaryOp || 'AND').replace('_', ' ')}</span>
+                        <StreamModeBadge mode={cfg.binaryMode} />
+                      </>
+                    );
+                  })()}
                 </div>
                 {s.responded && phase === 'stimulus' && (
                   <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx]}`} />
@@ -226,17 +228,6 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       </div>
 
 
-      {/* Hierarchical category display */}
-      {isHier && gameState.currentCategory && phase === 'stimulus' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="mt-1 shrink-0 px-3 py-1 rounded-lg border border-border font-mono text-xs text-center text-muted-foreground">
-          Category: <span className="text-accent font-semibold">
-            {{ SPATIAL: 'Spatial', TRAIT: 'Trait', QUANT: 'Quantitative', VERBAL: 'Verbal' }[gameState.currentCategory] || gameState.currentCategory}
-          </span>
-          {gameState.respondedCategory && <span className="ml-3 text-accent">✓ CAT MATCH</span>}
-        </motion.div>
-      )}
-
       {/* Controls hint */}
       <div className="mt-1 shrink-0 text-center">
         <p className="text-xs font-mono text-muted-foreground/40 flex flex-wrap justify-center gap-x-2 gap-y-0.5">
@@ -246,12 +237,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
               {' '}={' '}{STREAM_LABELS[idx]}
             </span>
           ))}
-          {isHier && (
-            <span>
-              <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-semibold text-xs">L</kbd>
-              {' '}=Cat
-            </span>
-          )}
+
           <span className="text-muted-foreground/25 ml-1">· N={gameState.nLevel}</span>
         </p>
       </div>
@@ -280,16 +266,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
             {stream.keyDisplay}
           </button>
         ))}
-        {isHier && (
-          <button className="flex-1 h-12 rounded-lg bg-secondary border border-accent/20 font-mono text-xs text-muted-foreground transition-colors"
-            onTouchStart={(e) => {
-              e.preventDefault();
-              if (phase === 'stimulus' && !respondedCRef.current) {
-                respondedCRef.current = true;
-                setGameState(prev => ({ ...prev, respondedCategory: true }));
-              }
-            }}>CAT</button>
-        )}
+
       </div>
     </div>
   );

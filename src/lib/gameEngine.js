@@ -78,6 +78,18 @@ function makeDistractor(targetRelationship, pool) {
   return pickRandomExcluding(candidates, targetRelationship);
 }
 
+// Evaluate binary logic between two boolean signals
+// op: 'AND' | 'OR' | 'XOR' | 'AND_NOT'
+export function evalBinaryOp(a, b, op) {
+  switch (op) {
+    case 'AND':     return a && b;
+    case 'OR':      return a || b;
+    case 'XOR':     return a !== b;
+    case 'AND_NOT': return a && !b;
+    default:        return a;
+  }
+}
+
 // Roll a random trial mode for a single stream given the global modes config
 // Returns 'normal' | 'type' | 'rint'
 function rollTrialMode(modes, effectiveN) {
@@ -109,14 +121,15 @@ function rollTrialMode(modes, effectiveN) {
 }
 
 // Generate stimulus for a single stream, given its own history/typeHistory/rintState
-function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex }) {
-  let stim, isTarget = false, nextRINTState = rintState;
+// streamConfig: { trialMode, binaryMode, binaryOp, hierHistory } for Hierarchical and Binary Logic
+function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex, hierHistory, binaryMode, binaryOp }) {
+  let stim, isPrimaryTarget = false, nextRINTState = rintState;
   const canTarget = history.length >= effectiveN;
 
   if (trialMode === 'rint') {
     const rintResult = generateRINTStimulus(rintState, pool, effectiveN, matchChance);
     stim = rintResult.stim;
-    isTarget = rintResult.isTarget;
+    isPrimaryTarget = rintResult.isTarget;
     nextRINTState = rintResult.rintState;
   } else if (trialMode === 'type') {
     const forcedRel = Math.random() < matchChance ? pickTypeNbackTargetRel(typeHistory, pool, effectiveN) : null;
@@ -126,7 +139,7 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
       stim = isVerbal(forcedRel)
         ? (Math.random() < 0.35 ? makeInverseStimulus(targetEntry) : null) || makeStimulusEntry(forcedRel)
         : maybeInvertVisual(makeStimulusEntry(forcedRel));
-      isTarget = true;
+      isPrimaryTarget = true;
     } else {
       stim = makeStimulusEntry(pickRandom(pool));
     }
@@ -137,7 +150,7 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
       stim = isVerbal(nBackEntry.rel)
         ? (Math.random() < 0.35 ? makeInverseStimulus(nBackEntry) : null) || nBackEntry
         : maybeInvertVisual(makeStimulusEntry(nBackEntry.rel));
-      isTarget = true;
+      isPrimaryTarget = true;
     } else if (hasDistractors && canTarget && nBackEntry && Math.random() < DISTRACTOR_CHANCE) {
       stim = makeStimulusEntry(makeDistractor(nBackEntry.rel, pool));
     } else {
@@ -146,14 +159,50 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
     }
   }
 
-  return { stim, isTarget, nextRINTState };
+  // Hierarchical signal: is the category of this stim the same as N back?
+  let isHierTarget = false;
+  const hierH = hierHistory || [];
+  if (binaryMode === 'hierarchical' || trialMode === 'hierarchical') {
+    const canHier = hierH.length >= effectiveN;
+    if (canHier) {
+      const nBackCat = hierH[hierH.length - effectiveN];
+      isHierTarget = getCategory(stim.rel) === nBackCat;
+    }
+  }
+
+  // Binary Logic: secondary mode generates its own independent signal
+  let isSecondaryTarget = false;
+  if (binaryMode && binaryMode !== 'hierarchical' && binaryMode !== 'none') {
+    // Generate secondary signal using the same history but different mode
+    const secResult = generateOneStreamStimulus({
+      history, typeHistory, rintState: nextRINTState, pool, effectiveN,
+      trialMode: binaryMode, matchChance, hasDistractors, trialIndex,
+    });
+    isSecondaryTarget = secResult.isPrimaryTarget;
+  }
+
+  // Compute final isTarget
+  let isTarget;
+  if (binaryMode === 'hierarchical') {
+    isTarget = evalBinaryOp(isPrimaryTarget, isHierTarget, binaryOp || 'AND');
+  } else if (binaryMode && binaryMode !== 'none') {
+    isTarget = evalBinaryOp(isPrimaryTarget, isSecondaryTarget, binaryOp || 'AND');
+  } else {
+    isTarget = isPrimaryTarget;
+  }
+
+  return { stim, isTarget, isPrimaryTarget, isHierTarget, nextRINTState };
 }
 
 // ─── State Creation ──────────────────────────────────────────────────────────
 
-export function createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams = [] }) {
+export function createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams = [], streamConfigs = [] }) {
   const numExtra = extraStreams.length;
-  const totalStreams = 1 + numExtra; // stream A + extras
+  const totalStreams = 1 + numExtra;
+
+  // streamConfigs[i]: { binaryMode, binaryOp } for each stream (index 0 = A)
+  // binaryMode: null | 'normal' | 'type' | 'rint' | 'hierarchical'
+  // binaryOp: 'AND' | 'OR' | 'XOR' | 'AND_NOT'
 
   return {
     nLevel,
@@ -162,9 +211,13 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     round: 0,
     totalRounds: totalRounds || TOTAL_ROUNDS,
     numExtraStreams: numExtra,
+    streamConfigs: streamConfigs.length > 0 ? streamConfigs : Array(totalStreams).fill(null).map(() => ({ binaryMode: null, binaryOp: 'AND' })),
 
     // Per-stream RINT states (index 0 = stream A, 1..N = extra streams)
     rintStates: createRINTStates(Math.max(1, totalStreams)),
+
+    // Per-stream hierarchical category histories
+    hierHistories: Array.from({ length: totalStreams }, () => []),
 
     // Stream A
     historyA: [],
@@ -184,24 +237,14 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     extraMisses: Array(numExtra).fill(0),
     extraFalseAlarms: Array(numExtra).fill(0),
     extraCorrectRejections: Array(numExtra).fill(0),
-    // Hierarchical stream
-    historyCategory: [],
-    currentCategory: null,
-    isTargetCategory: false,
 
     isDistractor: false,
     respondedA: false,
-    respondedCategory: false,
 
     hitsA: 0,
     missesA: 0,
     falseAlarmsA: 0,
     correctRejectionsA: 0,
-
-    hitsC: 0,
-    missesC: 0,
-    falseAlarmsC: 0,
-    correctRejectionsC: 0,
 
     trialMode: 'normal',
     extraTrialModes: Array(numExtra).fill('normal'),
@@ -213,12 +256,11 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
 
 export function generateNextStimulus(state) {
   const {
-    nLevel, round, historyA, historyCategory, typeHistoryA, modes, relationshipPool,
-    extraHistories, extraTypeHistories, rintStates,
+    nLevel, round, historyA, typeHistoryA, modes, relationshipPool,
+    extraHistories, extraTypeHistories, rintStates, hierHistories, streamConfigs,
   } = state;
 
   const pool = (relationshipPool && relationshipPool.length > 0) ? relationshipPool : ALL_RELATIONSHIPS;
-  const isHier = modes.includes('hierarchical');
   const hasDistractors = modes.includes('distractors');
   const isImpossible = modes.includes('impossible');
 
@@ -232,74 +274,63 @@ export function generateNextStimulus(state) {
   }
 
   const trialIndex = round;
+  const configs = streamConfigs || [];
 
-  // ── Stream A: roll its own trial mode ──
+  // ── Stream A ──
   const trialModeA = rollTrialMode(modes, effectiveN);
   const rintStateA = (rintStates && rintStates[0]) ? rintStates[0] : createRINTState();
+  const cfgA = configs[0] || { binaryMode: null, binaryOp: 'AND' };
 
-  const { stim: stimA, isTarget: isTargetA, nextRINTState: nextRINTStateA } = generateOneStreamStimulus({
+  const resultA = generateOneStreamStimulus({
     history: historyA,
     typeHistory: typeHistoryA,
     rintState: rintStateA,
-    pool,
-    effectiveN,
+    pool, effectiveN,
     trialMode: trialModeA,
     matchChance: MATCH_CHANCE,
-    hasDistractors,
-    trialIndex,
+    hasDistractors, trialIndex,
+    hierHistory: (hierHistories || [])[0] || [],
+    binaryMode: cfgA.binaryMode,
+    binaryOp: cfgA.binaryOp,
   });
 
-  const relA = stimA.rel;
-  const categoryA = getCategory(relA);
+  const stimA = resultA.stim;
+  const categoryA = getCategory(stimA.rel);
 
-  // ── Hierarchical override for category stream ──
-  let isTargetCategory = false;
-  let finalStimA = stimA;
-  if (isHier) {
-    const canTargetCat = round >= nLevel && historyCategory.length >= nLevel;
-    const nBackCat = canTargetCat ? historyCategory[historyCategory.length - nLevel] : null;
-    if (canTargetCat && nBackCat && Math.random() < HIER_MATCH_CHANCE) {
-      const catPool = (RELATIONSHIP_CATEGORIES[nBackCat] || []).filter(r => pool.includes(r));
-      if (catPool.length > 0) {
-        finalStimA = makeStimulusEntry(pickRandom(catPool));
-        isTargetCategory = true;
-      }
-    }
-  }
-
-  // ── Extra streams: each rolls its OWN trial mode (Impossible) or inherits global ──
+  // ── Extra streams ──
   const extraStreamModes = (extraHistories || []).map(() =>
     isImpossible ? rollTrialMode(modes, effectiveN) : trialModeA
   );
 
   const extraResults = (extraHistories || []).map((hist, i) => {
     const streamRINTState = (rintStates && rintStates[1 + i]) ? rintStates[1 + i] : createRINTState();
+    const cfg = configs[1 + i] || { binaryMode: null, binaryOp: 'AND' };
     return generateOneStreamStimulus({
       history: hist,
       typeHistory: extraTypeHistories[i] || new Map(),
       rintState: streamRINTState,
-      pool,
-      effectiveN,
+      pool, effectiveN,
       trialMode: extraStreamModes[i],
       matchChance: DUAL_MATCH_CHANCE,
-      hasDistractors,
-      trialIndex,
+      hasDistractors, trialIndex,
+      hierHistory: (hierHistories || [])[1 + i] || [],
+      binaryMode: cfg.binaryMode,
+      binaryOp: cfg.binaryOp,
     });
   });
 
   // Compute next RINT states array
   const nextRINTStates = (rintStates || []).map((rs, i) => {
-    if (i === 0) return nextRINTStateA;
+    if (i === 0) return resultA.nextRINTState;
     const res = extraResults[i - 1];
     return res ? res.nextRINTState : rs;
   });
 
   return {
-    stimA: finalStimA,
-    relA: finalStimA.rel,
-    isTargetA: isTargetCategory ? false : isTargetA,
-    isTargetCategory,
-    categoryA: getCategory(finalStimA.rel),
+    stimA,
+    relA: stimA.rel,
+    isTargetA: resultA.isTarget,
+    categoryA,
     isDistractor: false,
     effectiveN,
     trialMode: trialModeA,
@@ -307,6 +338,8 @@ export function generateNextStimulus(state) {
     extraStimuli: extraResults.map(r => r.stim),
     extraIsTargets: extraResults.map(r => r.isTarget),
     nextRINTStates,
+    // Per-stream categories for hierarchical history update
+    allCategories: [categoryA, ...extraResults.map(r => getCategory(r.stim.rel))],
   };
 }
 
@@ -315,8 +348,8 @@ export function generateNextStimulus(state) {
 export function advanceRound(state, stimulus) {
   const {
     stimA, relA, extraStimuli, extraIsTargets,
-    isTargetA, categoryA, isTargetCategory, isDistractor,
-    effectiveN, trialMode, extraTrialModes, nextRINTStates,
+    isTargetA, categoryA, isDistractor,
+    effectiveN, trialMode, extraTrialModes, nextRINTStates, allCategories,
   } = stimulus;
   const trialIndex = state.round;
 
@@ -329,6 +362,12 @@ export function advanceRound(state, stimulus) {
     extraStimuli[i] ? pushTypeHistory(th, extraStimuli[i].rel, { ...extraStimuli[i], trialIndex }) : th
   );
 
+  // Update per-stream hier histories
+  const nextHierHistories = (state.hierHistories || []).map((hh, i) => {
+    const cat = (allCategories || [])[i];
+    return cat ? [...hh, cat] : hh;
+  });
+
   return {
     ...state,
     round: state.round + 1,
@@ -337,29 +376,27 @@ export function advanceRound(state, stimulus) {
     typeHistoryA: nextTypeHistoryA,
     extraHistories: nextExtraHistories,
     extraTypeHistories: nextExtraTypeHistories,
+    hierHistories: nextHierHistories,
     extraCurrentRels: (extraStimuli || []).map(s => s?.rel ?? null),
     extraCurrentStimuli: extraStimuli || [],
     extraIsTargets: extraIsTargets || [],
     extraResponded: Array(state.numExtraStreams).fill(false),
     extraTrialModes: extraTrialModes || Array(state.numExtraStreams).fill('normal'),
-    historyCategory: [...state.historyCategory, categoryA],
     currentRelationship: relA,
     currentStimulusA: stimA,
     currentCategory: categoryA,
     isTargetA,
-    isTargetCategory,
     isDistractor,
     trialMode: trialMode ?? 'normal',
     rintStates: nextRINTStates ?? state.rintStates,
     respondedA: false,
-    respondedCategory: false,
     finished: state.round + 1 >= state.totalRounds,
   };
 }
 
 // ─── Process Responses ────────────────────────────────────────────────────────
 
-export function processResponses(state, { pressedA, pressedExtra = [], pressedCategory }) {
+export function processResponses(state, { pressedA, pressedExtra = [] }) {
   let next = { ...state };
 
   // Stream A
@@ -385,14 +422,6 @@ export function processResponses(state, { pressedA, pressedExtra = [], pressedCa
   next.extraFalseAlarms = nextExtraFA;
   next.extraCorrectRejections = nextExtraCR;
 
-  // Category (hierarchical)
-  if (state.modes.includes('hierarchical')) {
-    if (state.isTargetCategory && pressedCategory) next.hitsC++;
-    else if (state.isTargetCategory && !pressedCategory) next.missesC++;
-    else if (!state.isTargetCategory && pressedCategory) next.falseAlarmsC++;
-    else next.correctRejectionsC++;
-  }
-
   return next;
 }
 
@@ -412,7 +441,6 @@ function streamStats(hits, misses, falseAlarms, correctRejections) {
 export function calculateResults(state) {
   const A = streamStats(state.hitsA, state.missesA, state.falseAlarmsA, state.correctRejectionsA);
 
-  // extra[] maps to all extra streams (stream B, C, D…)
   const extra = (state.extraHits || []).map((h, i) =>
     streamStats(
       h || 0,
@@ -422,18 +450,14 @@ export function calculateResults(state) {
     )
   );
 
-  const C = state.modes.includes('hierarchical')
-    ? streamStats(state.hitsC, state.missesC, state.falseAlarmsC, state.correctRejectionsC)
-    : null;
-
-  const allStreamsStats = [A, ...extra, ...(C ? [C] : [])];
+  const allStreamsStats = [A, ...extra];
   const allHits = allStreamsStats.reduce((s, x) => s + x.hits, 0);
   const allMisses = allStreamsStats.reduce((s, x) => s + x.misses, 0);
   const allFA = allStreamsStats.reduce((s, x) => s + x.falseAlarms, 0);
   const allCR = allStreamsStats.reduce((s, x) => s + x.correctRejections, 0);
   const overall = streamStats(allHits, allMisses, allFA, allCR);
 
-  return { A, extra, C, overall };
+  return { A, extra, overall };
 }
 
 // ─── Adaptive N-Level ─────────────────────────────────────────────────────────
