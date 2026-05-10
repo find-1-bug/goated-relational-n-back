@@ -32,7 +32,6 @@ const MODE_OPTIONS = [
 ];
 
 const CATEGORY_META = {
-  VISUAL:  { label: 'Visual',       color: 'text-pink-400',   border: 'border-pink-400/40',   bg: 'bg-pink-400/10'  },
   SPATIAL: { label: 'Spatial',      color: 'text-cyan-400',   border: 'border-cyan-400/40',   bg: 'bg-cyan-400/10'  },
   TRAIT:   { label: 'Trait',        color: 'text-violet-400', border: 'border-violet-400/40', bg: 'bg-violet-400/10' },
   QUANT:   { label: 'Quantitative', color: 'text-amber-400',  border: 'border-amber-400/40',  bg: 'bg-amber-400/10' },
@@ -40,8 +39,6 @@ const CATEGORY_META = {
 };
 
 const REL_DISPLAY = {
-  // Visual
-  VORONOI: 'Voronoi',
   // Spatial
   INSIDE: 'Inside', OVERLAPPING: 'Overlapping', TOUCHING: 'Touching',
   ABOVE_BELOW: 'Above/Below', DIAGONAL: 'Diagonal', BETWEEN: 'Between',
@@ -102,17 +99,16 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
   // Category mix weights (0–100 sliders, equal by default)
   const [catWeights, setCatWeights] = React.useState(
-    lastSettings?.catWeights || { VISUAL: 0, SPATIAL: 25, TRAIT: 25, QUANT: 25, VERBAL: 25 }
+    lastSettings?.catWeights || { SPATIAL: 25, TRAIT: 25, QUANT: 25, VERBAL: 25 }
   );
   const [useCustomMix, setUseCustomMix] = React.useState(lastSettings?.useCustomMix || false);
+  const [showStimuliMix, setShowStimuliMix] = React.useState(false);
 
   // Token type weights for verbal stimuli
   const [tokenWeights, setTokenWeightsState] = React.useState(() => {
     const defaults = getTokenWeights();
     const saved = lastSettings?.tokenWeights || {};
-    // Strip any old 'voronoi' key from saved settings
-    const { voronoi: _v, ...cleanSaved } = saved;
-    return { ...defaults, ...cleanSaved };
+    return { ...defaults, ...saved };
   });
   const [showTokenMix, setShowTokenMix] = React.useState(false);
 
@@ -123,6 +119,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
     { id: 'emoji',         label: 'Emoji',       color: '#fbbf24', desc: 'Emoji symbols (🔥, 💧, 🌀…)' },
     { id: 'voronoi_emoji', label: 'Abstract',    color: '#34d399', desc: 'Geometric unicode symbols (◈, ⬡, ⟐…)' },
     { id: 'random_string', label: 'Random Str',  color: '#fb923c', desc: 'Alphanumeric codes (Xk3F, aB9z…)' },
+    { id: 'voronoi',       label: 'Voronoi',     color: '#f472b6', desc: 'Mini Voronoi cell diagrams as tokens' },
   ];
 
   const setTokenWeight = (id, val) => setTokenWeightsState(prev => ({ ...prev, [id]: Number(val) }));
@@ -300,17 +297,21 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
         {/* Stimuli Mix */}
         <div className="space-y-2">
           <button
-            onClick={() => setUseCustomMix(v => !v)}
+            onClick={() => setShowStimuliMix(v => !v)}
             className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/50 border border-border hover:border-muted-foreground/40 transition-colors">
             <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Stimuli Mix</span>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-primary">{useCustomMix ? 'Custom' : 'Equal'}</span>
-              {useCustomMix ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+              <button
+                onClick={e => { e.stopPropagation(); setUseCustomMix(v => !v); }}
+                className={`px-2 py-0.5 rounded text-xs font-mono border transition-all ${useCustomMix ? 'border-primary bg-primary/15 text-primary' : 'border-border text-muted-foreground'}`}>
+                {useCustomMix ? 'Custom' : 'Equal'}
+              </button>
+              {showStimuliMix ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
             </div>
           </button>
 
           <AnimatePresence>
-            {useCustomMix && (
+            {showStimuliMix && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden">
                 <div className="space-y-3 pt-1 px-1">
@@ -318,33 +319,36 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                     const hasMembersEnabled = RELATIONSHIP_CATEGORIES[cat].some(r => enabledRels.has(r));
                     if (!hasMembersEnabled) return null;
                     const pct = normalizedPct(cat);
+                    const accentColor = cat === 'SPATIAL' ? '#22d3ee' : cat === 'TRAIT' ? '#a78bfa' : cat === 'QUANT' ? '#fbbf24' : '#34d399';
                     return (
-                      <div key={cat} className="space-y-1">
+                      <div key={cat} className={`space-y-1 rounded-lg p-2 border ${useCustomMix ? meta.border + ' ' + meta.bg : 'border-border bg-secondary/20'}`}>
                         <div className="flex items-center justify-between">
                           <span className={`text-xs font-mono font-semibold ${meta.color}`}>{meta.label}</span>
-                          <span className="text-xs font-mono text-muted-foreground">{pct}%</span>
+                          <span className="text-xs font-mono text-muted-foreground">{useCustomMix ? `${pct}%` : 'equal'}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="range"
-                            min={0}
-                            max={100}
-                            value={catWeights[cat]}
-                            onChange={e => setCatWeight(cat, e.target.value)}
-                            className="flex-1 h-1.5 accent-current rounded-full cursor-pointer"
-                            style={{ accentColor: meta.color.replace('text-', '').includes('cyan') ? '#22d3ee' : meta.color.includes('violet') ? '#a78bfa' : meta.color.includes('amber') ? '#fbbf24' : '#34d399' }}
-                          />
-                          <div className="flex gap-1">
-                            <button onClick={() => setCatWeight(cat, Math.max(0, catWeights[cat] - 5))}
-                              className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">−</button>
-                            <button onClick={() => setCatWeight(cat, Math.min(100, catWeights[cat] + 5))}
-                              className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">+</button>
+                        {useCustomMix && (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={catWeights[cat] ?? 25}
+                              onChange={e => setCatWeight(cat, e.target.value)}
+                              className="flex-1 h-1.5 rounded-full cursor-pointer"
+                              style={{ accentColor }}
+                            />
+                            <div className="flex gap-1">
+                              <button onClick={() => setCatWeight(cat, Math.max(0, (catWeights[cat] ?? 25) - 5))}
+                                className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">−</button>
+                              <button onClick={() => setCatWeight(cat, Math.min(100, (catWeights[cat] ?? 25) + 5))}
+                                className="w-5 h-5 rounded bg-secondary border border-border text-muted-foreground hover:border-muted-foreground/50 flex items-center justify-center text-xs transition-colors">+</button>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   })}
-                  <p className="text-xs font-mono text-muted-foreground/50">Weights are relative — they don't need to sum to 100.</p>
+                  <p className="text-xs font-mono text-muted-foreground/50">Toggle "Equal/Custom" to bias category frequencies. Weights are relative.</p>
                 </div>
               </motion.div>
             )}

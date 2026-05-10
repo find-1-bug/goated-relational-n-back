@@ -1,5 +1,5 @@
 import { drawShape } from './shapeRenderer';
-import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, getVerbalPair, buildVerbalDisplay, pickTokenType, pickTokenWord } from './gameConstants';
+import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, getVerbalPair, buildVerbalDisplay, pickTokenType, pickTokenWord, VORONOI_TOKEN_PREFIX } from './gameConstants';
 
 // Visuals are now always taken from the stimulus entry (pre-generated in gameEngine).
 // This ensures target replays look identical to the original stimulus.
@@ -161,10 +161,17 @@ function isSymbol(tok) {
   return /\p{Emoji}/u.test(tok) || /^[◈◉◊◌◍◎●○◐◑◒◓▲△▴▵▶▷▸▹►▻▼▽◆◇❋✦✧✩✪✫✬✭✮⬡⬢⬣⬟⬠⬤⭕🔷🔶🔹🔸🔺🔻💠🔘🔳🔲⌬⎔⏣⟁⟐⟡]/.test(tok);
 }
 
-// (Voronoi as a full-canvas stimulus is handled at the relationship level, not token level)
+// Voronoi token detection
+function isVoronoi(tok) { return typeof tok === 'string' && tok.startsWith(VORONOI_TOKEN_PREFIX); }
+function voronoiSeed(tok) { return tok.slice(VORONOI_TOKEN_PREFIX.length); }
 
-// Draw a single token (word, nonsense, emoji, symbol) centered at (x,y)
+// Draw a single token (word, nonsense, emoji, symbol, or voronoi) centered at (x,y)
 function drawToken(ctx, token, x, y, canvasW, color) {
+  if (isVoronoi(token)) {
+    const size = Math.min(canvasW * 0.22, 72);
+    drawVoronoiToken(ctx, voronoiSeed(token), x, y, size, color);
+    return;
+  }
   const sym = isSymbol(token);
   const fontSize = sym ? Math.min(canvasW * 0.12, 48) : Math.min(canvasW * 0.082, 34);
   ctx.save();
@@ -291,8 +298,23 @@ function renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tok
 }
 
 function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWordB, renderMode) {
-  const pair = (fixedWordA && fixedWordB) ? [fixedWordA, fixedWordB] : getVerbalPair(relationship);
-  const [wordA, verb, wordB] = buildVerbalDisplay(relationship, pair);
+  // If fixed words provided (target replay), use them; otherwise pick tokens respecting weights
+  let tokenA, tokenB;
+  if (fixedWordA && fixedWordB) {
+    tokenA = fixedWordA;
+    tokenB = fixedWordB;
+  } else {
+    const pair = getVerbalPair(relationship);
+    // 40% chance: use the semantic pair; 60%: pick typed tokens
+    if (Math.random() < 0.40) {
+      tokenA = pair[0];
+      tokenB = pair[1];
+    } else {
+      tokenA = pickTokenWord(pickTokenType());
+      tokenB = pickTokenWord(pickTokenType());
+    }
+  }
+  const [wordA, verb, wordB] = buildVerbalDisplay(relationship, [tokenA, tokenB]);
   const cx = canvasW / 2;
   const cy = canvasH / 2;
   ctx.clearRect(0, 0, canvasW, canvasH);
@@ -309,13 +331,6 @@ function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWord
 // ── Main dispatch ──────────────────────────────────────────────────────────────
 // stimulus: {rel, wordA?, wordB?, shapeA, shapeB, colorA, colorB, renderMode} — always provided
 export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisuals, stimulus) {
-  if (relationship === 'VORONOI') {
-    ctx.clearRect(0, 0, canvasW, canvasH);
-    const seed = stimulus?.voronoiSeed ?? Math.floor(Math.random() * 10000);
-    renderVoronoiCanvas(ctx, canvasW, canvasH, seed);
-    return {};
-  }
-
   if (isVerbal(relationship)) {
     return renderVerbal(ctx, canvasW, canvasH, relationship, stimulus?.wordA, stimulus?.wordB, stimulus?.renderMode);
   }

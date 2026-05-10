@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CAT_LABEL = { VISUAL: 'Visual', SPATIAL: 'Spatial', TRAIT: 'Trait', QUANT: 'Quantitative', VERBAL: 'Verbal' };
+const CAT_LABEL = { SPATIAL: 'Spatial', TRAIT: 'Trait', QUANT: 'Quantitative', VERBAL: 'Verbal' };
 
 export default function GameHUD({ round, totalRounds, nLevel, effectiveN, hitsA, missesA, falseAlarmsA, relationship, relationshipB, category, phase, modes = [], isDistractor }) {
   const isDual = modes.includes('dual');
