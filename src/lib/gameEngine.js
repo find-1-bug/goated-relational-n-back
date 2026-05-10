@@ -17,6 +17,8 @@ import {
   pickRandomExcluding,
   isVerbal,
   getVerbalPair,
+  pickTokenType,
+  pickTokenWord,
   makeInverseStimulus,
 } from './gameConstants';
 
@@ -39,7 +41,14 @@ function makeStimulusEntry(rel) {
   const colorB = pickRandomExcluding(COLORS, colorA);
   const renderMode = Math.floor(Math.random() * 3); // 0, 1, 2 — maps to renderer modes
   if (isVerbal(rel)) {
-    const [wordA, wordB] = getVerbalPair(rel);
+    // 40% chance: use semantic word pair; 60%: pick typed tokens respecting weights
+    let wordA, wordB;
+    if (Math.random() < 0.40) {
+      [wordA, wordB] = getVerbalPair(rel);
+    } else {
+      wordA = pickTokenWord(pickTokenType());
+      wordB = pickTokenWord(pickTokenType());
+    }
     return { rel, wordA, wordB, shapeA, shapeB, colorA, colorB, renderMode };
   }
   return { rel, shapeA, shapeB, colorA, colorB, renderMode };
