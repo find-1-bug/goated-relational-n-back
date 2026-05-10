@@ -1,5 +1,10 @@
 import { drawShape } from './shapeRenderer';
-import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, getVerbalPair, buildVerbalDisplay, VORONOI_TOKEN_PREFIX } from './gameConstants';
+import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, getVerbalPair, buildVerbalDisplay, VORONOI_TOKEN_PREFIX, RELATIONSHIP_CATEGORIES } from './gameConstants';
+
+// Check if a relationship is 3D
+export function is3D(relationship) {
+  return RELATIONSHIP_CATEGORIES.SPATIAL_3D.includes(relationship);
+}
 
 // Visuals are now always taken from the stimulus entry (pre-generated in gameEngine).
 // This ensures target replays look identical to the original stimulus.
