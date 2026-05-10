@@ -13,10 +13,10 @@ import {
   FEEDBACK_DURATION,
 } from '@/lib/gameConstants';
 
-const STREAM_COLORS = ['text-primary', 'text-accent', 'text-chart-3', 'text-chart-4'];
-const STREAM_BORDER_COLORS = ['border-border', 'border-accent/20', 'border-chart-3/20', 'border-chart-4/20'];
-const STREAM_DOT_COLORS = ['bg-primary/60', 'bg-accent/60', 'bg-chart-3/60', 'bg-chart-4/60'];
-const STREAM_LABELS = ['A', 'B', 'C', 'D'];
+const STREAM_COLORS = ['text-primary', 'text-accent', 'text-chart-3', 'text-chart-4', 'text-chart-5', 'text-primary', 'text-accent', 'text-chart-3', 'text-chart-4'];
+const STREAM_BORDER_COLORS = ['border-border', 'border-accent/20', 'border-chart-3/20', 'border-chart-4/20', 'border-chart-5/20', 'border-border', 'border-accent/20', 'border-chart-3/20', 'border-chart-4/20'];
+const STREAM_DOT_COLORS = ['bg-primary/60', 'bg-accent/60', 'bg-chart-3/60', 'bg-chart-4/60', 'bg-chart-5/60', 'bg-primary/60', 'bg-accent/60', 'bg-chart-3/60', 'bg-chart-4/60'];
+const STREAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
 
 export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, extraStreams, streamA, onFinish, onExit }) {
   // extraStreams: [{ key, label, keyDisplay }]
@@ -126,8 +126,15 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   ];
 
   const numStreams = streamStimuli.length;
-  // Use a 2-col grid for 2-4 streams on md+, single col otherwise
-  const useGrid = numStreams >= 2;
+  // cols: 1→1, 2→2, 3→3, 4→2(2×2), 5→3, 6→3, 7→4, 8→4, 9→3(3×3) ...
+  const cols = numStreams === 1 ? 1
+    : numStreams === 2 ? 2
+    : numStreams === 3 ? 3
+    : numStreams === 4 ? 2
+    : numStreams <= 6 ? 3
+    : numStreams <= 8 ? 4
+    : Math.ceil(Math.sqrt(numStreams));
+  const rows = Math.ceil(numStreams / cols);
 
   return (
     <div className="flex flex-col min-h-screen h-screen overflow-hidden px-3 py-3 select-none">
@@ -159,20 +166,22 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       </div>
 
       {/* Stream canvases — fill remaining vertical space */}
-      <div className={`flex-1 min-h-0 ${useGrid ? 'grid gap-2' : 'flex flex-col gap-2'}`}
-        style={useGrid ? {
-          gridTemplateColumns: numStreams <= 3 ? 'repeat(2, 1fr)' : 'repeat(2, 1fr)',
-          gridTemplateRows: `repeat(${Math.ceil(numStreams / 2)}, 1fr)`,
-        } : {}}>
+      <div
+        className="flex-1 min-h-0 grid gap-2"
+        style={{
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gridTemplateRows: `repeat(${rows}, 1fr)`,
+        }}
+      >
         {streamStimuli.map((s, idx) => (
-          <div key={idx} className={`relative rounded-xl bg-secondary/30 border ${STREAM_BORDER_COLORS[idx]} ${!useGrid ? 'flex-1 min-h-0' : ''}`}>
+          <div key={idx} className={`relative rounded-xl bg-secondary/30 border ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]}`}>
             <GameCanvas
               relationship={!clearCanvas ? s.rel : null}
               stimulus={s.stimulus}
               clearCanvas={clearCanvas}
             />
             <div className="absolute top-2 left-3">
-              <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx]} opacity-70`}>
+              <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx % STREAM_COLORS.length]} opacity-70`}>
                 Stream {STREAM_LABELS[idx]}
               </span>
             </div>
