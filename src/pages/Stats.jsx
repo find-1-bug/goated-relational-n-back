@@ -98,10 +98,7 @@ export default function Stats() {
 
           {sessions.length === 0 ? (
             <div className="rounded-lg bg-secondary/40 border border-border p-6 text-center">
-              <p className="text-sm font-mono text-muted-foreground mb-3">No sessions yet. Start training!</p>
-              <Link to="/">
-                <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Go to Game</Button>
-              </Link>
+              <p className="text-sm font-mono text-muted-foreground">No sessions yet. Start training!</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -148,12 +145,7 @@ export default function Stats() {
           )}
         </div>
 
-        {/* Back to Game */}
-        <div className="text-center mt-8">
-          <Link to="/">
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-mono">← Back to Game</Button>
-          </Link>
-        </div>
+
       </div>
     </motion.div>
   );
