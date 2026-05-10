@@ -147,7 +147,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [phase, allStreams]);
+  }, [phase]);
 
   // Get current stimulus & rel for each stream (A + extras)
   const allTrialModes = [gameState.trialMode, ...(gameState.extraTrialModes || [])];
@@ -278,48 +278,50 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       </div>
 
       {/* Mobile buttons */}
-      <div className="mt-1 shrink-0 md:hidden flex gap-2 w-full max-w-lg mx-auto">
-        {noobMode && phase === 'feedback' ? (
-          <>
-            <button
-              onClick={handlePrevTrial}
-              disabled={gameState.round === 0}
-              className="flex-1 h-12 rounded-lg bg-secondary border border-border text-muted-foreground font-mono text-xs hover:border-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              ← Prev
-            </button>
-            <button
-              onClick={handleNextTrial}
-              className="flex-1 h-12 rounded-lg bg-primary text-primary-foreground font-mono text-xs hover:bg-primary/90 transition-colors"
-            >
-              Next →
-            </button>
-          </>
-        ) : (
-          allStreams.map((stream, idx) => (
-            <button key={idx}
-              className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx]}`}
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                if (phase === 'stimulus' && !respondedRefs.current[idx]) {
-                  respondedRefs.current[idx] = true;
-                  if (idx === 0) {
-                    setGameState(prev => ({ ...prev, respondedA: true }));
-                  } else {
-                    setGameState(prev => {
-                      const next = [...(prev.extraResponded || [])];
-                      next[idx - 1] = true;
-                      return { ...prev, extraResponded: next };
-                    });
+      {(phase === 'stimulus' || (noobMode && phase === 'feedback')) && (
+        <div className="mt-1 shrink-0 md:hidden flex gap-2 w-full max-w-lg mx-auto">
+          {noobMode && phase === 'feedback' ? (
+            <>
+              <button
+                onClick={handlePrevTrial}
+                disabled={gameState.round === 0}
+                className="flex-1 h-12 rounded-lg bg-secondary border border-border text-muted-foreground font-mono text-xs hover:border-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                ← Prev
+              </button>
+              <button
+                onClick={handleNextTrial}
+                className="flex-1 h-12 rounded-lg bg-primary text-primary-foreground font-mono text-xs hover:bg-primary/90 transition-colors"
+              >
+                Next →
+              </button>
+            </>
+          ) : (
+            allStreams.map((stream, idx) => (
+              <button key={idx}
+                className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx]}`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  if (phase === 'stimulus' && !respondedRefs.current[idx]) {
+                    respondedRefs.current[idx] = true;
+                    if (idx === 0) {
+                      setGameState(prev => ({ ...prev, respondedA: true }));
+                    } else {
+                      setGameState(prev => {
+                        const next = [...(prev.extraResponded || [])];
+                        next[idx - 1] = true;
+                        return { ...prev, extraResponded: next };
+                      });
+                    }
                   }
-                }
-              }}>
-              {stream.keyDisplay}
-            </button>
-          ))
-        )}
-      </div>
+                }}>
+                {stream.keyDisplay}
+              </button>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Desktop noob mode navigation buttons */}
       {noobMode && phase === 'feedback' && (
