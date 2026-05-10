@@ -68,8 +68,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
   const endStimulus = useCallback((currentState) => {
     if (noobMode) {
-      // In noob mode, wait for user to press next
-      setClearCanvas(true);
+      // In noob mode, stimulus stays visible, just wait for user action
       setPhase('feedback');
       return;
     }
@@ -108,6 +107,15 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       startRound(updatedState);
     }
   }, [phase, onFinish, startRound]);
+
+  const handlePrevTrial = useCallback(() => {
+    if (gameState.round === 0) return;
+    // Go back one trial without processing responses
+    const prevRound = gameState.round - 1;
+    const prevState = { ...gameState, round: prevRound };
+    setGameState(prevState);
+    startRound(prevState);
+  }, [gameState, startRound]);
 
   useEffect(() => {
     startRound(gameState);
@@ -272,12 +280,21 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       {/* Mobile buttons */}
       <div className="mt-1 shrink-0 md:hidden flex gap-2 w-full max-w-lg mx-auto">
         {noobMode && phase === 'feedback' ? (
-          <button
-            onClick={handleNextTrial}
-            className="flex-1 h-12 rounded-lg bg-primary text-primary-foreground font-mono text-xs hover:bg-primary/90 transition-colors"
-          >
-            Next Trial →
-          </button>
+          <>
+            <button
+              onClick={handlePrevTrial}
+              disabled={gameState.round === 0}
+              className="flex-1 h-12 rounded-lg bg-secondary border border-border text-muted-foreground font-mono text-xs hover:border-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              ← Prev
+            </button>
+            <button
+              onClick={handleNextTrial}
+              className="flex-1 h-12 rounded-lg bg-primary text-primary-foreground font-mono text-xs hover:bg-primary/90 transition-colors"
+            >
+              Next →
+            </button>
+          </>
         ) : (
           allStreams.map((stream, idx) => (
             <button key={idx}
@@ -302,11 +319,20 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
             </button>
           ))
         )}
+        </>
+      ) : null}
       </div>
 
-      {/* Desktop noob mode next button */}
+      {/* Desktop noob mode navigation buttons */}
       {noobMode && phase === 'feedback' && (
-        <div className="mt-2 shrink-0 hidden md:flex justify-center">
+        <div className="mt-2 shrink-0 hidden md:flex justify-center gap-3">
+          <button
+            onClick={handlePrevTrial}
+            disabled={gameState.round === 0}
+            className="px-6 h-10 rounded-lg bg-secondary border border-border text-muted-foreground font-mono text-sm hover:border-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            ← Prev Trial
+          </button>
           <button
             onClick={handleNextTrial}
             className="px-6 h-10 rounded-lg bg-primary text-primary-foreground font-mono text-sm hover:bg-primary/90 transition-colors"
