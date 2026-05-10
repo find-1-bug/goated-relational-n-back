@@ -69,8 +69,13 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     setPhase('stimulus');
     
     // Store this state for later playback (only if new trial, not from history)
+    // Store indexed by round number for easy lookup during prev/next
     if (!historicalState && noobMode) {
-      setTrialStates(prev => [...prev, nextState]);
+      setTrialStates(prev => {
+        const updated = Array.isArray(prev) ? [...prev] : [];
+        updated[nextState.round] = nextState;
+        return updated;
+      });
     }
     
     // In noob mode, don't auto-advance — wait for user to click Next
@@ -128,7 +133,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     const currentRound = gameStateRef.current?.round ?? 0;
     if (currentRound === 0) return;
     const prevRound = currentRound - 1;
-    const historicalState = trialStates[prevRound];
+    const historicalState = trialStates?.[prevRound];
     if (historicalState) {
       setGameState(historicalState);
       respondedRefs.current = Array(allStreams.length).fill(false);
