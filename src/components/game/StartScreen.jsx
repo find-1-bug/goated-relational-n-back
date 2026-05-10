@@ -183,6 +183,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const [showRelTypes, setShowRelTypes] = React.useState(false);
   const [rounds, setRounds] = React.useState(lastSettings?.rounds || 20);
   const [speedMs, setSpeedMs] = React.useState(lastSettings?.speedMs || 2800);
+  const [noobMode, setNoobMode] = React.useState(false);
 
   // Category mix weights (0–100 sliders, equal by default)
   const [catWeights, setCatWeights] = React.useState(
@@ -640,13 +641,27 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
           </div>
         </div>
 
+        {/* Noob Mode Toggle */}
+        <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/40 border border-border">
+          <span className="text-xs font-mono text-muted-foreground">Noob Mode (manual next/prev)</span>
+          <button
+            onClick={() => setNoobMode(!noobMode)}
+            className={`relative w-12 h-6 rounded-full transition-colors ${noobMode ? 'bg-primary' : 'bg-secondary border border-border'}`}
+          >
+            <div
+              className={`absolute w-5 h-5 rounded-full bg-foreground transition-transform ${noobMode ? 'translate-x-6' : 'translate-x-0.5'}`}
+              style={{ top: '2.5px' }}
+            />
+          </button>
+        </div>
+
         {/* Start */}
         <div className="flex justify-center pb-4">
           <Button
             onClick={() => {
               setTokenWeights(tokenWeights);
               const streamAObj = { key: streamAKey, keyDisplay: KEY_OPTIONS.find(k => k.code === streamAKey)?.display || 'SPACE' };
-              onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights, streamA: streamAObj, extraStreams, streams: [streamAObj, ...extraStreams] });
+              onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights, streamA: streamAObj, extraStreams, streams: [streamAObj, ...extraStreams] }, noobMode);
             }}
             className="h-12 px-10 font-mono font-semibold text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90">
             Start Training
