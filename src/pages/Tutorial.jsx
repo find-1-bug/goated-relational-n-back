@@ -1,0 +1,121 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, Brain, Zap, Layers, Gamepad2 } from 'lucide-react';
+
+export default function Tutorial() {
+  const sections = [
+    {
+      icon: Brain,
+      title: 'What is N-Back?',
+      description: 'A cognitive training task where you match a relationship from N steps back in a sequence. For N=2, you match what appeared 2 trials ago.'
+    },
+    {
+      icon: Gamepad2,
+      title: 'How to Play',
+      description: 'Watch the stimulus appear. If it matches the relationship from N trials ago, press the key for that stream. React quickly but accurately.'
+    },
+    {
+      icon: Zap,
+      title: 'Controls',
+      description: 'Each stream has a dedicated key (SPACE for Stream A, customizable others for B, C, etc.). Press when you see a match.'
+    },
+    {
+      icon: Layers,
+      title: 'Enhancement Modes',
+      description: 'Type N-Back matches by relationship type only. RINT uses logical reasoning. Mixed/Impossible randomize rules. Binary Logic combines two conditions.'
+    },
+  ];
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-background py-8 px-4">
+      <div className="max-w-3xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <Brain className="w-8 h-8 text-primary" />
+          <h1 className="text-3xl font-mono font-bold text-foreground">How to Train</h1>
+        </div>
+
+        {/* Quick Start */}
+        <div className="rounded-lg bg-primary/10 border border-primary/30 p-6 mb-8">
+          <h2 className="text-lg font-mono font-semibold text-primary mb-3">Quick Start</h2>
+          <ol className="space-y-2 text-sm font-mono text-foreground/90">
+            <li><span className="text-primary font-bold">1.</span> Choose N-level (how many trials back to remember)</li>
+            <li><span className="text-primary font-bold">2.</span> Pick relationship types (spatial, trait, quantitative, verbal)</li>
+            <li><span className="text-primary font-bold">3.</span> Set trial count & speed</li>
+            <li><span className="text-primary font-bold">4.</span> Press the key when you see a match</li>
+            <li><span className="text-primary font-bold">5.</span> Get feedback on accuracy & track progress in Stats</li>
+          </ol>
+        </div>
+
+        {/* Core Concepts */}
+        <div className="grid gap-4 mb-8">
+          {sections.map((section, idx) => {
+            const Icon = section.icon;
+            return (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className="rounded-lg bg-secondary/40 border border-border p-5"
+              >
+                <div className="flex items-start gap-3">
+                  <Icon className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-mono font-semibold text-foreground mb-2">{section.title}</h3>
+                    <p className="text-sm font-mono text-muted-foreground">{section.description}</p>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Settings Guide */}
+        <div className="rounded-lg bg-secondary/40 border border-border p-6 mb-8">
+          <h2 className="text-lg font-mono font-semibold text-foreground mb-4">Settings Explained</h2>
+          <div className="space-y-4 text-sm font-mono text-muted-foreground">
+            <div>
+              <span className="text-primary font-semibold">N-Level:</span> How many trials back to match (1 = easiest, higher = harder)
+            </div>
+            <div>
+              <span className="text-primary font-semibold">Relationship Types:</span> Categories of visual/verbal relationships to include
+            </div>
+            <div>
+              <span className="text-primary font-semibold">Stimuli Mix:</span> Balance category distribution (equal or custom weights)
+            </div>
+            <div>
+              <span className="text-primary font-semibold">Streams:</span> Multiple simultaneous sequences (Stream A, B, C, etc.)
+            </div>
+            <div>
+              <span className="text-primary font-semibold">Speed:</span> How long each stimulus displays before disappearing
+            </div>
+            <div>
+              <span className="text-primary font-semibold">Noob Mode:</span> Manual trial navigation with Prev/Next buttons
+            </div>
+          </div>
+        </div>
+
+        {/* Accuracy Tips */}
+        <div className="rounded-lg bg-accent/10 border border-accent/30 p-6 mb-8">
+          <h2 className="text-lg font-mono font-semibold text-accent mb-3">Tips for Better Accuracy</h2>
+          <ul className="space-y-2 text-sm font-mono text-foreground/90">
+            <li>• <span className="text-accent">Focus:</span> Concentrate on the current stimulus and N-back relationship</li>
+            <li>• <span className="text-accent">Consistent Pacing:</span> Start slow, increase speed as you improve</li>
+            <li>• <span className="text-accent">Review Sessions:</span> Check your performance in Stats to identify weak modes</li>
+            <li>• <span className="text-accent">Progressive Difficulty:</span> Use Adaptive Mode to auto-adjust N-level</li>
+          </ul>
+        </div>
+
+        {/* Back Button */}
+        <Link to="/" className="flex justify-center">
+          <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-mono">
+            <ChevronLeft className="w-4 h-4" /> Back to Dashboard
+          </Button>
+        </Link>
+      </div>
+    </motion.div>
+  );
+}
