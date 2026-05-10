@@ -48,6 +48,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   );
   const [phase, setPhase] = useState('stimulus');
   const [clearCanvas, setClearCanvas] = useState(false);
+  const [trialHistory, setTrialHistory] = useState([]); // Store stimulus data for each trial
 
   // One responded ref per stream (index 0 = stream A, 1..N = extra streams)
   const respondedRefs = useRef(allStreams.map(() => false));
@@ -56,13 +57,24 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
-  const startRound = useCallback((currentState) => {
-    const stimulus = generateNextStimulus(currentState);
+  const startRound = useCallback((currentState, useHistoricalStimulus = null) => {
+    let stimulus;
+    if (useHistoricalStimulus) {
+      stimulus = useHistoricalStimulus;
+    } else {
+      stimulus = generateNextStimulus(currentState);
+    }
     const nextState = advanceRound(currentState, stimulus);
     setGameState(nextState);
     respondedRefs.current = allStreams.map(() => false);
     setClearCanvas(false);
     setPhase('stimulus');
+    
+    // Store stimulus for this trial (only if new, not from history)
+    if (!useHistoricalStimulus && noobMode) {
+      setTrialHistory(prev => [...prev, stimulus]);
+    }
+    
     // In noob mode, don't auto-advance — wait for user to click Next
     if (!noobMode) {
       phaseTimerRef.current = setTimeout(() => endStimulus(nextState), stimulusDuration || 2800);
@@ -120,8 +132,10 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     const prevRound = gameState.round - 1;
     const prevState = { ...gameState, round: prevRound };
     setGameState(prevState);
-    startRound(prevState);
-  }, [gameState, startRound]);
+    // Use the stored stimulus from trialHistory
+    const historicalStimulus = trialHistory[prevRound];
+    startRound(prevState, historicalStimulus);
+  }, [gameState, startRound, trialHistory]);
 
   useEffect(() => {
     startRound(gameState);
