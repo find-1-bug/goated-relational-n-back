@@ -319,8 +319,6 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
             </button>
           ))
         )}
-        </>
-      ) : null}
       </div>
 
       {/* Desktop noob mode navigation buttons */}
