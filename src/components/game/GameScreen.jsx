@@ -48,7 +48,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   );
   const [phase, setPhase] = useState('stimulus');
   const [clearCanvas, setClearCanvas] = useState(false);
-  const [trialHistory, setTrialHistory] = useState([]); // Store stimulus data for each trial
+  const [trialStates, setTrialStates] = useState([]); // Store full game state after each trial
 
   // One responded ref per stream (index 0 = stream A, 1..N = extra streams)
   const respondedRefs = useRef(allStreams.map(() => false));
@@ -57,22 +57,20 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
-  const startRound = useCallback((currentState, useHistoricalStimulus = null) => {
-    let stimulus;
-    if (useHistoricalStimulus) {
-      stimulus = useHistoricalStimulus;
-    } else {
-      stimulus = generateNextStimulus(currentState);
-    }
-    const nextState = advanceRound(currentState, stimulus);
+  const startRound = useCallback((currentState, historicalState = null) => {
+    const nextState = historicalState || (() => {
+      const stimulus = generateNextStimulus(currentState);
+      return advanceRound(currentState, stimulus);
+    })();
+    
     setGameState(nextState);
     respondedRefs.current = allStreams.map(() => false);
     setClearCanvas(false);
     setPhase('stimulus');
     
-    // Store stimulus for this trial (only if new, not from history)
-    if (!useHistoricalStimulus && noobMode) {
-      setTrialHistory(prev => [...prev, stimulus]);
+    // Store this state for later playback (only if new trial, not from history)
+    if (!historicalState && noobMode) {
+      setTrialStates(prev => [...prev, nextState]);
     }
     
     // In noob mode, don't auto-advance — wait for user to click Next
@@ -128,14 +126,13 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
   const handlePrevTrial = useCallback(() => {
     if (gameState.round === 0) return;
-    // Go back one trial without processing responses
+    // Go back to the stored state from trialStates
     const prevRound = gameState.round - 1;
-    const prevState = { ...gameState, round: prevRound };
-    setGameState(prevState);
-    // Use the stored stimulus from trialHistory
-    const historicalStimulus = trialHistory[prevRound];
-    startRound(prevState, historicalStimulus);
-  }, [gameState, startRound, trialHistory]);
+    const historicalState = trialStates[prevRound];
+    if (historicalState) {
+      startRound(gameState, historicalState);
+    }
+  }, [gameState, startRound, trialStates]);
 
   useEffect(() => {
     startRound(gameState);
