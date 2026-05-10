@@ -247,7 +247,19 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
       EXCLUSIVE_GROUPS.forEach(group => {
         if (group.includes(id)) group.forEach(m => { if (m !== id) toRemove.add(m); });
       });
-      setModes(prev => [...prev.filter(m => !toRemove.has(m)), id]);
+      setModes(prev => {
+        const newModes = [...prev.filter(m => !toRemove.has(m)), id];
+        
+        // Auto-filter relationships if activating RINT/Type modes
+        const isRINTMode = newModes.includes('rint') || newModes.includes('mixed_rint') || newModes.includes('impossible');
+        const isTypeMode = newModes.includes('type_nback') || newModes.includes('mixed_nback') || newModes.includes('mixed_rint') || newModes.includes('impossible');
+        if (isRINTMode || isTypeMode) {
+          const filtered = filterTransitiveRelationships([...enabledRels], isRINTMode, isTypeMode);
+          setEnabledRels(new Set(filtered));
+        }
+        
+        return newModes;
+      });
     } else {
       setModes(prev => prev.filter(m => m !== id));
     }
