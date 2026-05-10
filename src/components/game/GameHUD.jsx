@@ -2,8 +2,7 @@ import React from 'react';
 
 const CAT_LABEL = { SPATIAL: 'Spatial', TRAIT: 'Trait', QUANT: 'Quantitative', VERBAL: 'Verbal' };
 
-export default function GameHUD({ round, totalRounds, nLevel, effectiveN, hitsA, missesA, falseAlarmsA, relationship, relationshipB, category, phase, modes = [], isDistractor }) {
-  const isDual = modes.includes('dual');
+export default function GameHUD({ round, totalRounds, nLevel, effectiveN, hitsA, missesA, falseAlarmsA, relationship, category, phase, modes = [], isDistractor, numStreams }) {
   const isHier = modes.includes('hierarchical');
 
   return (
@@ -20,9 +19,9 @@ export default function GameHUD({ round, totalRounds, nLevel, effectiveN, hitsA,
             N={effectiveN ?? nLevel}
           </span>
         </div>
-        {isDual && (
+        {numStreams > 1 && (
           <div className="px-2 py-0.5 rounded bg-accent/10 border border-accent/20">
-            <span className="font-mono text-xs font-semibold text-accent">DUAL</span>
+            <span className="font-mono text-xs font-semibold text-accent">{numStreams}×</span>
           </div>
         )}
         {isHier && (
