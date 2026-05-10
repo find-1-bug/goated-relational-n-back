@@ -297,9 +297,9 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
         {/* Stimuli Mix */}
         <div className="space-y-2">
-          <button
+          <div
             onClick={() => setShowStimuliMix(v => !v)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/50 border border-border hover:border-muted-foreground/40 transition-colors">
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/50 border border-border hover:border-muted-foreground/40 transition-colors cursor-pointer">
             <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Stimuli Mix</span>
             <div className="flex items-center gap-2">
               <button
@@ -309,7 +309,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
               </button>
               {showStimuliMix ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
             </div>
-          </button>
+          </div>
 
           <AnimatePresence>
             {showStimuliMix && (
