@@ -125,16 +125,17 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   }, [phase, noobMode, onFinish, startRound]);
 
   const handlePrevTrial = useCallback(() => {
-    if (gameState.round === 0) return;
-    const prevRound = gameState.round - 1;
+    const currentRound = gameStateRef.current?.round ?? 0;
+    if (currentRound === 0) return;
+    const prevRound = currentRound - 1;
     const historicalState = trialStates[prevRound];
     if (historicalState) {
       setGameState(historicalState);
-      respondedRefs.current = allStreams.map(() => false);
+      respondedRefs.current = Array(allStreams.length).fill(false);
       setClearCanvas(false);
       setPhase('stimulus');
     }
-  }, [gameState.round, trialStates, allStreams]);
+  }, [trialStates, allStreams.length]);
 
   useEffect(() => {
     startRound(gameState);
