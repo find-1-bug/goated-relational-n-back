@@ -63,8 +63,11 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     respondedRefs.current = allStreams.map(() => false);
     setClearCanvas(false);
     setPhase('stimulus');
-    phaseTimerRef.current = setTimeout(() => endStimulus(nextState), stimulusDuration || 2800);
-  }, []);
+    // In noob mode, don't auto-advance — wait for user to click Next
+    if (!noobMode) {
+      phaseTimerRef.current = setTimeout(() => endStimulus(nextState), stimulusDuration || 2800);
+    }
+  }, [noobMode]);
 
   const endStimulus = useCallback((currentState) => {
     if (noobMode) {
@@ -95,7 +98,10 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   }, [onFinish, startRound, noobMode]);
 
   const handleNextTrial = useCallback(() => {
-    if (phase !== 'feedback') return;
+    // In noob mode, can advance from stimulus phase; otherwise only from feedback
+    if (noobMode && phase !== 'stimulus') return;
+    if (!noobMode && phase !== 'feedback') return;
+    
     const state = gameStateRef.current;
     const pressedA = respondedRefs.current[0];
     const pressedExtra = respondedRefs.current.slice(1);
@@ -106,7 +112,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     } else {
       startRound(updatedState);
     }
-  }, [phase, onFinish, startRound]);
+  }, [phase, noobMode, onFinish, startRound]);
 
   const handlePrevTrial = useCallback(() => {
     if (gameState.round === 0) return;
@@ -278,9 +284,9 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       </div>
 
       {/* Mobile buttons */}
-      {(phase === 'stimulus' || (noobMode && phase === 'feedback')) && (
+      {(phase === 'stimulus' || (noobMode && phase === 'stimulus')) && (
         <div className="mt-1 shrink-0 md:hidden flex gap-2 w-full max-w-lg mx-auto">
-          {noobMode && phase === 'feedback' ? (
+          {noobMode ? (
             <>
               <button
                 onClick={handlePrevTrial}
@@ -289,6 +295,28 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
               >
                 ← Prev
               </button>
+              {allStreams.map((stream, idx) => (
+                <button key={idx}
+                  className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx]}`}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    if (!respondedRefs.current[idx]) {
+                      respondedRefs.current[idx] = true;
+                      if (idx === 0) {
+                        setGameState(prev => ({ ...prev, respondedA: true }));
+                      } else {
+                        setGameState(prev => {
+                          const next = [...(prev.extraResponded || [])];
+                          next[idx - 1] = true;
+                          return { ...prev, extraResponded: next };
+                        });
+                      }
+                    }
+                  }}>
+                  {stream.keyDisplay}
+                </button>
+              ))}
               <button
                 onClick={handleNextTrial}
                 className="flex-1 h-12 rounded-lg bg-primary text-primary-foreground font-mono text-xs hover:bg-primary/90 transition-colors"
@@ -324,8 +352,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       )}
 
       {/* Desktop noob mode navigation buttons */}
-      {noobMode && phase === 'feedback' && (
-        <div className="mt-2 shrink-0 hidden md:flex justify-center gap-3">
+      {noobMode && phase === 'stimulus' && (
+        <div className="mt-2 shrink-0 hidden md:flex justify-center gap-3 flex-wrap">
           <button
             onClick={handlePrevTrial}
             disabled={gameState.round === 0}
@@ -333,6 +361,27 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           >
             ← Prev Trial
           </button>
+          {allStreams.map((stream, idx) => (
+            <button key={idx}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (!respondedRefs.current[idx]) {
+                  respondedRefs.current[idx] = true;
+                  if (idx === 0) {
+                    setGameState(prev => ({ ...prev, respondedA: true }));
+                  } else {
+                    setGameState(prev => {
+                      const next = [...(prev.extraResponded || [])];
+                      next[idx - 1] = true;
+                      return { ...prev, extraResponded: next };
+                    });
+                  }
+                }
+              }}
+              className={`px-6 h-10 rounded-lg bg-secondary border font-mono text-sm transition-colors ${STREAM_BORDER_COLORS[idx]}`}>
+              {stream.keyDisplay}
+            </button>
+          ))}
           <button
             onClick={handleNextTrial}
             className="px-6 h-10 rounded-lg bg-primary text-primary-foreground font-mono text-sm hover:bg-primary/90 transition-colors"
