@@ -44,10 +44,11 @@ const EXCLUSIVE_GROUPS = [
 ];
 
 const CATEGORY_META = {
-  SPATIAL: { label: 'Spatial',      color: 'text-cyan-400',   border: 'border-cyan-400/40',   bg: 'bg-cyan-400/10'  },
-  TRAIT:   { label: 'Trait',        color: 'text-violet-400', border: 'border-violet-400/40', bg: 'bg-violet-400/10' },
-  QUANT:   { label: 'Quantitative', color: 'text-amber-400',  border: 'border-amber-400/40',  bg: 'bg-amber-400/10' },
-  VERBAL:  { label: 'Verbal',       color: 'text-emerald-400',border: 'border-emerald-400/40',bg: 'bg-emerald-400/10' },
+  SPATIAL:    { label: 'Spatial',      color: 'text-cyan-400',     border: 'border-cyan-400/40',   bg: 'bg-cyan-400/10'  },
+  SPATIAL_3D: { label: 'Spatial 3D',   color: 'text-sky-400',      border: 'border-sky-400/40',    bg: 'bg-sky-400/10'  },
+  TRAIT:      { label: 'Trait',        color: 'text-violet-400',   border: 'border-violet-400/40', bg: 'bg-violet-400/10' },
+  QUANT:      { label: 'Quantitative', color: 'text-amber-400',    border: 'border-amber-400/40',  bg: 'bg-amber-400/10' },
+  VERBAL:     { label: 'Verbal',       color: 'text-emerald-400',  border: 'border-emerald-400/40',bg: 'bg-emerald-400/10' },
 };
 
 const REL_DISPLAY = {
@@ -56,6 +57,10 @@ const REL_DISPLAY = {
   ABOVE_BELOW: 'Above/Below', DIAGONAL: 'Diagonal', BETWEEN: 'Between',
   SURROUNDED: 'Surrounded', LEFT_RIGHT: 'Left/Right', STACKED: 'Stacked',
   NESTED_3: 'Nested 3', MIRRORED: 'Mirrored', SCATTERED: 'Scattered',
+  // Spatial 3D
+  DEPTH_LAYERED: 'Depth Layered', ORBITING: 'Orbiting', ROTATING_PAIR: 'Rotating Pair',
+  NESTED_VOLUME: 'Nested Volume', ASCENDING_SPIRAL: 'Ascending Spiral', COLLIDING: 'Colliding',
+  REPELLING: 'Repelling', BOUND_BY_GRAVITY: 'Bound by Gravity', INTERSECTING_PLANES: 'Intersecting Planes',
   // Trait
   HOLLOW_VS_SOLID: 'Hollow vs Solid', ONE_SHARED_TRAIT: 'Shared Trait', ROTATED: 'Rotated',
   CONNECTED: 'Connected', SAME_COLOR: 'Same Color', SAME_SHAPE: 'Same Shape',
