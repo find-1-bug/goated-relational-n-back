@@ -98,6 +98,40 @@ export default function Tutorial() {
           </div>
         </div>
 
+        {/* Enhancement Modes Deep Dive */}
+        <div className="rounded-lg bg-accent/10 border border-accent/30 p-6 mb-8">
+          <h2 className="text-lg font-mono font-semibold text-accent mb-4">Enhancement Modes</h2>
+          <div className="space-y-4 text-sm font-mono text-foreground/90">
+            <div>
+              <span className="text-accent font-semibold">Type N-Back:</span> Match by <span className="text-foreground font-semibold">relationship category only</span>, not trial distance. If you've seen "Inside" relationships 3 times, all "Inside" entries count as matches, regardless of when they appeared. Tests <span className="text-foreground">semantic memory & categorization</span>.
+            </div>
+            <div>
+              <span className="text-accent font-semibold">RINT (Relational Integration):</span> Use <span className="text-foreground font-semibold">logical reasoning</span> to chain facts. E.g., "A &gt; B" + "B &gt; C" logically proves "A &gt; C"—that's a match. Tests <span className="text-foreground">transitive reasoning & working memory</span>. Requires N≥2.
+            </div>
+            <div>
+              <span className="text-accent font-semibold">Mixed N-Back:</span> Randomly <span className="text-foreground font-semibold">switches between Normal and Type</span> each trial. You never know which rule applies, forcing <span className="text-foreground">cognitive flexibility</span>.
+            </div>
+            <div>
+              <span className="text-accent font-semibold">Mixed RINT:</span> Three-way random per trial: <span className="text-foreground font-semibold">Normal / Type / RINT</span>. Maximum unpredictability. Tests <span className="text-foreground">rapid rule switching &amp; reasoning</span>. Requires N≥2.
+            </div>
+            <div>
+              <span className="text-accent font-semibold">Impossible Mode:</span> On multi-stream sessions, each stream <span className="text-foreground font-semibold">independently randomizes</span> between Normal, Type, and RINT every trial—different rules per stream simultaneously. <span className="text-foreground">Extreme multitasking demand</span>. Requires ≥2 streams & N≥2.
+            </div>
+            <div>
+              <span className="text-accent font-semibold">Binary Logic:</span> Each trial assigns <span className="text-foreground font-semibold">two conditions per stream</span> (e.g., "Normal AND RINT", "Type OR Normal") combined with logic operators (AND, OR, XOR, AND_NOT). A match fires only when the combined condition is true. Tests <span className="text-foreground">boolean reasoning & dual tracking</span>. Requires N≥2.
+            </div>
+            <div>
+              <span className="text-accent font-semibold">Variable N:</span> N <span className="text-foreground font-semibold">randomly shifts ±1</span> each trial around your chosen N. Tests <span className="text-foreground">flexible working memory updating</span>.
+            </div>
+            <div>
+              <span className="text-accent font-semibold">Adaptive N:</span> N <span className="text-foreground font-semibold">auto-adjusts between sessions</span> based on accuracy: ≥80% → increase N, ≤50% → decrease N. Keeps you <span className="text-foreground">at the sweet spot of challenge</span>.
+            </div>
+            <div>
+              <span className="text-accent font-semibold">Distractors:</span> Near-match stimuli from the same category appear as <span className="text-foreground font-semibold">interference</span>. Tests <span className="text-foreground">selective attention & resistance to confusion</span>.
+            </div>
+          </div>
+        </div>
+
         {/* Accuracy Tips */}
         <div className="rounded-lg bg-accent/10 border border-accent/30 p-6 mb-8">
           <h2 className="text-lg font-mono font-semibold text-accent mb-3">Tips for Better Accuracy</h2>
