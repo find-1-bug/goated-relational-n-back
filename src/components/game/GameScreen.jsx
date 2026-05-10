@@ -125,9 +125,18 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     if (updatedState.round >= updatedState.totalRounds) {
       onFinish(updatedState);
     } else {
-      startRound(updatedState);
+      // Check if next round's state is cached (user navigated back then forward)
+      const nextRoundState = trialStates?.[updatedState.round];
+      if (nextRoundState) {
+        setGameState(nextRoundState);
+        respondedRefs.current = Array(allStreams.length).fill(false);
+        setClearCanvas(false);
+        setPhase('stimulus');
+      } else {
+        startRound(updatedState);
+      }
     }
-  }, [phase, noobMode, onFinish, startRound]);
+  }, [phase, noobMode, onFinish, startRound, trialStates, allStreams.length]);
 
   const handlePrevTrial = useCallback(() => {
     const currentRound = gameStateRef.current?.round ?? 0;
