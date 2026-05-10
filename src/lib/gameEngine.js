@@ -23,6 +23,8 @@ import {
   INVERSE_RELATIONSHIP,
 } from './gameConstants';
 
+import { createRINTState, generateRINTStimulus, RINT_MIN_N } from './relationalIntegration.js';
+
 function makeStimulusEntry(rel) {
   const shapeA = pickRandom(SHAPES);
   const shapeB = pickRandomExcluding(SHAPES, shapeA);
@@ -127,6 +129,7 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     round: 0,
     totalRounds: totalRounds || TOTAL_ROUNDS,
     numExtraStreams: numExtra,
+    rintState: createRINTState(),
 
     // Stream A
     historyA: [],
@@ -179,26 +182,45 @@ export function generateNextStimulus(state) {
   const isHier = modes.includes('hierarchical');
   const hasDistractors = modes.includes('distractors');
   const isMixed = modes.includes('mixed_nback');
-  // For mixed mode: randomly pick type_nback or normal each trial
-  const trialIsTypeNback = isMixed ? Math.random() < 0.5 : false;
-  const isTypeNback = modes.includes('type_nback') || trialIsTypeNback;
+  const isMixedRINT = modes.includes('mixed_rint');
 
-  // Variable N
+  // Variable N — must be computed first so effectiveN is available for RINT check
   const isVariableN = modes.includes('variable_n');
   let effectiveN = nLevel;
   if (isVariableN && round >= nLevel) {
     const delta = Math.random() < 0.5 ? 1 : -1;
     const candidate = nLevel + delta;
-    if (candidate >= 1 && (isTypeNback || (candidate <= round && historyA.length >= candidate))) {
+    if (candidate >= 1 && (historyA.length >= candidate)) {
       effectiveN = candidate;
     }
   }
 
+  // For mixed mode: randomly pick type_nback, rint, or normal each trial
+  const mixedRoll = isMixed || isMixedRINT ? Math.random() : -1;
+  let trialIsTypeNback = false;
+  let trialIsRINT = false;
+  if (isMixedRINT) {
+    // three-way: 33% normal, 33% type, 33% rint (but rint only if n>=2)
+    if (mixedRoll < 0.33) trialIsTypeNback = false;
+    else if (mixedRoll < 0.66) trialIsTypeNback = true;
+    else trialIsRINT = (effectiveN >= RINT_MIN_N);
+  } else if (isMixed) {
+    trialIsTypeNback = mixedRoll < 0.5;
+  }
+  const isTypeNback = modes.includes('type_nback') || trialIsTypeNback;
+  const isRINT = (modes.includes('rint') || trialIsRINT) && effectiveN >= RINT_MIN_N;
+
   // ── Stream A ──
   let stimA, isTargetA = false, isDistractor = false;
+  let nextRINTState = state.rintState;
   const canTargetA = isTypeNback ? true : (round >= effectiveN && historyA.length >= effectiveN);
 
-  if (isTypeNback) {
+  if (isRINT) {
+    const rintResult = generateRINTStimulus(state.rintState, pool, effectiveN, MATCH_CHANCE);
+    stimA = rintResult.stim;
+    isTargetA = rintResult.isTarget;
+    nextRINTState = rintResult.rintState;
+  } else if (isTypeNback) {
     const forcedRel = Math.random() < MATCH_CHANCE ? pickTypeNbackTargetRel(typeHistoryA, pool, effectiveN) : null;
     if (forcedRel) {
       const entries = getTypeHistory(typeHistoryA, forcedRel);
@@ -225,6 +247,8 @@ export function generateNextStimulus(state) {
       stimA = makeStimulusEntry(exc ? pickRandomExcluding(pool, exc) : pickRandom(pool));
     }
   }
+  // Tag trial mode
+  const trialMode = isRINT ? 'rint' : isTypeNback ? 'type' : 'normal';
   const relA = stimA.rel;
   const categoryA = getCategory(relA);
 
@@ -245,6 +269,8 @@ export function generateNextStimulus(state) {
           extraIsTargets: extraStimuli.map(e => e.isTarget),
           categoryA: getCategory(stimA.rel),
           isTargetA: false, isTargetCategory: true, isDistractor, effectiveN,
+          trialIsTypeNback: isTypeNback, trialIsRINT: isRINT, trialMode,
+          nextRINTState,
         };
       }
     }
@@ -261,13 +287,16 @@ export function generateNextStimulus(state) {
     extraIsTargets: extraStimResults.map(e => e.isTarget),
     isTargetA, categoryA, isTargetCategory: false, isDistractor, effectiveN,
     trialIsTypeNback: isTypeNback,
+    trialIsRINT: isRINT,
+    trialMode,
+    nextRINTState,
   };
 }
 
 // ─── Advance Round ────────────────────────────────────────────────────────────
 
 export function advanceRound(state, stimulus) {
-  const { stimA, relA, extraStimuli, extraIsTargets, isTargetA, categoryA, isTargetCategory, isDistractor, effectiveN, trialIsTypeNback } = stimulus;
+  const { stimA, relA, extraStimuli, extraIsTargets, isTargetA, categoryA, isTargetCategory, isDistractor, effectiveN, trialIsTypeNback, trialIsRINT, trialMode, nextRINTState } = stimulus;
   const trialIndex = state.round;
 
   const nextTypeHistoryA = pushTypeHistory(state.typeHistoryA, relA, { ...stimA, trialIndex });
@@ -299,6 +328,9 @@ export function advanceRound(state, stimulus) {
     isTargetCategory,
     isDistractor,
     trialIsTypeNback: trialIsTypeNback ?? state.trialIsTypeNback ?? false,
+    trialIsRINT: trialIsRINT ?? state.trialIsRINT ?? false,
+    trialMode: trialMode ?? state.trialMode ?? 'normal',
+    rintState: nextRINTState ?? state.rintState,
     respondedA: false,
     respondedCategory: false,
     finished: state.round + 1 >= state.totalRounds,

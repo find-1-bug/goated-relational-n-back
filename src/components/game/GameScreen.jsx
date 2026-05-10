@@ -156,6 +156,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
             isDistractor={gameState.isDistractor}
             numStreams={allStreams.length}
             trialIsTypeNback={gameState.trialIsTypeNback}
+            trialIsRINT={gameState.trialIsRINT}
+            trialMode={gameState.trialMode}
           />
         </div>
         {onExit && (
@@ -197,6 +199,21 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           </div>
         ))}
       </div>
+
+      {/* RINT chain breadcrumb */}
+      {(modes.includes('rint') || modes.includes('mixed_rint')) && gameState.rintState?.chainLog?.length > 0 && phase === 'stimulus' && (
+        <div className="mt-1 shrink-0 px-3 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/5 font-mono text-xs text-center overflow-x-auto whitespace-nowrap">
+          <span className="text-emerald-400/50 mr-2">chain:</span>
+          {gameState.rintState.chainLog.slice(-(gameState.nLevel + 1)).map((fact, i, arr) => (
+            <span key={i}>
+              <span className="text-cyan-300">{fact.entityA}</span>
+              <span className="text-emerald-400/70 mx-1">{fact.rel.replace(/_/g, ' ').toLowerCase()}</span>
+              <span className="text-violet-300">{fact.entityB}</span>
+              {i < arr.length - 1 && <span className="text-muted-foreground/40 mx-1">·</span>}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Hierarchical category display */}
       {isHier && gameState.currentCategory && phase === 'stimulus' && (

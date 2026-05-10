@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Brain, Zap, TrendingUp, Layers, GitBranch, Shuffle, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RELATIONSHIP_CATEGORIES, setTokenWeights, getTokenWeights } from '@/lib/gameConstants';
+import { RINT_MIN_N } from '@/lib/relationalIntegration.js';
 
 // Build a weighted pool from category weights + enabled rels
 // Each category's rels are repeated proportionally to its weight
@@ -25,7 +26,9 @@ function buildWeightedPool(enabledRels, catWeights) {
 
 const MODE_OPTIONS = [
   { id: 'type_nback',   icon: Brain,      label: 'Type N-Back',  desc: 'Each relation type has its own N-back queue. Match fires when this relation appeared N times ago in its own history — regardless of trial distance. Very hard.' },
+  { id: 'rint',         icon: GitBranch,  label: 'Relational Integration', desc: 'Entities (alpha, beta…) persist across trials. A target fires when the current stimulus is a VALID logical conclusion from chaining the N previous facts (e.g. A>B, B>C → A>C). Requires N≥2. Works on transitive relations only.', minN: 2 },
   { id: 'mixed_nback',  icon: Shuffle,    label: 'Mixed N-Back', desc: 'Randomly switches between normal N-back and Type N-back each trial. You never know which rule applies — very challenging.' },
+  { id: 'mixed_rint',   icon: Shuffle,    label: 'Mixed RINT',   desc: 'Three-way random mix: normal N-back, Type N-back, or Relational Integration each trial. Maximum cognitive flexibility demand. Requires N≥2.', minN: 2 },
   { id: 'variable_n',   icon: Shuffle,    label: 'Variable N',   desc: 'N changes randomly each trial (±1 around your chosen N). Forces flexible updating.' },
   { id: 'adaptive',     icon: TrendingUp, label: 'Adaptive N',   desc: 'N auto-adjusts between sessions based on accuracy (≥80% → up, ≤50% → down)' },
   { id: 'dual',         icon: Layers,     label: 'Dual Stream',  desc: 'Track two independent relationship streams simultaneously (SPACE + A)' },
@@ -186,8 +189,13 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
     ));
   });
 
-  const toggleMode = (id) =>
+  const toggleMode = (id) => {
+    const opt = MODE_OPTIONS.find(m => m.id === id);
+    if (opt?.minN && nLevel < opt.minN) {
+      setNLevel(opt.minN);
+    }
     setModes(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
+  };
 
   const toggleCat = (cat) => {
     const members = RELATIONSHIP_CATEGORIES[cat];
@@ -547,16 +555,27 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
         <div className="space-y-2">
           <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest">Enhancement Modes</label>
           <div className="grid grid-cols-1 gap-2">
-            {MODE_OPTIONS.map(({ id, icon: Icon, label, desc }) => {
+            {MODE_OPTIONS.map(({ id, icon: Icon, label, desc, minN }) => {
               const active = modes.includes(id);
+              const needsHigherN = minN && nLevel < minN;
               return (
                 <button key={id} onClick={() => toggleMode(id)}
                   className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all duration-150
                     ${active ? 'border-primary bg-primary/10' : 'border-border bg-secondary/40 hover:border-muted-foreground/40'}`}>
                   <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <div>
-                    <div className={`text-xs font-mono font-semibold ${active ? 'text-primary' : 'text-muted-foreground'}`}>{label}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs font-mono font-semibold ${active ? 'text-primary' : 'text-muted-foreground'}`}>{label}</span>
+                      {minN && (
+                        <span className={`text-xs font-mono px-1.5 py-0.5 rounded border ${needsHigherN ? 'border-amber-500/40 text-amber-400 bg-amber-500/10' : 'border-border text-muted-foreground/50'}`}>
+                          N≥{minN}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs font-mono text-muted-foreground/60 mt-0.5">{desc}</div>
+                    {active && needsHigherN && (
+                      <div className="text-xs font-mono text-amber-400 mt-1">↑ N bumped to {minN}</div>
+                    )}
                   </div>
                 </button>
               );
