@@ -326,7 +326,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
         <div className="text-center space-y-1">
           <div className="flex items-center justify-center gap-3 mb-1">
             <Brain className="w-7 h-7 text-primary" />
-            <h1 className="text-3xl font-mono font-bold tracking-tight text-foreground">Relational N-Back</h1>
+            <h1 className="text-3xl font-mono font-bold tracking-tight text-foreground">GOATED Relational n Back</h1>
           </div>
           <p className="text-xs font-mono text-muted-foreground max-w-md mx-auto">
             Match the abstract <span className="text-primary">relationship</span> from{' '}
