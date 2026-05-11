@@ -61,6 +61,8 @@ const REL_DISPLAY = {
   DEPTH_LAYERED: 'Depth Layered', ORBITING: 'Orbiting', ROTATING_PAIR: 'Rotating Pair',
   NESTED_VOLUME: 'Nested Volume', ASCENDING_SPIRAL: 'Ascending Spiral', COLLIDING: 'Colliding',
   REPELLING: 'Repelling', BOUND_BY_GRAVITY: 'Bound by Gravity', INTERSECTING_PLANES: 'Intersecting Planes',
+  IN_FRONT_OF: 'In Front Of', BEHIND: 'Behind', STACKED_3D: 'Stacked 3D',
+  LEANING_AGAINST: 'Leaning Against', FLOATING_ABOVE: 'Floating Above', CASTING_SHADOW: 'Casting Shadow',
   // Trait
   HOLLOW_VS_SOLID: 'Hollow vs Solid', ONE_SHARED_TRAIT: 'Shared Trait', ROTATED: 'Rotated',
   CONNECTED: 'Connected', SAME_COLOR: 'Same Color', SAME_SHAPE: 'Same Shape',
@@ -250,11 +252,10 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
       setModes(prev => {
         const newModes = [...prev.filter(m => !toRemove.has(m)), id];
         
-        // Auto-filter relationships if activating RINT/Type modes
+        // Auto-filter only for modes that can generate RINT trials
         const isRINTMode = newModes.includes('rint') || newModes.includes('mixed_rint') || newModes.includes('impossible');
-        const isTypeMode = newModes.includes('type_nback') || newModes.includes('mixed_nback') || newModes.includes('mixed_rint') || newModes.includes('impossible');
-        if (isRINTMode || isTypeMode) {
-          const filtered = filterTransitiveRelationships([...enabledRels], isRINTMode, isTypeMode);
+        if (isRINTMode) {
+          const filtered = filterTransitiveRelationships([...enabledRels], true, false);
           setEnabledRels(new Set(filtered));
         }
         
@@ -379,11 +380,10 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                     const meta = CATEGORY_META[cat];
                     if (!meta) return null; // Skip categories without metadata
 
-                    // Check if RINT or Type N-Back is active
+                    // Only RINT-capable modes require transitive relationships
                     const isRINTMode = modes.includes('rint') || modes.includes('mixed_rint') || modes.includes('impossible');
-                    const isTypeMode = modes.includes('type_nback') || modes.includes('mixed_nback') || modes.includes('mixed_rint') || modes.includes('impossible');
-                    const restrictedRels = (isRINTMode || isTypeMode) 
-                      ? new Set(filterTransitiveRelationships(members, isRINTMode, isTypeMode))
+                    const restrictedRels = isRINTMode
+                      ? new Set(filterTransitiveRelationships(members, true, false))
                       : new Set(members);
 
                     const allOn = members.every(r => enabledRels.has(r) && restrictedRels.has(r));
@@ -410,7 +410,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                           {members.map(rel => {
                             const on = enabledRels.has(rel);
                             const allowed = restrictedRels.has(rel);
-                            const disabled = !allowed && (isRINTMode || isTypeMode);
+                            const disabled = !allowed && isRINTMode;
                             return (
                               <button key={rel} onClick={() => allowed && toggleRel(rel, cat)}
                                 disabled={disabled}

@@ -8,10 +8,6 @@ import {
   HIER_MATCH_CHANCE,
   DISTRACTOR_CHANCE,
   TOTAL_ROUNDS,
-  N_MIN,
-  N_MAX,
-  ADAPT_UP_THRESHOLD,
-  ADAPT_DOWN_THRESHOLD,
   getCategory,
   pickRandom,
   pickRandomExcluding,
@@ -25,6 +21,7 @@ import {
 } from './gameConstants';
 
 import { createRINTState, createRINTStates, generateRINTStimulus, isRINTConclusion, RINT_MIN_N } from './relationalIntegration.js';
+export { calculateResults, computeNextNLevel } from './gameStats.js';
 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -154,11 +151,10 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
    let stim, isPrimaryTarget = false, nextRINTState = rintState;
    const canTarget = history.length >= effectiveN;
 
-   // Filter pool for RINT/Type modes to only transitive relationships
+   // RINT requires transitive relationships; Type N-Back can use all relationship types
    const isRINTMode = trialMode === 'rint';
-   const isTypeMode = trialMode === 'type';
-   const effectivePool = (isRINTMode || isTypeMode) 
-     ? filterTransitiveRelationships(pool, isRINTMode, isTypeMode)
+   const effectivePool = isRINTMode
+     ? filterTransitiveRelationships(pool, true, false)
      : pool;
    const finalPool = effectivePool.length > 0 ? effectivePool : pool;
 
@@ -540,47 +536,4 @@ export function processResponses(state, { pressedA, pressedExtra = [] }) {
   next.allTrials = [...(state.allTrials || []), ...trialRecords];
 
   return next;
-}
-
-// ─── Results Calculation ──────────────────────────────────────────────────────
-
-function streamStats(hits, misses, falseAlarms, correctRejections) {
-  const totalTargets = hits + misses;
-  const totalNonTargets = falseAlarms + correctRejections;
-  const total = totalTargets + totalNonTargets;
-  const hitRate = totalTargets > 0 ? Math.round((hits / totalTargets) * 100) : 0;
-  const falseAlarmRate = totalNonTargets > 0 ? Math.round((falseAlarms / totalNonTargets) * 100) : 0;
-  const accuracy = total > 0 ? Math.round(((hits + correctRejections) / total) * 100) : 0;
-  return { hits, misses, falseAlarms, correctRejections, total, accuracy, hitRate, falseAlarmRate };
-}
-
-export function calculateResults(state) {
-  const A = streamStats(state.hitsA, state.missesA, state.falseAlarmsA, state.correctRejectionsA);
-
-  const extra = (state.extraHits || []).map((h, i) =>
-    streamStats(
-      h || 0,
-      (state.extraMisses || [])[i] || 0,
-      (state.extraFalseAlarms || [])[i] || 0,
-      (state.extraCorrectRejections || [])[i] || 0
-    )
-  );
-
-  const allStreamsStats = [A, ...extra];
-  const allHits = allStreamsStats.reduce((s, x) => s + x.hits, 0);
-  const allMisses = allStreamsStats.reduce((s, x) => s + x.misses, 0);
-  const allFA = allStreamsStats.reduce((s, x) => s + x.falseAlarms, 0);
-  const allCR = allStreamsStats.reduce((s, x) => s + x.correctRejections, 0);
-  const overall = streamStats(allHits, allMisses, allFA, allCR);
-
-  return { A, extra, overall };
-}
-
-// ─── Adaptive N-Level ─────────────────────────────────────────────────────────
-
-export function computeNextNLevel(currentN, results) {
-  const acc = results.overall.accuracy;
-  if (acc >= ADAPT_UP_THRESHOLD && currentN < N_MAX) return currentN + 1;
-  if (acc <= ADAPT_DOWN_THRESHOLD && currentN > N_MIN) return currentN - 1;
-  return currentN;
 }

@@ -35,10 +35,8 @@ const TRANSITIVE_FAMILIES = [
   { rels: ['NORTH_OF', 'SOUTH_OF'],         inv: { NORTH_OF: 'SOUTH_OF', SOUTH_OF: 'NORTH_OF' } },
   { rels: ['EAST_OF', 'WEST_OF'],           inv: { EAST_OF: 'WEST_OF', WEST_OF: 'EAST_OF' } },
   // Semantic chains
-  { rels: ['PART_OF'],      inv: {} },
-  { rels: ['CAUSES'],       inv: {} },
-  { rels: ['CONTAINS'],     inv: {} },
-  { rels: ['DEPENDS_ON'],   inv: {} },
+  { rels: ['PART_OF', 'CONTAINS'], inv: { PART_OF: 'CONTAINS', CONTAINS: 'PART_OF' } },
+  { rels: ['CAUSES', 'DEPENDS_ON'], inv: { CAUSES: 'DEPENDS_ON', DEPENDS_ON: 'CAUSES' } },
   { rels: ['TRANSFORMS_INTO'], inv: {} },
 ];
 
@@ -68,10 +66,17 @@ function deriveConclusion(factA, factB) {
   const famIdxA = REL_TO_FAMILY.get(factA.rel);
   const famIdxB = REL_TO_FAMILY.get(factB.rel);
   if (famIdxA === undefined || famIdxB !== famIdxA) return null;
-  if (factA.entityB !== factB.entityA) return null;
-  if (factA.rel !== factB.rel) return null;
+  if (factA.entityB === factB.entityA && factA.rel === factB.rel) {
+    return { entityA: factA.entityA, rel: factA.rel, entityB: factB.entityB };
+  }
 
-  return { entityA: factA.entityA, rel: factA.rel, entityB: factB.entityB };
+  const family = TRANSITIVE_FAMILIES[famIdxA];
+  const inverseRel = family.inv?.[factA.rel];
+  if (inverseRel && factA.entityA === factB.entityB && factB.rel === factA.rel) {
+    return { entityA: factA.entityB, rel: inverseRel, entityB: factB.entityA };
+  }
+
+  return null;
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────
