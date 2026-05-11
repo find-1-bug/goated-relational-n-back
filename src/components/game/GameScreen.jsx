@@ -75,7 +75,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     if (!historicalState && noobMode) {
       setTrialStates(prev => {
         const updated = Array.isArray(prev) ? [...prev] : [];
-        updated[nextState.round] = nextState;
+        updated[nextState.round] = structuredClone(nextState);
         return updated;
       });
     }
@@ -138,7 +138,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     const historicalState = trialStates?.[prevRound];
     if (historicalState) {
       setGameState({
-        ...historicalState,
+        ...structuredClone(historicalState),
         scoredTrialKeys: gameStateRef.current.scoredTrialKeys || [],
         allTrials: gameStateRef.current.allTrials || [],
       });

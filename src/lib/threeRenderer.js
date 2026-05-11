@@ -248,6 +248,5 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       }
     });
     renderer.dispose();
-    renderer.forceContextLoss();
   };
 }
