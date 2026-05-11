@@ -16,8 +16,8 @@ const MODES = [
     example: '"cat BIGGER THAN ant" counts as a "comparison" type entry. The next time any comparison relationship appears (e.g. "sun FASTER THAN moon"), it counts as N=1 back in the comparison queue — regardless of how many total trials have passed.',
   },
   {
-    mode: 'RINT',
-    rule: 'Derive a valid logical conclusion by chaining N facts transitively.',
+    mode: 'RINT (Relational Integration)',
+    rule: 'Derive a valid logical conclusion by chaining N facts transitively. "Integration" refers to mentally combining separate relational facts into a single unified conclusion.',
     example: 'N=2. Trial 1: "alpha BIGGER THAN beta". Trial 2: "beta BIGGER THAN gamma". Trial 3: "alpha BIGGER THAN gamma" — this is the logical conclusion of the chain → target, press the key.',
   },
   {
@@ -27,7 +27,7 @@ const MODES = [
   },
   {
     mode: 'Mixed RINT',
-    rule: 'Three-way random per trial: Normal, Type, or RINT.',
+    rule: 'Three-way random per trial: Normal, Type, or RINT (Relational Integration).',
     example: 'Same as Mixed N-Back but RINT is also a possible rule. You must hold all three evaluation strategies ready simultaneously.',
   },
   {
