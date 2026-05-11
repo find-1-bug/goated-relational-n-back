@@ -50,6 +50,24 @@ function getRecordedResponses(progressState, round, streamCount) {
   return { respondedA, extraResponded };
 }
 
+function makeHistoricalSnapshot(state) {
+  return {
+    ...structuredClone(state),
+    respondedA: false,
+    extraResponded: Array(state.numExtraStreams || 0).fill(false),
+    hitsA: 0,
+    missesA: 0,
+    falseAlarmsA: 0,
+    correctRejectionsA: 0,
+    extraHits: Array(state.numExtraStreams || 0).fill(0),
+    extraMisses: Array(state.numExtraStreams || 0).fill(0),
+    extraFalseAlarms: Array(state.numExtraStreams || 0).fill(0),
+    extraCorrectRejections: Array(state.numExtraStreams || 0).fill(0),
+    scoredTrialKeys: [],
+    allTrials: [],
+  };
+}
+
 function mergeHistoricalWithProgress(historicalState, progressState, streamCount) {
   const historical = structuredClone(historicalState);
   if (!progressState) return historical;
@@ -121,7 +139,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     // Store indexed by round number for easy lookup during prev/next
     if (!historicalState && noobMode) {
       const updated = Array.isArray(trialStatesRef.current) ? [...trialStatesRef.current] : [];
-      updated[nextState.round] = structuredClone(nextState);
+      updated[nextState.round] = makeHistoricalSnapshot(nextState);
       trialStatesRef.current = updated;
     }
     
