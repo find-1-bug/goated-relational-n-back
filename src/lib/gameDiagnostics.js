@@ -5,12 +5,15 @@ import {
   processResponses,
   calculateResults,
 } from '@/lib/gameEngine';
-import { RELATIONSHIP_CATEGORIES, filterTransitiveRelationships } from '@/lib/gameConstants';
+import {
+  RELATIONSHIP_CATEGORIES,
+  filterTransitiveRelationships,
+  setTokenWeights,
+  getTokenWeights,
+} from '@/lib/gameConstants';
 
 const ALL_RELATIONSHIPS = Object.values(RELATIONSHIP_CATEGORIES).flat();
 const RINT_POOL = filterTransitiveRelationships(ALL_RELATIONSHIPS, true, false);
-const SPATIAL_POOL = RELATIONSHIP_CATEGORIES.SPATIAL || ALL_RELATIONSHIPS;
-const VERBAL_POOL = RELATIONSHIP_CATEGORIES.VERBAL || ALL_RELATIONSHIPS;
 
 const MODE_CASES = [
   { label: 'Normal', modes: [] },
@@ -23,20 +26,50 @@ const MODE_CASES = [
   { label: 'Variable N', modes: ['variable_n'] },
   { label: 'Adaptive', modes: ['adaptive'] },
   { label: 'Distractors', modes: ['distractors'] },
+  { label: 'Type + Adaptive + Distractors', modes: ['type_nback', 'adaptive', 'distractors'] },
   { label: 'Variable + Adaptive + Distractors', modes: ['variable_n', 'adaptive', 'distractors'] },
   { label: 'Binary + Adaptive + Distractors', modes: ['binary_logic', 'adaptive', 'distractors'], minN: 2, needsRintPool: true },
 ];
 
-const POOL_CASES = [
-  { label: 'All relationships', pool: ALL_RELATIONSHIPS },
-  { label: 'Spatial only', pool: SPATIAL_POOL },
-  { label: 'Verbal only', pool: VERBAL_POOL },
-  { label: 'RINT-safe', pool: RINT_POOL.length ? RINT_POOL : ALL_RELATIONSHIPS },
+const CATEGORY_POOL_CASES = Object.entries(RELATIONSHIP_CATEGORIES).map(([category, pool]) => ({
+  label: category.replace(/_/g, ' '),
+  pool,
+  rintPool: filterTransitiveRelationships(pool, true, false),
+}));
+
+const STIMULUS_MIX_CASES = [
+  { label: 'All equal', pool: ALL_RELATIONSHIPS },
+  { label: 'Spatial heavy', pool: buildWeightedPool({ SPATIAL: 70, SPATIAL_3D: 20, TRAIT: 5, QUANT: 5, VERBAL: 0 }) },
+  { label: 'Visual heavy', pool: buildWeightedPool({ SPATIAL: 30, SPATIAL_3D: 30, TRAIT: 30, QUANT: 10, VERBAL: 0 }) },
+  { label: 'Verbal heavy', pool: buildWeightedPool({ SPATIAL: 5, SPATIAL_3D: 5, TRAIT: 5, QUANT: 5, VERBAL: 80 }) },
+  { label: 'RINT-safe', pool: RINT_POOL.length ? RINT_POOL : ALL_RELATIONSHIPS, rintPool: RINT_POOL.length ? RINT_POOL : ALL_RELATIONSHIPS },
+];
+
+const TOKEN_STYLE_CASES = [
+  { label: 'Default tokens', weights: null },
+  { label: 'Words only', weights: { meaningful: 100, nonsense: 0, garbage: 0, emoji: 0, voronoi_emoji: 0, random_string: 0, voronoi: 0 } },
+  { label: 'Nonsense only', weights: { meaningful: 0, nonsense: 100, garbage: 0, emoji: 0, voronoi_emoji: 0, random_string: 0, voronoi: 0 } },
+  { label: 'Garbage only', weights: { meaningful: 0, nonsense: 0, garbage: 100, emoji: 0, voronoi_emoji: 0, random_string: 0, voronoi: 0 } },
+  { label: 'Emoji only', weights: { meaningful: 0, nonsense: 0, garbage: 0, emoji: 100, voronoi_emoji: 0, random_string: 0, voronoi: 0 } },
+  { label: 'Abstract only', weights: { meaningful: 0, nonsense: 0, garbage: 0, emoji: 0, voronoi_emoji: 100, random_string: 0, voronoi: 0 } },
+  { label: 'Random strings only', weights: { meaningful: 0, nonsense: 0, garbage: 0, emoji: 0, voronoi_emoji: 0, random_string: 100, voronoi: 0 } },
+  { label: 'Voronoi only', weights: { meaningful: 0, nonsense: 0, garbage: 0, emoji: 0, voronoi_emoji: 0, random_string: 0, voronoi: 100 } },
+  { label: 'Balanced token mix', weights: { meaningful: 15, nonsense: 15, garbage: 15, emoji: 15, voronoi_emoji: 15, random_string: 15, voronoi: 10 } },
 ];
 
 const N_LEVELS = [1, 2, 3, 5, 8];
 const ROUND_COUNTS = [1, 2, 5, 20, 50];
 const STREAM_COUNTS = [1, 2, 3, 5, 9];
+const NOOB_MODE_CASES = [false, true];
+
+function buildWeightedPool(weights) {
+  const pool = [];
+  Object.entries(weights).forEach(([category, weight]) => {
+    const rels = RELATIONSHIP_CATEGORIES[category] || [];
+    for (let i = 0; i < Math.max(0, weight); i += 1) pool.push(...rels);
+  });
+  return pool.length ? pool : ALL_RELATIONSHIPS;
+}
 
 function makeExtraStreams(streamCount) {
   return Array.from({ length: Math.max(0, streamCount - 1) }, (_, i) => ({
@@ -44,6 +77,15 @@ function makeExtraStreams(streamCount) {
     keyDisplay: String.fromCharCode(66 + i),
     label: String.fromCharCode(66 + i),
   }));
+}
+
+function cloneState(state) {
+  return structuredClone(state);
+}
+
+function applyTokenStyle(tokenCase) {
+  const defaults = getTokenWeights();
+  setTokenWeights(tokenCase.weights ? { ...defaults, ...tokenCase.weights } : defaults);
 }
 
 function assertCondition(condition, message) {
@@ -60,7 +102,18 @@ function assertStateInvariants(state, expectedStreams, expectedRound) {
   assertCondition(typeof state.currentRelationship === 'string', 'Stream A relationship missing');
   assertCondition((state.extraCurrentStimuli || []).length === expectedStreams - 1, 'extra stimuli length mismatch');
   assertCondition((state.extraIsTargets || []).length === expectedStreams - 1, 'extra target flags length mismatch');
+  assertCondition((state.extraResponded || []).length === expectedStreams - 1, 'extra response length mismatch');
   assertCondition((state.trialBinaryConfigs || []).length === expectedStreams, 'binary config length mismatch');
+}
+
+function assertTrialShape(trial) {
+  assertCondition(Number.isFinite(trial.trialNumber), 'trial number missing');
+  assertCondition(typeof trial.streamLabel === 'string', 'stream label missing');
+  assertCondition(typeof trial.relationship === 'string', 'trial relationship missing');
+  assertCondition(typeof trial.isTarget === 'boolean', 'trial target flag missing');
+  assertCondition(typeof trial.userResponded === 'boolean', 'trial response flag missing');
+  assertCondition(typeof trial.correct === 'boolean', 'trial correctness flag missing');
+  assertCondition(Number.isFinite(trial.nBackValue), 'trial N value missing');
 }
 
 function assertScoredInvariants(state, expectedStreams, expectedRound) {
@@ -71,13 +124,36 @@ function assertScoredInvariants(state, expectedStreams, expectedRound) {
 
   assertCondition(scoredKeys.length === uniqueKeys.size, 'duplicate scored trial key detected');
   assertCondition((state.allTrials || []).length === expectedTrialRecords, `trial record count mismatch: expected ${expectedTrialRecords}, got ${(state.allTrials || []).length}`);
+  state.allTrials.forEach(assertTrialShape);
   assertCondition(results.overall.total === expectedTrialRecords, `overall total mismatch: expected ${expectedTrialRecords}, got ${results.overall.total}`);
   assertFiniteNumber(results.overall.accuracy, 'overall accuracy');
   assertFiniteNumber(results.overall.hitRate, 'overall hit rate');
   assertFiniteNumber(results.overall.falseAlarmRate, 'overall false alarm rate');
 }
 
-function simulateCase(testCase) {
+function makeResponses(roundIndex, streamCount) {
+  return {
+    pressedA: roundIndex % 3 === 0,
+    pressedExtra: Array.from({ length: streamCount - 1 }, (_, idx) => (roundIndex + idx) % 4 === 0),
+  };
+}
+
+function assertDoubleScoringBlocked(state, streamCount, responses) {
+  const beforeRecords = state.allTrials.length;
+  const beforeKeys = state.scoredTrialKeys.length;
+  const beforeTotal = calculateResults(state).overall.total;
+  const rescored = processResponses(state, {
+    pressedA: !responses.pressedA,
+    pressedExtra: responses.pressedExtra.map(v => !v),
+  });
+  assertCondition(rescored.allTrials.length === beforeRecords, 'double scoring changed trial records');
+  assertCondition(rescored.scoredTrialKeys.length === beforeKeys, 'double scoring changed scored keys');
+  assertCondition(calculateResults(rescored).overall.total === beforeTotal, 'double scoring changed totals');
+  assertCondition((rescored.extraResponded || []).length === streamCount - 1, 'double scoring changed response shape');
+  return rescored;
+}
+
+function simulateTimedCase(testCase) {
   const { nLevel, modes, pool, totalRounds, streamCount } = testCase;
   let state = createGameState({
     nLevel,
@@ -95,16 +171,10 @@ function simulateCase(testCase) {
     state = advanceRound(state, stimulus);
     assertStateInvariants(state, streamCount, i + 1);
 
-    const pressedA = i % 3 === 0;
-    const pressedExtra = Array.from({ length: streamCount - 1 }, (_, idx) => (i + idx) % 4 === 0);
-    state = processResponses(state, { pressedA, pressedExtra });
+    const responses = makeResponses(i, streamCount);
+    state = processResponses(state, responses);
     assertScoredInvariants(state, streamCount, i + 1);
-
-    const beforeRecords = state.allTrials.length;
-    const beforeKeys = state.scoredTrialKeys.length;
-    state = processResponses(state, { pressedA: !pressedA, pressedExtra: pressedExtra.map(v => !v) });
-    assertCondition(state.allTrials.length === beforeRecords, 'double scoring changed trial records');
-    assertCondition(state.scoredTrialKeys.length === beforeKeys, 'double scoring changed scored keys');
+    state = assertDoubleScoringBlocked(state, streamCount, responses);
   }
 
   const results = calculateResults(state);
@@ -112,47 +182,119 @@ function simulateCase(testCase) {
   return results;
 }
 
+function simulateNoobCase(testCase) {
+  const { nLevel, modes, pool, totalRounds, streamCount } = testCase;
+  let progressState = createGameState({
+    nLevel,
+    modes,
+    relationshipPool: pool,
+    totalRounds,
+    extraStreams: makeExtraStreams(streamCount),
+  });
+  const trialStates = [];
+
+  for (let i = 0; i < totalRounds; i += 1) {
+    const stimulus = generateNextStimulus(progressState);
+    const activeState = advanceRound(progressState, stimulus);
+    trialStates[activeState.round] = cloneState(activeState);
+    assertStateInvariants(activeState, streamCount, i + 1);
+
+    const responses = makeResponses(i, streamCount);
+    progressState = processResponses(activeState, responses);
+    assertScoredInvariants(progressState, streamCount, i + 1);
+    progressState = assertDoubleScoringBlocked(progressState, streamCount, responses);
+
+    if (i >= 1) {
+      const historical = cloneState(trialStates[i]);
+      assertStateInvariants(historical, streamCount, i);
+      const editedHistorical = processResponses(historical, {
+        pressedA: !responses.pressedA,
+        pressedExtra: responses.pressedExtra.map(v => !v),
+      });
+      assertCondition((editedHistorical.scoredTrialKeys || []).length <= 1, 'historical replay leaked global score keys');
+      assertScoredInvariants(progressState, streamCount, i + 1);
+    }
+  }
+
+  const results = calculateResults(progressState);
+  assertCondition(results.overall.total === totalRounds * streamCount, 'Noob final result total mismatch');
+  return results;
+}
+
+function getPoolForMode(poolCase, needsRintPool) {
+  if (!needsRintPool) return poolCase.pool;
+  const safePool = poolCase.rintPool || filterTransitiveRelationships(poolCase.pool, true, false);
+  return safePool.length ? safePool : null;
+}
+
 export function runGameDiagnostics({ maxCases = 600 } = {}) {
   const startedAt = performance.now();
+  const originalTokenWeights = getTokenWeights();
   const failures = [];
   const samples = [];
+  const coverage = {
+    relationTypes: new Set(),
+    stimulusMixes: new Set(),
+    tokenStyles: new Set(),
+    streamCounts: new Set(),
+    enhancementModes: new Set(),
+    noobModes: new Set(),
+  };
   let passed = 0;
   let skipped = 0;
   let caseCount = 0;
 
-  outer: for (const modeCase of MODE_CASES) {
-    for (const nLevel of N_LEVELS) {
-      for (const totalRounds of ROUND_COUNTS) {
-        for (const streamCount of STREAM_COUNTS) {
-          for (const poolCase of POOL_CASES) {
-            if (caseCount >= maxCases) break outer;
-            if (modeCase.minN && nLevel < modeCase.minN) { skipped += 1; continue; }
-            if (modeCase.minStreams && streamCount < modeCase.minStreams) { skipped += 1; continue; }
-            if (modeCase.needsRintPool && poolCase.label !== 'RINT-safe') { skipped += 1; continue; }
+  const poolCases = [...CATEGORY_POOL_CASES, ...STIMULUS_MIX_CASES];
 
-            caseCount += 1;
-            const testCase = {
-              label: `${modeCase.label} · N=${nLevel} · ${streamCount} stream(s) · ${totalRounds} rounds · ${poolCase.label}`,
-              nLevel,
-              modes: modeCase.modes,
-              pool: poolCase.pool,
-              totalRounds,
-              streamCount,
-            };
+  try {
+    outer: for (const modeCase of MODE_CASES) {
+      for (const tokenCase of TOKEN_STYLE_CASES) {
+        applyTokenStyle(tokenCase);
+        for (const noobMode of NOOB_MODE_CASES) {
+          for (const nLevel of N_LEVELS) {
+            for (const totalRounds of ROUND_COUNTS) {
+              for (const streamCount of STREAM_COUNTS) {
+                for (const poolCase of poolCases) {
+                  if (caseCount >= maxCases) break outer;
+                  if (modeCase.minN && nLevel < modeCase.minN) { skipped += 1; continue; }
+                  if (modeCase.minStreams && streamCount < modeCase.minStreams) { skipped += 1; continue; }
+                  const pool = getPoolForMode(poolCase, modeCase.needsRintPool);
+                  if (!pool || pool.length === 0) { skipped += 1; continue; }
 
-            try {
-              const results = simulateCase(testCase);
-              passed += 1;
-              if (samples.length < 8) {
-                samples.push({ label: testCase.label, accuracy: results.overall.accuracy, total: results.overall.total });
+                  caseCount += 1;
+                  const testCase = {
+                    label: `${noobMode ? 'Noob' : 'Timed'} · ${modeCase.label} · ${tokenCase.label} · N=${nLevel} · ${streamCount} stream(s) · ${totalRounds} rounds · ${poolCase.label}`,
+                    nLevel,
+                    modes: modeCase.modes,
+                    pool,
+                    totalRounds,
+                    streamCount,
+                  };
+
+                  try {
+                    const results = noobMode ? simulateNoobCase(testCase) : simulateTimedCase(testCase);
+                    passed += 1;
+                    coverage.relationTypes.add(poolCase.label);
+                    coverage.stimulusMixes.add(poolCase.label);
+                    coverage.tokenStyles.add(tokenCase.label);
+                    coverage.streamCounts.add(String(streamCount));
+                    coverage.enhancementModes.add(modeCase.label);
+                    coverage.noobModes.add(noobMode ? 'Noob Mode' : 'Timed Mode');
+                    if (samples.length < 8) {
+                      samples.push({ label: testCase.label, accuracy: results.overall.accuracy, total: results.overall.total });
+                    }
+                  } catch (error) {
+                    failures.push({ label: testCase.label, message: error.message });
+                  }
+                }
               }
-            } catch (error) {
-              failures.push({ label: testCase.label, message: error.message });
             }
           }
         }
       }
     }
+  } finally {
+    setTokenWeights(originalTokenWeights);
   }
 
   const durationMs = Math.round(performance.now() - startedAt);
@@ -165,5 +307,13 @@ export function runGameDiagnostics({ maxCases = 600 } = {}) {
     durationMs,
     failures,
     samples,
+    coverage: {
+      relationTypes: [...coverage.relationTypes],
+      stimulusMixes: [...coverage.stimulusMixes],
+      tokenStyles: [...coverage.tokenStyles],
+      streamCounts: [...coverage.streamCounts],
+      enhancementModes: [...coverage.enhancementModes],
+      noobModes: [...coverage.noobModes],
+    },
   };
 }

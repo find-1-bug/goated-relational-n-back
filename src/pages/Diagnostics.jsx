@@ -70,6 +70,24 @@ export default function Diagnostics() {
               </div>
             </div>
 
+            {result.coverage && (
+              <div className="grid md:grid-cols-2 gap-2 mb-4">
+                {[
+                  ['Relation types', result.coverage.relationTypes],
+                  ['Stimuli mixes', result.coverage.stimulusMixes],
+                  ['Token styles', result.coverage.tokenStyles],
+                  ['Streams', result.coverage.streamCounts.map(v => `${v} stream${v === '1' ? '' : 's'}`)],
+                  ['Enhancement modes', result.coverage.enhancementModes],
+                  ['Noob coverage', result.coverage.noobModes],
+                ].map(([label, items]) => (
+                  <div key={label} className="rounded-lg bg-background/40 border border-border p-3 font-mono text-xs">
+                    <div className="text-primary font-semibold mb-1">{label}</div>
+                    <div className="text-muted-foreground leading-relaxed">{items.join(' · ')}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {result.failures.length > 0 && (
               <div className="space-y-2 mb-4">
                 {result.failures.slice(0, 20).map((failure, idx) => (
