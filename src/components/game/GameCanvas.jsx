@@ -14,6 +14,12 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas, rintCh
         cleanupRef.current = null;
       }
       const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (container) {
+        container.querySelectorAll('canvas[data-three-canvas="true"]').forEach(node => node.remove());
+      }
+      if (canvas && container && canvas.parentElement !== container) container.appendChild(canvas);
+      if (canvas) canvas.style.display = 'block';
       if (canvas && canvas.getContext) {
         const ctx = canvas.getContext('2d');
         if (ctx) {
@@ -30,8 +36,10 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas, rintCh
       const container = containerRef.current;
       if (!container) return;
       
-      container.replaceChildren();
+      container.querySelectorAll('canvas[data-three-canvas="true"]').forEach(node => node.remove());
+      if (canvasRef.current) canvasRef.current.style.display = 'none';
       const tempCanvas = document.createElement('canvas');
+      tempCanvas.dataset.threeCanvas = 'true';
       tempCanvas.style.width = '100%';
       tempCanvas.style.height = '100%';
       tempCanvas.className = 'rounded-lg';
@@ -47,7 +55,13 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas, rintCh
       }
 
       const canvas = canvasRef.current;
+      const container = containerRef.current;
       if (!canvas) return;
+      if (container) {
+        container.querySelectorAll('canvas[data-three-canvas="true"]').forEach(node => node.remove());
+        if (canvas.parentElement !== container) container.appendChild(canvas);
+      }
+      canvas.style.display = 'block';
       const ctx = canvas.getContext('2d');
       
       const dpr = window.devicePixelRatio || 1;
