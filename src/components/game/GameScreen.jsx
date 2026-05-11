@@ -127,7 +127,19 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     if (updatedState.round >= updatedState.totalRounds) {
       onFinish(updatedState);
     } else {
-      startRound(updatedState);
+      const savedNextState = noobMode ? trialStates?.[updatedState.round + 1] : null;
+      if (savedNextState) {
+        setGameState({
+          ...structuredClone(savedNextState),
+          scoredTrialKeys: updatedState.scoredTrialKeys || [],
+          allTrials: updatedState.allTrials || [],
+        });
+        respondedRefs.current = Array(allStreams.length).fill(false);
+        setClearCanvas(false);
+        setPhase('stimulus');
+      } else {
+        startRound(updatedState);
+      }
     }
   }, [noobMode, onFinish, startRound]);
 
