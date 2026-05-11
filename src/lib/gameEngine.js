@@ -24,7 +24,7 @@ import {
   filterTransitiveRelationships,
 } from './gameConstants';
 
-import { createRINTState, createRINTStates, generateRINTStimulus, RINT_MIN_N } from './relationalIntegration.js';
+import { createRINTState, createRINTStates, generateRINTStimulus, isRINTConclusion, RINT_MIN_N } from './relationalIntegration.js';
 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -71,6 +71,32 @@ function pickTypeNbackTargetRel(typeHistoryMap, pool, effectiveN) {
   const candidates = pool.filter(rel => getTypeHistory(typeHistoryMap, rel).length >= effectiveN);
   if (candidates.length === 0) return null;
   return pickRandom(candidates);
+}
+
+function isTypeNbackMatch(typeHistoryMap, rel, effectiveN) {
+  return getTypeHistory(typeHistoryMap, rel).length >= effectiveN;
+}
+
+function relationshipMatches(rel, targetRel) {
+  return rel === targetRel || INVERSE_RELATIONSHIP[targetRel] === rel || INVERSE_RELATIONSHIP[rel] === targetRel;
+}
+
+function evaluateStimulusForMode({ stim, mode, history, typeHistory, rintState, effectiveN, hierHistory }) {
+  if (!stim) return false;
+  if (mode === 'rint') return isRINTConclusion(rintState, stim, effectiveN);
+  if (mode === 'type') return isTypeNbackMatch(typeHistory, stim.rel, effectiveN);
+  if (mode === 'hierarchical') {
+    const canHier = (hierHistory || []).length >= effectiveN;
+    const nBackCat = canHier ? hierHistory[hierHistory.length - effectiveN] : null;
+    return canHier && getCategory(stim.rel) === nBackCat;
+  }
+  const nBackEntry = history.length >= effectiveN ? history[history.length - effectiveN] : null;
+  return !!nBackEntry && relationshipMatches(stim.rel, nBackEntry.rel);
+}
+
+function makeNonTargetRelationship(pool, isAccidentalTarget) {
+  const candidates = pool.filter(rel => !isAccidentalTarget(rel));
+  return pickRandom(candidates.length > 0 ? candidates : pool);
 }
 
 function makeDistractor(targetRelationship, pool) {
@@ -124,7 +150,7 @@ function rollTrialMode(modes, effectiveN) {
 
 // Generate stimulus for a single stream, given its own history/typeHistory/rintState
 // streamConfig: { trialMode, binaryMode, binaryOp, hierHistory } for Hierarchical and Binary Logic
-function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex, hierHistory, binaryMode, binaryOp }) {
+function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex, hierHistory, binaryMode, binaryOp, signalOnly = false, baseStim = null }) {
    let stim, isPrimaryTarget = false, nextRINTState = rintState;
    const canTarget = history.length >= effectiveN;
 
@@ -135,6 +161,13 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
      ? filterTransitiveRelationships(pool, isRINTMode, isTypeMode)
      : pool;
    const finalPool = effectivePool.length > 0 ? effectivePool : pool;
+
+  if (signalOnly && baseStim) {
+    const isSignalTarget = evaluateStimulusForMode({
+      stim: baseStim, mode: trialMode, history, typeHistory, rintState, effectiveN, hierHistory,
+    });
+    return { stim: baseStim, isTarget: isSignalTarget, isPrimaryTarget: isSignalTarget, isHierTarget: isSignalTarget, nextRINTState };
+  }
 
   if (trialMode === 'rint') {
     const rintResult = generateRINTStimulus(rintState, finalPool, effectiveN, matchChance);
@@ -149,25 +182,31 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
       stim = isVerbal(forcedRel)
         ? (Math.random() < 0.35 ? makeInverseStimulus(targetEntry) : null) || makeStimulusEntry(forcedRel)
         : maybeInvertVisual(makeStimulusEntry(forcedRel));
-      isPrimaryTarget = true;
     } else {
-      stim = makeStimulusEntry(pickRandom(finalPool));
+      stim = makeStimulusEntry(makeNonTargetRelationship(finalPool, rel => isTypeNbackMatch(typeHistory, rel, effectiveN)));
     }
-    } else {
-    // normal
+    isPrimaryTarget = isTypeNbackMatch(typeHistory, stim.rel, effectiveN);
+  } else if (trialMode === 'hierarchical') {
+    const canHier = (hierHistory || []).length >= effectiveN;
+    const nBackCat = canHier ? hierHistory[hierHistory.length - effectiveN] : null;
+    const rel = canHier && Math.random() < matchChance
+      ? pickRandom(finalPool.filter(r => getCategory(r) === nBackCat))
+      : makeNonTargetRelationship(finalPool, r => canHier && getCategory(r) === nBackCat);
+    stim = makeStimulusEntry(rel);
+    isPrimaryTarget = canHier && getCategory(stim.rel) === nBackCat;
+  } else {
     const nBackEntry = canTarget ? history[history.length - effectiveN] : null;
     if (canTarget && nBackEntry && Math.random() < matchChance) {
       stim = isVerbal(nBackEntry.rel)
         ? (Math.random() < 0.35 ? makeInverseStimulus(nBackEntry) : null) || nBackEntry
         : maybeInvertVisual(makeStimulusEntry(nBackEntry.rel));
-      isPrimaryTarget = true;
     } else if (hasDistractors && canTarget && nBackEntry && Math.random() < DISTRACTOR_CHANCE) {
       stim = makeStimulusEntry(makeDistractor(nBackEntry.rel, pool));
     } else {
-      const exc = canTarget ? history[history.length - effectiveN]?.rel : null;
-      stim = makeStimulusEntry(exc ? pickRandomExcluding(finalPool, exc) : pickRandom(finalPool));
+      stim = makeStimulusEntry(makeNonTargetRelationship(finalPool, rel => canTarget && relationshipMatches(rel, nBackEntry?.rel)));
     }
-    }
+    isPrimaryTarget = canTarget && relationshipMatches(stim.rel, nBackEntry?.rel);
+  }
 
   // Hierarchical signal: is the category of this stim the same as N back?
   let isHierTarget = false;
@@ -187,6 +226,7 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
     const secResult = generateOneStreamStimulus({
       history, typeHistory, rintState: nextRINTState, pool, effectiveN,
       trialMode: binaryMode, matchChance, hasDistractors, trialIndex,
+      hierHistory, signalOnly: true, baseStim: stim,
     });
     isSecondaryTarget = secResult.isPrimaryTarget;
   }

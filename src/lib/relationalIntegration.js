@@ -61,32 +61,16 @@ function canonicalRel(familyIdx) {
   return TRANSITIVE_FAMILIES[familyIdx].rels[0];
 }
 
-// Given A rel B and B rel2 C (same family), derive the transitive conclusion A → C
-// Returns null if relations are not both in the same transitive family or can't chain
+// Given A rel B and B rel C (same relation direction), derive A rel C.
+// Mixed directions like A > B and B < C do not imply a valid conclusion.
 function deriveConclusion(factA, factB) {
   const famIdxA = REL_TO_FAMILY.get(factA.rel);
   const famIdxB = REL_TO_FAMILY.get(factB.rel);
   if (famIdxA === undefined || famIdxB !== famIdxA) return null;
-  if (factA.entityB !== factB.entityA) return null; // no chain link
+  if (factA.entityB !== factB.entityA) return null;
+  if (factA.rel !== factB.rel) return null;
 
-  const fam = TRANSITIVE_FAMILIES[famIdxA];
-  // Both forward → A rel C
-  const forwardRel = fam.rels[0];
-  const isAForward = factA.rel === forwardRel || !fam.inv[factA.rel];
-  const isBForward = factB.rel === forwardRel || !fam.inv[factB.rel];
-
-  let resultRel;
-  if (isAForward && isBForward) {
-    resultRel = forwardRel;
-  } else if (!isAForward && !isBForward) {
-    // both inverse → conclusion is also forward (double negative)
-    resultRel = forwardRel;
-  } else {
-    // mixed → conclusion is inverse
-    resultRel = fam.inv[forwardRel] || forwardRel;
-  }
-
-  return { entityA: factA.entityA, rel: resultRel, entityB: factB.entityB };
+  return { entityA: factA.entityA, rel: factA.rel, entityB: factB.entityB };
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -143,17 +127,14 @@ export function generateRINTStimulus(rintState, pool, effectiveN, matchChance) {
     }
   }
 
-  // Generate a new non-target fact
-  // Pick a transitive relation from pool
-  const rel = pickRandom(transitivePool);
-  // Try to extend an existing chain for coherence
+  // Generate a new non-target fact. When extending a chain, keep the same
+  // relation direction so later RINT targets are logically derivable.
+  let rel = pickRandom(transitivePool);
   let entityA, entityB;
   if (facts.length > 0 && Math.random() < 0.6) {
-    // Extend: use last fact's entityB as new entityA (build a chain)
     const lastFact = facts[facts.length - 1];
-    const famIdxLast = REL_TO_FAMILY.get(lastFact.rel);
-    const famIdxNew = REL_TO_FAMILY.get(rel);
-    if (famIdxLast === famIdxNew) {
+    if (transitivePool.includes(lastFact.rel)) {
+      rel = lastFact.rel;
       entityA = lastFact.entityB;
       entityB = pickRandomExcluding(ENTITIES, entityA, lastFact.entityA);
     } else {
@@ -193,6 +174,16 @@ function tryChainFacts(chain) {
     current = derived;
   }
   return current;
+}
+
+function factsEqual(a, b) {
+  return !!a && !!b && a.entityA === b.entityA && a.rel === b.rel && a.entityB === b.entityB;
+}
+
+export function isRINTConclusion(rintState, stim, effectiveN) {
+  if (!rintState || !stim || !stim.wordA || !stim.wordB || effectiveN < RINT_MIN_N) return false;
+  const conclusion = tryChainFacts((rintState.facts || []).slice(-effectiveN));
+  return factsEqual(conclusion, { entityA: stim.wordA, rel: stim.rel, entityB: stim.wordB });
 }
 
 // Make a stimulus object for RINT (verbal-style with entity names as tokens)

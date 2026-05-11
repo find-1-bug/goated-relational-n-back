@@ -68,47 +68,22 @@ export const RELATIONSHIPS = [
   ...RELATIONSHIP_CATEGORIES.VERBAL,
 ];
 
-// Transitive 3D relationships (support logical chaining)
-export const TRANSITIVE_3D_SPATIAL = [
-  'NESTED_VOLUME',
-  'DEPTH_LAYERED',
+export const TRANSITIVE_RELATIONSHIPS = [
+  'BIGGER_THAN', 'SMALLER_THAN', 'MORE_THAN', 'LESS_THAN',
+  'FASTER_THAN', 'SLOWER_THAN', 'HEAVIER_THAN', 'LIGHTER_THAN',
+  'HOTTER_THAN', 'COLDER_THAN', 'LOUDER_THAN', 'SOFTER_THAN',
+  'STRONGER_THAN', 'WEAKER_THAN', 'OLDER_THAN', 'NEWER_THAN',
+  'HIGHER_THAN', 'LOWER_THAN', 'CLOSER_THAN', 'FURTHER_THAN',
+  'BEFORE', 'AFTER', 'FOLLOWS', 'PRECEDES',
+  'LEFT_OF', 'RIGHT_OF', 'ABOVE', 'BELOW',
+  'NORTH_OF', 'SOUTH_OF', 'EAST_OF', 'WEST_OF',
+  'CAUSES', 'CONTAINS', 'DEPENDS_ON', 'TRANSFORMS_INTO',
 ];
 
-// Helper: filter relationships to only transitive ones for RINT/Type modes
 export function filterTransitiveRelationships(rels, isRINTMode, isTypeMode) {
   if (!isRINTMode && !isTypeMode) return rels;
-  
-  // Non-transitive spatial/3D relationships
-  const nonTransitiveRels = new Set([
-    // Spatial
-    'INSIDE', 'OVERLAPPING', 'TOUCHING',
-    'ABOVE_BELOW', 'DIAGONAL', 'BETWEEN',
-    'SURROUNDED', 'LEFT_RIGHT', 'STACKED',
-    'NESTED_3', 'MIRRORED', 'SCATTERED',
-    // Spatial 3D (non-transitive)
-    'ORBITING', 'ROTATING_PAIR',
-    'ASCENDING_SPIRAL', 'COLLIDING',
-    'REPELLING', 'BOUND_BY_GRAVITY', 'INTERSECTING_PLANES',
-    'IN_FRONT_OF', 'BEHIND', 'STACKED_3D',
-    'LEANING_AGAINST', 'FLOATING_ABOVE', 'CASTING_SHADOW',
-    // Trait
-    'HOLLOW_VS_SOLID', 'ONE_SHARED_TRAIT', 'ROTATED',
-    'CONNECTED', 'SAME_COLOR', 'SAME_SHAPE',
-    'OPPOSITE_COLORS', 'SIZE_GRADIENT', 'BORDER_ONLY',
-    'SHADOW_COPY', 'STRIPED', 'DASHED_OUTLINE',
-    // Quant
-    'SIZE_MISMATCH', 'ONE_TO_MANY', 'EQUAL_COUNT',
-    'TWO_TO_ONE', 'PYRAMID', 'THREE_TO_ONE',
-    'ONE_TO_FIVE', 'DECREASING_ROW', 'INCREASING_ROW',
-    'BALANCED_SCALE',
-    // Non-transitive Semantic
-    'SAME_AS', 'OPPOSITE_OF', 'PART_OF',
-    'ONE_SHARED_TRAIT', 'ROTATED', 'CONNECTED',
-    'SAME_COLOR', 'SAME_SHAPE', 'OPPOSITE_COLORS',
-    'MATCHES', 'NEGATES',
-  ]);
-  
-  return rels.filter(r => !nonTransitiveRels.has(r));
+  const allowed = new Set(TRANSITIVE_RELATIONSHIPS);
+  return rels.filter(r => allowed.has(r));
 }
 
 // For the HUD category label
