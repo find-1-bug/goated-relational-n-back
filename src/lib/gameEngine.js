@@ -32,6 +32,10 @@ function makeStimulusEntry(rel) {
   const colorA = pickRandom(COLORS);
   const colorB = pickRandomExcluding(COLORS, colorA);
   const renderMode = Math.floor(Math.random() * 3);
+  const shape3DA = pickRandom(['cube', 'sphere', 'pyramid', 'cone', 'torus', 'octahedron']);
+  const shape3DB = pickRandomExcluding(['cube', 'sphere', 'pyramid', 'cone', 'torus', 'octahedron'], shape3DA);
+  const size3DA = 2 + Math.random() * 1.5;
+  const size3DB = 2 + Math.random() * 1.5;
   if (isVerbal(rel)) {
     let wordA, wordB;
     if (Math.random() < 0.40) {
@@ -40,9 +44,9 @@ function makeStimulusEntry(rel) {
       wordA = pickTokenWord(pickTokenType());
       wordB = pickTokenWord(pickTokenType());
     }
-    return { rel, wordA, wordB, shapeA, shapeB, colorA, colorB, renderMode };
+    return { rel, wordA, wordB, shapeA, shapeB, colorA, colorB, renderMode, shape3DA, shape3DB, size3DA, size3DB };
   }
-  return { rel, shapeA, shapeB, colorA, colorB, renderMode };
+  return { rel, shapeA, shapeB, colorA, colorB, renderMode, shape3DA, shape3DB, size3DA, size3DB };
 }
 
 function maybeInvertVisual(entry) {

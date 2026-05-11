@@ -70,7 +70,7 @@ function setupScene(canvas) {
   return { scene, camera, renderer };
 }
 
-export function render3DRelationship(canvas, relationship, colors, rintChain = null) {
+export function render3DRelationship(canvas, relationship, colors, rintChain = null, stimulus = null) {
   const { scene, camera, renderer } = setupScene(canvas);
 
   const toThreeColor = (c) => {
@@ -114,11 +114,11 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     const lines = new THREE.Line(lineGeometry, lineMaterial);
     scene.add(lines);
   } else {
-    // Normal mode: two random shapes
-    const shape1 = SHAPES_3D[Math.floor(Math.random() * SHAPES_3D.length)];
-    const shape2 = SHAPES_3D[Math.floor(Math.random() * SHAPES_3D.length)];
-    const size1 = 2 + Math.random() * 1.5;
-    const size2 = 2 + Math.random() * 1.5;
+    // Normal mode: use saved 3D attributes so preview/replay stays identical
+    const shape1 = stimulus?.shape3DA || SHAPES_3D[0];
+    const shape2 = stimulus?.shape3DB || SHAPES_3D[1];
+    const size1 = stimulus?.size3DA || 2.5;
+    const size2 = stimulus?.size3DB || 2.5;
 
     const mesh1 = createShape3D(shape1, size1, toThreeColor(colors[0]));
     const mesh2 = createShape3D(shape2, size2, toThreeColor(colors[1]));

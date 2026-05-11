@@ -46,7 +46,7 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas, rintCh
       container.appendChild(tempCanvas);
 
       const colors = [stimulus?.colorA || '#22d3ee', stimulus?.colorB || '#a78bfa'];
-      cleanupRef.current = render3DRelationship(tempCanvas, relationship, colors, rintChain);
+      cleanupRef.current = render3DRelationship(tempCanvas, relationship, colors, rintChain, stimulus);
     } else {
       // Use 2D renderer
       if (cleanupRef.current) {
