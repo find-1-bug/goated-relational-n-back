@@ -248,8 +248,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     : numStreams <= 6 ? 3
     : numStreams <= 8 ? 4
     : Math.ceil(Math.sqrt(numStreams));
-  const cols = numStreams > 1 ? 1 : desktopCols; // Mobile: stack vertically if multi-stream
-  const rows = Math.ceil(numStreams / cols);
+  const rows = Math.ceil(numStreams / desktopCols);
 
   return (
     <div className="flex flex-col min-h-screen h-screen overflow-hidden px-3 py-3 select-none">
@@ -278,10 +277,10 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
       {/* Stream canvases — fill remaining vertical space */}
       <div
-        className="flex-1 min-h-0 grid gap-2"
+        className="flex-1 min-h-0 grid gap-2 grid-cols-1 md:[grid-template-columns:var(--desktop-grid-cols)]"
         style={{
-          gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gridTemplateRows: `repeat(${rows}, 1fr)`,
+          '--desktop-grid-cols': `repeat(${desktopCols}, 1fr)`,
+          gridAutoRows: 'minmax(0, 1fr)',
         }}
       >
         {streamStimuli.map((s, idx) => {
