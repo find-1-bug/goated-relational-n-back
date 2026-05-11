@@ -77,7 +77,7 @@ export const TRANSITIVE_RELATIONSHIPS = [
   'BEFORE', 'AFTER', 'FOLLOWS', 'PRECEDES',
   'LEFT_OF', 'RIGHT_OF', 'ABOVE', 'BELOW',
   'NORTH_OF', 'SOUTH_OF', 'EAST_OF', 'WEST_OF',
-  'CAUSES', 'CONTAINS', 'DEPENDS_ON', 'TRANSFORMS_INTO',
+  'PART_OF', 'CAUSES', 'CONTAINS', 'DEPENDS_ON', 'TRANSFORMS_INTO',
 ];
 
 export function filterTransitiveRelationships(rels, isRINTMode, isTypeMode) {

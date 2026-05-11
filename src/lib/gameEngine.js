@@ -224,7 +224,7 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
   if (binaryMode && binaryMode !== 'hierarchical' && binaryMode !== 'none') {
     // Generate secondary signal using the same history but different mode
     const secResult = generateOneStreamStimulus({
-      history, typeHistory, rintState: nextRINTState, pool, effectiveN,
+      history, typeHistory, rintState, pool, effectiveN,
       trialMode: binaryMode, matchChance, hasDistractors, trialIndex,
       hierHistory, signalOnly: true, baseStim: stim,
     });
@@ -309,6 +309,8 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
 
     trialMode: 'normal',
     extraTrialModes: Array(numExtra).fill('normal'),
+    allTrials: [],
+    scoredTrialKeys: [],
     finished: false,
   };
 }
@@ -347,7 +349,9 @@ export function generateNextStimulus(state) {
   // When binary_logic: override trialMode with the randomized primary mode
   const trialModeA = isBinaryLogic
     ? (trialBinaryConfigs[0].primaryMode === 'rint' && effectiveN >= RINT_MIN_N ? 'rint'
-        : trialBinaryConfigs[0].primaryMode === 'type' ? 'type' : 'normal')
+        : trialBinaryConfigs[0].primaryMode === 'type' ? 'type'
+        : trialBinaryConfigs[0].primaryMode === 'hierarchical' ? 'hierarchical'
+        : 'normal')
     : rollTrialMode(modes, effectiveN);
 
   const rintStateA = (rintStates && rintStates[0]) ? rintStates[0] : createRINTState();
@@ -373,7 +377,7 @@ export function generateNextStimulus(state) {
   const extraStreamModes = (extraHistories || []).map((_, i) => {
     if (isBinaryLogic) {
       const pm = trialBinaryConfigs[1 + i]?.primaryMode;
-      return pm === 'rint' && effectiveN >= RINT_MIN_N ? 'rint' : pm === 'type' ? 'type' : 'normal';
+      return pm === 'rint' && effectiveN >= RINT_MIN_N ? 'rint' : pm === 'type' ? 'type' : pm === 'hierarchical' ? 'hierarchical' : 'normal';
     }
     return isImpossible ? rollTrialMode(modes, effectiveN) : trialModeA;
   });
@@ -475,13 +479,32 @@ export function advanceRound(state, stimulus) {
 // ─── Process Responses ────────────────────────────────────────────────────────
 
 export function processResponses(state, { pressedA, pressedExtra = [] }) {
-  let next = { ...state };
+  const trialKey = state.round;
+  if ((state.scoredTrialKeys || []).includes(trialKey)) return state;
+
+  let next = { ...state, scoredTrialKeys: [...(state.scoredTrialKeys || []), trialKey] };
+  const trialRecords = [];
 
   // Stream A
   if (state.isTargetA && pressedA) next.hitsA++;
   else if (state.isTargetA && !pressedA) next.missesA++;
   else if (!state.isTargetA && pressedA) next.falseAlarmsA++;
   else next.correctRejectionsA++;
+
+  trialRecords.push({
+    trialNumber: state.round,
+    streamLabel: 'A',
+    relationship: state.currentRelationship,
+    stimulus: state.currentStimulusA,
+    trialMode: state.trialMode,
+    isTarget: state.isTargetA,
+    userResponded: !!pressedA,
+    correct: state.isTargetA === !!pressedA,
+    nBackValue: state.currentEffectiveN ?? state.nLevel,
+    binaryLogicPrimary: state.trialBinaryConfigs?.[0]?.primaryMode,
+    binaryLogicSecondary: state.trialBinaryConfigs?.[0]?.binaryMode,
+    binaryLogicOp: state.trialBinaryConfigs?.[0]?.binaryOp,
+  });
 
   // Extra streams
   const nextExtraHits = [...(state.extraHits || [])];
@@ -494,11 +517,27 @@ export function processResponses(state, { pressedA, pressedExtra = [] }) {
     else if (isTarget && !pressed) nextExtraMisses[i] = (nextExtraMisses[i] || 0) + 1;
     else if (!isTarget && pressed) nextExtraFA[i] = (nextExtraFA[i] || 0) + 1;
     else nextExtraCR[i] = (nextExtraCR[i] || 0) + 1;
+
+    trialRecords.push({
+      trialNumber: state.round,
+      streamLabel: String.fromCharCode(66 + i),
+      relationship: state.extraCurrentRels?.[i],
+      stimulus: state.extraCurrentStimuli?.[i],
+      trialMode: state.extraTrialModes?.[i] || 'normal',
+      isTarget,
+      userResponded: pressed,
+      correct: isTarget === pressed,
+      nBackValue: state.currentEffectiveN ?? state.nLevel,
+      binaryLogicPrimary: state.trialBinaryConfigs?.[i + 1]?.primaryMode,
+      binaryLogicSecondary: state.trialBinaryConfigs?.[i + 1]?.binaryMode,
+      binaryLogicOp: state.trialBinaryConfigs?.[i + 1]?.binaryOp,
+    });
   });
   next.extraHits = nextExtraHits;
   next.extraMisses = nextExtraMisses;
   next.extraFalseAlarms = nextExtraFA;
   next.extraCorrectRejections = nextExtraCR;
+  next.allTrials = [...(state.allTrials || []), ...trialRecords];
 
   return next;
 }
@@ -508,12 +547,11 @@ export function processResponses(state, { pressedA, pressedExtra = [] }) {
 function streamStats(hits, misses, falseAlarms, correctRejections) {
   const totalTargets = hits + misses;
   const totalNonTargets = falseAlarms + correctRejections;
+  const total = totalTargets + totalNonTargets;
   const hitRate = totalTargets > 0 ? Math.round((hits / totalTargets) * 100) : 0;
   const falseAlarmRate = totalNonTargets > 0 ? Math.round((falseAlarms / totalNonTargets) * 100) : 0;
-  const signalScore = totalTargets > 0
-    ? Math.max(0, Math.round(((hits - falseAlarms) / totalTargets) * 100))
-    : 0;
-  return { hits, misses, falseAlarms, correctRejections, total: totalTargets + totalNonTargets, accuracy: signalScore, hitRate, falseAlarmRate };
+  const accuracy = total > 0 ? Math.round(((hits + correctRejections) / total) * 100) : 0;
+  return { hits, misses, falseAlarms, correctRejections, total, accuracy, hitRate, falseAlarmRate };
 }
 
 export function calculateResults(state) {

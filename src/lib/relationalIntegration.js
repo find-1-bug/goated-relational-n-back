@@ -35,6 +35,7 @@ const TRANSITIVE_FAMILIES = [
   { rels: ['NORTH_OF', 'SOUTH_OF'],         inv: { NORTH_OF: 'SOUTH_OF', SOUTH_OF: 'NORTH_OF' } },
   { rels: ['EAST_OF', 'WEST_OF'],           inv: { EAST_OF: 'WEST_OF', WEST_OF: 'EAST_OF' } },
   // Semantic chains
+  { rels: ['PART_OF'],      inv: {} },
   { rels: ['CAUSES'],       inv: {} },
   { rels: ['CONTAINS'],     inv: {} },
   { rels: ['DEPENDS_ON'],   inv: {} },
@@ -144,7 +145,11 @@ export function generateRINTStimulus(rintState, pool, effectiveN, matchChance) {
     [entityA, entityB] = pickTwoEntities();
   }
 
-  const newFact = { entityA, rel, entityB };
+  let newFact = { entityA, rel, entityB };
+  const existingConclusion = tryChainFacts(facts.slice(-effectiveN));
+  if (factsEqual(existingConclusion, newFact)) {
+    newFact = { ...newFact, entityB: pickRandomExcluding(ENTITIES, newFact.entityA, newFact.entityB) };
+  }
   const nextFacts = [...facts, newFact];
   const nextChainLog = nextFacts.slice(-Math.max(effectiveN + 1, 4));
   const stim = makeRINTStim(entityA, rel, entityB);

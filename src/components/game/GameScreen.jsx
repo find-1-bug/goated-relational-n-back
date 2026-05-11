@@ -137,7 +137,11 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     const prevRound = currentRound - 1;
     const historicalState = trialStates?.[prevRound];
     if (historicalState) {
-      setGameState(historicalState);
+      setGameState({
+        ...historicalState,
+        scoredTrialKeys: gameStateRef.current.scoredTrialKeys || [],
+        allTrials: gameStateRef.current.allTrials || [],
+      });
       respondedRefs.current = Array(allStreams.length).fill(false);
       setClearCanvas(false);
       setPhase('stimulus');
