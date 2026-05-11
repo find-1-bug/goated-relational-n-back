@@ -30,14 +30,14 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas, rintCh
       const container = containerRef.current;
       if (!container) return;
       
-      container.innerHTML = '';
+      container.replaceChildren();
       const tempCanvas = document.createElement('canvas');
       tempCanvas.style.width = '100%';
       tempCanvas.style.height = '100%';
       tempCanvas.className = 'rounded-lg';
       container.appendChild(tempCanvas);
 
-      const colors = [Math.random() * 0xffffff, Math.random() * 0xffffff];
+      const colors = [stimulus?.colorA || '#22d3ee', stimulus?.colorB || '#a78bfa'];
       cleanupRef.current = render3DRelationship(tempCanvas, relationship, colors, rintChain);
     } else {
       // Use 2D renderer

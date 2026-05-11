@@ -10,16 +10,16 @@ function createShape3D(shapeType, size, color) {
       geometry = new THREE.BoxGeometry(size, size, size);
       break;
     case 'sphere':
-      geometry = new THREE.SphereGeometry(size / 2, 32, 32);
+      geometry = new THREE.SphereGeometry(size / 2, 16, 12);
       break;
     case 'pyramid':
       geometry = new THREE.TetrahedronGeometry(size);
       break;
     case 'cone':
-      geometry = new THREE.ConeGeometry(size / 2, size, 32);
+      geometry = new THREE.ConeGeometry(size / 2, size, 16);
       break;
     case 'torus':
-      geometry = new THREE.TorusGeometry(size / 2, size / 4, 16, 100);
+      geometry = new THREE.TorusGeometry(size / 2, size / 4, 8, 32);
       break;
     case 'octahedron':
       geometry = new THREE.OctahedronGeometry(size);
@@ -34,8 +34,8 @@ function createShape3D(shapeType, size, color) {
     side: THREE.FrontSide
   });
   const mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
+  mesh.castShadow = false;
+  mesh.receiveShadow = false;
   return mesh;
 }
 
@@ -47,29 +47,23 @@ function setupScene(canvas) {
   camera.position.set(0, 3, 8);
   camera.lookAt(0, 0, 0);
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+  renderer.setPixelRatio(pixelRatio);
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+  renderer.shadowMap.enabled = false;
 
   // Lighting
   const light1 = new THREE.DirectionalLight(0xffffff, 1);
   light1.position.set(8, 10, 8);
-  light1.castShadow = true;
-  light1.shadow.mapSize.width = 2048;
-  light1.shadow.mapSize.height = 2048;
-  light1.shadow.camera.far = 50;
-  light1.shadow.camera.left = -15;
-  light1.shadow.camera.right = 15;
-  light1.shadow.camera.top = 15;
-  light1.shadow.camera.bottom = -15;
+  light1.castShadow = false;
   scene.add(light1);
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   scene.add(ambientLight);
 
-  // Grid floor
-  const gridHelper = new THREE.GridHelper(20, 20, 0x2d3748, 0x1a202c);
+  // Lightweight grid floor
+  const gridHelper = new THREE.GridHelper(16, 8, 0x2d3748, 0x1a202c);
   gridHelper.position.y = -2.5;
   scene.add(gridHelper);
 
@@ -206,9 +200,16 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     scene.add(mesh2);
   }
 
-  // Animation loop
+  // Animation loop: capped to reduce GPU load during fast multi-stream sessions
   let animationId;
+  let frameCount = 0;
+  const maxFrames = 90;
   const animate = () => {
+    if (frameCount >= maxFrames) {
+      renderer.render(scene, camera);
+      return;
+    }
+    frameCount += 1;
     animationId = requestAnimationFrame(animate);
 
     meshes.forEach(mesh => {
@@ -221,11 +222,11 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       const mesh2 = meshes[1];
       
       if (relationship === 'ORBITING') {
-        const angle = Date.now() * 0.0005;
+        const angle = performance.now() * 0.0005;
         mesh2.position.x = Math.cos(angle) * 4;
         mesh2.position.z = Math.sin(angle) * 3;
       } else if (relationship === 'ROTATING_PAIR') {
-        const angle = Date.now() * 0.0005;
+        const angle = performance.now() * 0.0005;
         mesh1.position.x = Math.cos(angle) * 2.5;
         mesh2.position.x = -Math.cos(angle) * 2.5;
       }
@@ -239,6 +240,14 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
   // Cleanup function
   return () => {
     cancelAnimationFrame(animationId);
+    scene.traverse((object) => {
+      if (object.geometry) object.geometry.dispose();
+      if (object.material) {
+        if (Array.isArray(object.material)) object.material.forEach(material => material.dispose());
+        else object.material.dispose();
+      }
+    });
     renderer.dispose();
+    renderer.forceContextLoss();
   };
 }
