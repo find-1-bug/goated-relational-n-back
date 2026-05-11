@@ -19,6 +19,7 @@ export default function Game() {
   const [streamA, setStreamA] = useState({ key: 'Space', keyDisplay: 'SPACE' });
   const [noobMode, setNoobMode] = useState(false);
   const [startTime, setStartTime] = useState(null);
+  const [gameRunId, setGameRunId] = useState(0);
 
   // Persisted settings restored on mount
   const [lastSettings, setLastSettings] = useState(() => {
@@ -40,6 +41,7 @@ export default function Game() {
     setStreamA(extraSettings?.streamA || { key: 'Space', keyDisplay: 'SPACE' });
     setNoobMode(noob || false);
     setStartTime(Date.now());
+    setGameRunId(id => id + 1);
 
     const settings = {
       lastGame: {
@@ -52,6 +54,7 @@ export default function Game() {
         tokenWeights: extraSettings?.tokenWeights,
         extraStreams: extraSettings?.extraStreams || [],
         streamA: extraSettings?.streamA || { key: 'Space', keyDisplay: 'SPACE' },
+        noobMode: noob || false,
       }
     };
     saveSettings(settings);
@@ -86,6 +89,8 @@ export default function Game() {
     if (state.modes?.includes('adaptive')) {
       const nextN = computeNextNLevel(state.nLevel, results);
       setSuggestedN(nextN);
+    } else {
+      setSuggestedN(null);
     }
     setScreen('results');
   };
@@ -93,6 +98,8 @@ export default function Game() {
   const handleRestart = (nextN) => {
     setFinalState(null);
     if (modes.includes('adaptive') && nextN) setNLevel(nextN);
+    setStartTime(Date.now());
+    setGameRunId(id => id + 1);
     setScreen('playing');
   };
 
@@ -108,7 +115,7 @@ export default function Game() {
       )}
       {screen === 'playing' && (
         <GameScreen
-          key={Date.now()}
+          key={gameRunId}
           nLevel={nLevel}
           modes={modes}
           relationshipPool={relationshipPool}

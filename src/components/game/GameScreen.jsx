@@ -95,6 +95,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   const trialStatesRef = useRef([]);
   const navigationLockRef = useRef(false);
   const hasFinishedRef = useRef(false);
+  const hasStartedRef = useRef(false);
 
   const finishGame = useCallback((finalState) => {
     if (hasFinishedRef.current) return;
@@ -203,7 +204,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     progressStateRef.current = updatedState;
 
     if (updatedState.round >= updatedState.totalRounds) {
-      onFinish(updatedState);
+      finishGame(updatedState);
     } else {
       startRound(updatedState);
       unlockNavigation();
@@ -224,7 +225,10 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   }, [allStreams.length]);
 
   useEffect(() => {
-    startRound(gameState);
+    if (!hasStartedRef.current) {
+      hasStartedRef.current = true;
+      startRound(gameState);
+    }
     return () => { if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current); };
   }, []);
 
@@ -237,7 +241,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       allStreams.forEach((stream, idx) => {
         if (e.code === stream.key) {
           e.preventDefault();
-          if (!respondedRefs.current[idx]) {
+          if (!(noobMode && (progressStateRef.current?.scoredTrialKeys || []).includes(gameStateRef.current?.round)) && !respondedRefs.current[idx]) {
             respondedRefs.current[idx] = true;
             if (idx === 0) {
               setGameState(prev => ({ ...prev, respondedA: true }));

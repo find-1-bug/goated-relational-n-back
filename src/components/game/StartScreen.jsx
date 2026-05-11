@@ -120,8 +120,9 @@ const KEY_OPTIONS = [
   { code: 'Digit5', display: '5' },
 ];
 
-const STREAM_COLORS = ['text-primary', 'text-accent', 'text-chart-3', 'text-chart-4', 'text-chart-5'];
-const STREAM_LABELS = ['A', 'B', 'C', 'D', 'E'];
+const STREAM_COLORS = ['text-primary', 'text-accent', 'text-chart-3', 'text-chart-4', 'text-chart-5', 'text-primary', 'text-accent', 'text-chart-3', 'text-chart-4'];
+const STREAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+const MAX_STREAMS = STREAM_LABELS.length;
 
 const SPEED_OPTIONS = [
   { label: 'Slow',   ms: 4000 },
@@ -174,7 +175,8 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   // extra stream: { key, keyDisplay, label }
   const allStreamKeys = [streamAKey, ...extraStreams.map(s => s.key)];
   const addStream = () => {
-    const nextLabel = STREAM_LABELS[1 + extraStreams.length] || String(2 + extraStreams.length);
+    if (1 + extraStreams.length >= MAX_STREAMS) return;
+    const nextLabel = STREAM_LABELS[1 + extraStreams.length];
     const available = KEY_OPTIONS.find(k => !allStreamKeys.includes(k.code));
     if (!available) return;
     setExtraStreams(prev => [...prev, { key: available.code, keyDisplay: available.display, label: nextLabel }]);
@@ -190,7 +192,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const [showRelTypes, setShowRelTypes] = React.useState(false);
   const [rounds, setRounds] = React.useState(lastSettings?.rounds || 20);
   const [speedMs, setSpeedMs] = React.useState(lastSettings?.speedMs || 2800);
-  const [noobMode, setNoobMode] = React.useState(false);
+  const [noobMode, setNoobMode] = React.useState(lastSettings?.noobMode || false);
 
   // Category mix weights (0–100 sliders, equal by default)
   const [catWeights, setCatWeights] = React.useState(
@@ -573,9 +575,10 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
             })}
             {/* Add stream button */}
             <button onClick={addStream}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary/30 border border-dashed border-border hover:border-muted-foreground/40 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">
+              disabled={1 + extraStreams.length >= MAX_STREAMS}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary/30 border border-dashed border-border hover:border-muted-foreground/40 text-xs font-mono text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
               <Plus className="w-3.5 h-3.5" />
-              Add Stream
+              {1 + extraStreams.length >= MAX_STREAMS ? 'Max Streams Reached' : 'Add Stream'}
             </button>
           </div>
         </div>
