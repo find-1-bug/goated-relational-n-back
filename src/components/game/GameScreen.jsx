@@ -84,7 +84,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   );
   const [phase, setPhase] = useState('stimulus');
   const [clearCanvas, setClearCanvas] = useState(false);
-  const [trialStates, setTrialStates] = useState([]); // Store full game state after each trial
+  // Store full game state after each generated trial, indexed by round number.
 
   // One responded ref per stream (index 0 = stream A, 1..N = extra streams)
   const respondedRefs = useRef(allStreams.map(() => false));
@@ -94,6 +94,13 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   const progressStateRef = useRef(gameState);
   const trialStatesRef = useRef([]);
   const navigationLockRef = useRef(false);
+  const hasFinishedRef = useRef(false);
+
+  const finishGame = useCallback((finalState) => {
+    if (hasFinishedRef.current) return;
+    hasFinishedRef.current = true;
+    onFinish(finalState);
+  }, [onFinish]);
 
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -112,12 +119,9 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     // Store this state for later playback (only if new trial, not from history)
     // Store indexed by round number for easy lookup during prev/next
     if (!historicalState && noobMode) {
-      setTrialStates(prev => {
-        const updated = Array.isArray(prev) ? [...prev] : [];
-        updated[nextState.round] = structuredClone(nextState);
-        trialStatesRef.current = updated;
-        return updated;
-      });
+      const updated = Array.isArray(trialStatesRef.current) ? [...trialStatesRef.current] : [];
+      updated[nextState.round] = structuredClone(nextState);
+      trialStatesRef.current = updated;
     }
     
     // In noob mode, don't auto-advance — wait for user to click Next
@@ -147,13 +151,13 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
       phaseTimerRef.current = setTimeout(() => {
         if (updatedState.round >= updatedState.totalRounds) {
-          onFinish(updatedState);
+          finishGame(updatedState);
         } else {
           startRound(updatedState);
         }
       }, FEEDBACK_DURATION);
     }, WIPE_DURATION);
-  }, [onFinish, startRound, noobMode]);
+  }, [finishGame, startRound, noobMode]);
 
   const handleNextTrial = useCallback(() => {
     // In noob mode, can advance from stimulus phase; otherwise only from feedback
@@ -176,7 +180,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       progressStateRef.current = progressState;
 
       if (state.round >= state.totalRounds) {
-        onFinish(progressState);
+        finishGame(progressState);
         return;
       }
 
@@ -204,7 +208,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       startRound(updatedState);
       unlockNavigation();
     }
-  }, [noobMode, onFinish, startRound, allStreams.length]);
+  }, [noobMode, finishGame, startRound, allStreams.length]);
 
   const handlePrevTrial = useCallback(() => {
     const currentRound = gameStateRef.current?.round ?? 0;
@@ -464,7 +468,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
             <button key={idx}
               onMouseDown={(e) => {
                 e.preventDefault();
-                if (!respondedRefs.current[idx]) {
+                if (!(noobMode && (progressStateRef.current?.scoredTrialKeys || []).includes(gameStateRef.current?.round)) && !respondedRefs.current[idx]) {
                   respondedRefs.current[idx] = true;
                   if (idx === 0) {
                     setGameState(prev => ({ ...prev, respondedA: true }));
