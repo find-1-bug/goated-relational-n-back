@@ -35,11 +35,29 @@ const STREAM_BORDER_COLORS = ['border-border', 'border-accent/20', 'border-chart
 const STREAM_DOT_COLORS = ['bg-primary/60', 'bg-accent/60', 'bg-chart-3/60', 'bg-chart-4/60', 'bg-chart-5/60', 'bg-primary/60', 'bg-accent/60', 'bg-chart-3/60', 'bg-chart-4/60'];
 const STREAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
 
-function mergeHistoricalWithProgress(historicalState, progressState) {
+function getRecordedResponses(progressState, round, streamCount) {
+  const records = (progressState?.allTrials || []).filter(trial => trial.trialNumber === round);
+  const respondedA = records.find(trial => trial.streamLabel === 'A')?.userResponded || false;
+  const extraResponded = Array(Math.max(0, streamCount - 1)).fill(false);
+
+  records.forEach(trial => {
+    const index = (trial.streamLabel || '').charCodeAt(0) - 66;
+    if (index >= 0 && index < extraResponded.length) {
+      extraResponded[index] = !!trial.userResponded;
+    }
+  });
+
+  return { respondedA, extraResponded };
+}
+
+function mergeHistoricalWithProgress(historicalState, progressState, streamCount) {
   const historical = structuredClone(historicalState);
   if (!progressState) return historical;
+  const recordedResponses = getRecordedResponses(progressState, historical.round, streamCount);
   return {
     ...historical,
+    respondedA: recordedResponses.respondedA,
+    extraResponded: recordedResponses.extraResponded,
     hitsA: progressState.hitsA,
     missesA: progressState.missesA,
     falseAlarmsA: progressState.falseAlarmsA,
@@ -75,6 +93,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   const phaseRef = useRef(phase);
   const progressStateRef = useRef(gameState);
   const trialStatesRef = useRef([]);
+  const navigationLockRef = useRef(false);
 
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -140,6 +159,9 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     // In noob mode, can advance from stimulus phase; otherwise only from feedback
     if (noobMode && phaseRef.current !== 'stimulus') return;
     if (!noobMode && phaseRef.current !== 'feedback') return;
+    if (navigationLockRef.current) return;
+    navigationLockRef.current = true;
+    const unlockNavigation = () => requestAnimationFrame(() => { navigationLockRef.current = false; });
     
     const state = gameStateRef.current;
     const pressedA = respondedRefs.current[0];
@@ -153,7 +175,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
       progressStateRef.current = progressState;
 
-      if (!alreadyScored && state.round >= state.totalRounds) {
+      if (state.round >= state.totalRounds) {
         onFinish(progressState);
         return;
       }
@@ -161,13 +183,15 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       const nextRound = state.round + 1;
       const savedNextState = trialStatesRef.current?.[nextRound];
       if (savedNextState) {
-        setGameState(mergeHistoricalWithProgress(savedNextState, progressState));
-        respondedRefs.current = Array(allStreams.length).fill(false);
+        const restoredState = mergeHistoricalWithProgress(savedNextState, progressState, allStreams.length);
+        setGameState(restoredState);
+        respondedRefs.current = [restoredState.respondedA, ...(restoredState.extraResponded || [])];
         setClearCanvas(false);
         setPhase('stimulus');
       } else {
         startRound(progressState);
       }
+      unlockNavigation();
       return;
     }
 
@@ -178,6 +202,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       onFinish(updatedState);
     } else {
       startRound(updatedState);
+      unlockNavigation();
     }
   }, [noobMode, onFinish, startRound, allStreams.length]);
 
@@ -186,8 +211,9 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     if (currentRound <= 1) return;
     const historicalState = trialStatesRef.current?.[currentRound - 1];
     if (historicalState) {
-      setGameState(mergeHistoricalWithProgress(historicalState, progressStateRef.current));
-      respondedRefs.current = Array(allStreams.length).fill(false);
+      const restoredState = mergeHistoricalWithProgress(historicalState, progressStateRef.current, allStreams.length);
+      setGameState(restoredState);
+      respondedRefs.current = [restoredState.respondedA, ...(restoredState.extraResponded || [])];
       setClearCanvas(false);
       setPhase('stimulus');
     }
@@ -202,6 +228,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   useEffect(() => {
     const handleKey = (e) => {
       if (phase !== 'stimulus') return;
+      if (noobMode && (progressStateRef.current?.scoredTrialKeys || []).includes(gameStateRef.current?.round)) return;
       // Check each stream's key
       allStreams.forEach((stream, idx) => {
         if (e.code === stream.key) {
@@ -373,7 +400,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                   onTouchStart={(e) => {
                     e.preventDefault();
-                    if (!respondedRefs.current[idx]) {
+                    if (!(noobMode && (progressStateRef.current?.scoredTrialKeys || []).includes(gameStateRef.current?.round)) && !respondedRefs.current[idx]) {
                       respondedRefs.current[idx] = true;
                       if (idx === 0) {
                         setGameState(prev => ({ ...prev, respondedA: true }));
