@@ -74,6 +74,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   const gameStateRef = useRef(gameState);
   const phaseRef = useRef(phase);
   const progressStateRef = useRef(gameState);
+  const trialStatesRef = useRef([]);
 
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -95,6 +96,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       setTrialStates(prev => {
         const updated = Array.isArray(prev) ? [...prev] : [];
         updated[nextState.round] = structuredClone(nextState);
+        trialStatesRef.current = updated;
         return updated;
       });
     }
@@ -143,39 +145,53 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     const pressedA = respondedRefs.current[0];
     const pressedExtra = respondedRefs.current.slice(1);
 
-    const replayingPastTrial = noobMode && (progressStateRef.current?.scoredTrialKeys || []).includes(state.round);
-    const updatedState = replayingPastTrial
-      ? { ...progressStateRef.current }
-      : processResponses(state, { pressedA, pressedExtra });
+    if (noobMode) {
+      const alreadyScored = (progressStateRef.current?.scoredTrialKeys || []).includes(state.round);
+      const progressState = alreadyScored
+        ? progressStateRef.current
+        : processResponses(state, { pressedA, pressedExtra });
+
+      progressStateRef.current = progressState;
+
+      if (!alreadyScored && state.round >= state.totalRounds) {
+        onFinish(progressState);
+        return;
+      }
+
+      const nextRound = state.round + 1;
+      const savedNextState = trialStatesRef.current?.[nextRound];
+      if (savedNextState) {
+        setGameState(mergeHistoricalWithProgress(savedNextState, progressState));
+        respondedRefs.current = Array(allStreams.length).fill(false);
+        setClearCanvas(false);
+        setPhase('stimulus');
+      } else {
+        startRound(progressState);
+      }
+      return;
+    }
+
+    const updatedState = processResponses(state, { pressedA, pressedExtra });
     progressStateRef.current = updatedState;
 
     if (updatedState.round >= updatedState.totalRounds) {
       onFinish(updatedState);
     } else {
-      const savedNextState = noobMode ? trialStates?.[updatedState.round + 1] : null;
-      if (savedNextState) {
-        setGameState(mergeHistoricalWithProgress(savedNextState, updatedState));
-        respondedRefs.current = Array(allStreams.length).fill(false);
-        setClearCanvas(false);
-        setPhase('stimulus');
-      } else {
-        startRound(updatedState);
-      }
+      startRound(updatedState);
     }
-  }, [noobMode, onFinish, startRound, trialStates, allStreams.length]);
+  }, [noobMode, onFinish, startRound, allStreams.length]);
 
   const handlePrevTrial = useCallback(() => {
     const currentRound = gameStateRef.current?.round ?? 0;
-    if (currentRound === 0) return;
-    const prevRound = currentRound - 1;
-    const historicalState = trialStates?.[prevRound];
+    if (currentRound <= 1) return;
+    const historicalState = trialStatesRef.current?.[currentRound - 1];
     if (historicalState) {
       setGameState(mergeHistoricalWithProgress(historicalState, progressStateRef.current));
       respondedRefs.current = Array(allStreams.length).fill(false);
       setClearCanvas(false);
       setPhase('stimulus');
     }
-  }, [trialStates, allStreams.length]);
+  }, [allStreams.length]);
 
   useEffect(() => {
     startRound(gameState);
@@ -347,7 +363,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
             <>
               <button
                 onClick={handlePrevTrial}
-                disabled={gameState.round === 0}
+                disabled={gameState.round <= 1}
                 className="flex-1 h-12 rounded-lg bg-secondary border border-border text-muted-foreground font-mono text-xs hover:border-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 ← Prev
@@ -413,7 +429,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
         <div className="mt-2 shrink-0 hidden md:flex justify-center gap-3 flex-wrap">
           <button
             onClick={handlePrevTrial}
-            disabled={gameState.round === 0}
+            disabled={gameState.round <= 1}
             className="px-6 h-10 rounded-lg bg-secondary border border-border text-muted-foreground font-mono text-sm hover:border-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             ← Prev Trial
