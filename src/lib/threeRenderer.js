@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { renderRelationship } from './relationshipRenderer';
 
 // 3D shapes using Three.js
 const SHAPES_3D = ['cube', 'sphere', 'pyramid', 'cone', 'torus', 'octahedron'];
@@ -37,6 +38,28 @@ function createShape3D(shapeType, size, color) {
   mesh.castShadow = false;
   mesh.receiveShadow = false;
   return mesh;
+}
+
+function createRelationPanelTexture(relationship, stimulus) {
+  const panelCanvas = document.createElement('canvas');
+  panelCanvas.width = 512;
+  panelCanvas.height = 320;
+  const ctx = panelCanvas.getContext('2d');
+
+  ctx.fillStyle = 'rgba(8, 13, 22, 0.92)';
+  ctx.fillRect(0, 0, panelCanvas.width, panelCanvas.height);
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(18, 18, panelCanvas.width - 36, panelCanvas.height - 36, 22);
+  ctx.stroke();
+
+  renderRelationship(ctx, panelCanvas.width, panelCanvas.height, relationship, null, stimulus);
+
+  const texture = new THREE.CanvasTexture(panelCanvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
 }
 
 function setupScene(canvas) {
@@ -111,12 +134,22 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     cubeGroup.add(shell);
 
     const p = stimulus.cubePosition;
-    const relBlock = createShape3D(stimulus?.shape3DA || 'cube', 0.68, toThreeColor(colors[0]));
-    relBlock.position.set(p.x, p.y, p.z);
-    relBlock.material.emissive = new THREE.Color(toThreeColor(colors[0]));
-    relBlock.material.emissiveIntensity = 0.28;
-    cubeGroup.add(relBlock);
-    meshes = [cubeGroup, relBlock];
+    const texture = createRelationPanelTexture(relationship, stimulus);
+    const relPanel = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.22, 0.76),
+      new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide })
+    );
+    relPanel.position.set(p.x, p.y, p.z);
+    relPanel.lookAt(camera.position);
+
+    const glow = new THREE.Mesh(
+      new THREE.BoxGeometry(0.98, 0.62, 0.08),
+      new THREE.MeshBasicMaterial({ color: toThreeColor(colors[0]), transparent: true, opacity: 0.18 })
+    );
+    glow.position.copy(relPanel.position);
+    cubeGroup.add(glow);
+    cubeGroup.add(relPanel);
+    meshes = [cubeGroup, relPanel];
   } else if (rintChain && rintChain.length > 0) {
     // RINT mode: show entity chain (A > B, B > C)
     const ENTITY_COLORS = {
@@ -249,9 +282,14 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     animationId = requestAnimationFrame(animate);
 
     meshes.forEach((mesh, index) => {
+      if (stimulus?.cubePosition && index === 1) return;
       mesh.rotation.x += index === 0 && stimulus?.cubePosition ? 0.006 : 0.003;
       mesh.rotation.y += index === 0 && stimulus?.cubePosition ? 0.009 : 0.005;
     });
+
+    if (stimulus?.cubePosition && meshes[1]) {
+      meshes[1].lookAt(camera.position);
+    }
 
     if (!stimulus?.cubePosition && (!rintChain || rintChain.length === 0)) {
       const mesh1 = meshes[0];
