@@ -1,0 +1,97 @@
+{
+  "name": "Session",
+  "type": "object",
+  "properties": {
+    "nLevel": {
+      "type": "number",
+      "description": "N-level used in this session"
+    },
+    "modes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Enhancement modes active (e.g., type_nback, rint, binary_logic)"
+    },
+    "totalTrials": {
+      "type": "number",
+      "description": "Total number of trials completed"
+    },
+    "accuracy": {
+      "type": "number",
+      "description": "Overall accuracy percentage (0-100)"
+    },
+    "hitRate": {
+      "type": "number",
+      "description": "Hit rate percentage"
+    },
+    "falseAlarmRate": {
+      "type": "number",
+      "description": "False alarm rate percentage"
+    },
+    "hitsA": {
+      "type": "number",
+      "description": "Hits on stream A"
+    },
+    "missesA": {
+      "type": "number",
+      "description": "Misses on stream A"
+    },
+    "falseAlarmsA": {
+      "type": "number",
+      "description": "False alarms on stream A"
+    },
+    "correctRejectionsA": {
+      "type": "number",
+      "description": "Correct rejections on stream A"
+    },
+    "extraStreamStats": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "streamLabel": {
+            "type": "string"
+          },
+          "accuracy": {
+            "type": "number"
+          },
+          "hitRate": {
+            "type": "number"
+          },
+          "falseAlarmRate": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Stats for extra streams if multi-stream session"
+    },
+    "durationSeconds": {
+      "type": "number",
+      "description": "Session duration in seconds"
+    },
+    "noobMode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether noob's mode was enabled for this session"
+    }
+  },
+  "required": [
+    "nLevel",
+    "modes",
+    "totalTrials",
+    "accuracy"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}
