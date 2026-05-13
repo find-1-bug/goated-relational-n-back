@@ -169,7 +169,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     const width = window.innerWidth || 1280;
     const height = window.innerHeight || 800;
     const reservedHeight = width < 768 ? 240 : 160;
-    const minStreamWidth = width < 768 ? 240 : 320;
+    const minStreamWidth = width < 768 ? 170 : 320;
     const minStreamHeight = width < 768 ? 280 : 340;
     const cols = Math.max(1, Math.floor((width - 24) / minStreamWidth));
     const rows = Math.max(1, Math.floor((height - reservedHeight) / minStreamHeight));
@@ -428,6 +428,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   const visibleStimuli = streamStimuli.slice(visibleStart, visibleStart + streamsPerSlide);
   const visibleStreams = allStreams.slice(visibleStart, visibleStart + streamsPerSlide);
   const visibleCount = visibleStimuli.length;
+  const mobileCols = visibleCount === 1 ? 1 : 2;
   const desktopCols = visibleCount === 1 ? 1
     : visibleCount === 2 ? 2
     : visibleCount === 3 ? 3
@@ -463,8 +464,9 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
       {/* Stream canvases — fill remaining vertical space */}
       <div
-        className="flex-1 min-h-0 grid gap-2 grid-cols-1 md:[grid-template-columns:var(--desktop-grid-cols)]"
+        className="flex-1 min-h-0 grid gap-2 [grid-template-columns:var(--mobile-grid-cols)] md:[grid-template-columns:var(--desktop-grid-cols)]"
         style={{
+          '--mobile-grid-cols': `repeat(${mobileCols}, 1fr)`,
           '--desktop-grid-cols': `repeat(${desktopCols}, 1fr)`,
           gridAutoRows: 'minmax(0, 1fr)',
         }}
