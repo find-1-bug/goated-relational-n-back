@@ -318,7 +318,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
     selected.slice(0, 2).forEach((item, i) => {
       const pan = selected.length === 1 ? 0 : i === 0 ? -0.85 : 0.85;
-      playSoundStimulus(item.stimulus, pan);
+      const delaySeconds = selected.length === 2 && i === 1 ? 0.32 : 0;
+      playSoundStimulus(item.stimulus, pan, delaySeconds);
     });
   }, [phase, clearCanvas, gameState.round, gameState.audioStreamIndexes, gameState.currentRelationship, gameState.extraCurrentRels]);
 

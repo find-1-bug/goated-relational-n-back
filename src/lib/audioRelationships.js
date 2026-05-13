@@ -45,12 +45,12 @@ function playTokenCue(ctx, token, pan, startTime) {
   });
 }
 
-export function playSoundStimulus(stimulus, pan = 0) {
+export function playSoundStimulus(stimulus, pan = 0, delaySeconds = 0) {
   if (!stimulus?.rel) return;
   const ctx = getAudioContext();
   if (!ctx) return;
 
-  const now = ctx.currentTime + 0.03;
+  const now = ctx.currentTime + 0.03 + delaySeconds;
   const rel = stimulus.rel;
   const a = stimulus.soundA || stimulus.wordA || 'A';
   const b = stimulus.soundB || stimulus.wordB || 'B';
