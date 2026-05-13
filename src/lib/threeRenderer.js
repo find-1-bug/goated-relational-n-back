@@ -50,7 +50,11 @@ function createRelationPanelTexture(relationship, stimulus, alienCubeScale = 1) 
   contentCanvas.width = 900;
   contentCanvas.height = 560;
   const contentCtx = contentCanvas.getContext('2d');
-  renderRelationship(contentCtx, contentCanvas.width, contentCanvas.height, relationship, null, stimulus);
+  const contentScale = Math.min(1.28, 1 + Math.max(0, alienCubeScale - 1) * 0.75);
+  renderRelationship(contentCtx, contentCanvas.width, contentCanvas.height, relationship, null, {
+    ...stimulus,
+    renderScale: contentScale,
+  });
 
   ctx.fillStyle = 'rgba(8, 13, 22, 0.92)';
   ctx.fillRect(0, 0, panelCanvas.width, panelCanvas.height);
@@ -60,7 +64,7 @@ function createRelationPanelTexture(relationship, stimulus, alienCubeScale = 1) 
   ctx.roundRect(18, 18, panelCanvas.width - 36, panelCanvas.height - 36, 22);
   ctx.stroke();
 
-  const zoom = Math.min(1.45, 1.16 * alienCubeScale);
+  const zoom = Math.min(1.32, 1.08 * alienCubeScale);
   const scaledW = panelCanvas.width * zoom;
   const scaledH = panelCanvas.height * zoom;
   ctx.drawImage(

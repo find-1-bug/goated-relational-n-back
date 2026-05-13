@@ -171,14 +171,14 @@ function isVoronoi(tok) { return typeof tok === 'string' && tok.startsWith(VORON
 function voronoiSeed(tok) { return tok.slice(VORONOI_TOKEN_PREFIX.length); }
 
 // Draw a single token (word, nonsense, emoji, symbol, or voronoi) centered at (x,y)
-function drawToken(ctx, token, x, y, canvasW, color) {
+function drawToken(ctx, token, x, y, canvasW, color, renderScale = 1) {
   if (isVoronoi(token)) {
-    const size = Math.min(canvasW * 0.22, 72);
+    const size = Math.min(canvasW * 0.22, 72) * renderScale;
     drawVoronoiToken(ctx, voronoiSeed(token), x, y, size, color);
     return;
   }
   const sym = isSymbol(token);
-  const fontSize = sym ? Math.min(canvasW * 0.12, 48) : Math.min(canvasW * 0.082, 34);
+  const fontSize = (sym ? Math.min(canvasW * 0.12, 48) : Math.min(canvasW * 0.082, 34)) * renderScale;
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -191,26 +191,26 @@ function drawToken(ctx, token, x, y, canvasW, color) {
 }
 
 // Mode 0: pure text/token (tokenA — verb — tokenB), stacked vertically
-function renderVerbalText(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB, relationship) {
+function renderVerbalText(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB, relationship, renderScale = 1) {
   const pillH = drawVerbalPill(ctx, cx, cy, canvasW, canvasH);
-  drawToken(ctx, tokenA, cx, cy - canvasH * 0.15, canvasW, '#22d3ee');
+  drawToken(ctx, tokenA, cx, cy - canvasH * 0.15, canvasW, '#22d3ee', renderScale);
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `${Math.min(canvasW * 0.052, 20)}px 'JetBrains Mono', monospace`;
+  ctx.font = `${Math.min(canvasW * 0.052, 20) * renderScale}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,20%,65%,0.9)';
   ctx.fillText(verb, cx, cy);
   ctx.restore();
-  drawToken(ctx, tokenB, cx, cy + canvasH * 0.15, canvasW, '#a78bfa');
+  drawToken(ctx, tokenB, cx, cy + canvasH * 0.15, canvasW, '#a78bfa', renderScale);
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `${Math.min(canvasW * 0.034, 12)}px 'JetBrains Mono', monospace`;
+  ctx.font = `${Math.min(canvasW * 0.034, 12) * renderScale}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,10%,40%,0.65)';
   ctx.fillText(relationship.replace(/_/g, ' '), cx, cy + pillH / 2 - 14);
   ctx.restore();
 }
 
 // Mode 1: shape A — verb text — shape B (shapes replace words entirely)
-function renderVerbalShapes(ctx, cx, cy, canvasW, canvasH, verb, relationship) {
+function renderVerbalShapes(ctx, cx, cy, canvasW, canvasH, verb, relationship, renderScale = 1) {
   drawVerbalPill(ctx, cx, cy, canvasW, canvasH);
   const shapeA = pickRandom(SHAPES);
   const shapeB = pickRandomExcluding(SHAPES, shapeA);
@@ -224,14 +224,14 @@ function renderVerbalShapes(ctx, cx, cy, canvasW, canvasH, verb, relationship) {
   ctx.font = `${Math.min(canvasW * 0.052, 19)}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,20%,70%,0.9)';
   ctx.fillText(verb, cx, cy);
-  ctx.font = `${Math.min(canvasW * 0.034, 12)}px 'JetBrains Mono', monospace`;
+  ctx.font = `${Math.min(canvasW * 0.034, 12) * renderScale}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,10%,40%,0.65)';
   ctx.fillText(relationship.replace(/_/g, ' '), cx, cy + canvasH * 0.24);
   ctx.restore();
 }
 
 // Mode 2: blended — token/shape on each side, verb center (horizontal layout)
-function renderVerbalBlended(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB, relationship) {
+function renderVerbalBlended(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB, relationship, renderScale = 1) {
   drawVerbalPill(ctx, cx, cy, canvasW, canvasH);
   const lx = cx - canvasW * 0.28;
   const rx = cx + canvasW * 0.28;
@@ -242,36 +242,36 @@ function renderVerbalBlended(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB
     const shapeB = pickRandomExcluding(SHAPES, shapeA);
     const colorA = pickRandom(COLORS);
     const colorB = pickRandomExcluding(COLORS, colorA);
-    const shapeSize = Math.min(canvasW, canvasH) * 0.13;
+    const shapeSize = Math.min(canvasW, canvasH) * 0.13 * renderScale;
     drawShape(ctx, shapeA, lx, cy - canvasH * 0.1, shapeSize, colorA, true);
-    drawToken(ctx, tokenA, lx, cy + canvasH * 0.1, canvasW, '#22d3ee');
+    drawToken(ctx, tokenA, lx, cy + canvasH * 0.1, canvasW, '#22d3ee', renderScale);
     drawShape(ctx, shapeB, rx, cy - canvasH * 0.1, shapeSize, colorB, true);
-    drawToken(ctx, tokenB, rx, cy + canvasH * 0.1, canvasW, '#a78bfa');
+    drawToken(ctx, tokenB, rx, cy + canvasH * 0.1, canvasW, '#a78bfa', renderScale);
   } else {
     // token only, larger
-    drawToken(ctx, tokenA, lx, cy, canvasW, '#22d3ee');
-    drawToken(ctx, tokenB, rx, cy, canvasW, '#a78bfa');
+    drawToken(ctx, tokenA, lx, cy, canvasW, '#22d3ee', renderScale);
+    drawToken(ctx, tokenB, rx, cy, canvasW, '#a78bfa', renderScale);
   }
 
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `${Math.min(canvasW * 0.046, 17)}px 'JetBrains Mono', monospace`;
+  ctx.font = `${Math.min(canvasW * 0.046, 17) * renderScale}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,20%,65%,0.9)';
   ctx.fillText(verb, cx, cy);
-  ctx.font = `${Math.min(canvasW * 0.034, 12)}px 'JetBrains Mono', monospace`;
+  ctx.font = `${Math.min(canvasW * 0.034, 12) * renderScale}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,10%,40%,0.65)';
   ctx.fillText(relationship.replace(/_/g, ' '), cx, cy + canvasH * 0.27);
   ctx.restore();
 }
 
 // Mode 3: token A left, shape center (as verb stand-in), token B right
-function renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB, relationship) {
+function renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB, relationship, renderScale = 1) {
   drawVerbalPill(ctx, cx, cy, canvasW, canvasH);
-  drawToken(ctx, tokenA, cx - canvasW * 0.28, cy, canvasW, '#22d3ee');
+  drawToken(ctx, tokenA, cx - canvasW * 0.28, cy, canvasW, '#22d3ee', renderScale);
   // Verb as styled badge in center
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const verbSize = Math.min(canvasW * 0.044, 16);
+  const verbSize = Math.min(canvasW * 0.044, 16) * renderScale;
   ctx.font = `${verbSize}px 'JetBrains Mono', monospace`;
   // badge bg
   const tw = ctx.measureText(verb).width + 16;
@@ -282,16 +282,16 @@ function renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tok
   ctx.fillStyle = 'hsl(168,80%,60%)';
   ctx.fillText(verb, cx, cy);
   ctx.restore();
-  drawToken(ctx, tokenB, cx + canvasW * 0.28, cy, canvasW, '#a78bfa');
+  drawToken(ctx, tokenB, cx + canvasW * 0.28, cy, canvasW, '#a78bfa', renderScale);
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `${Math.min(canvasW * 0.034, 12)}px 'JetBrains Mono', monospace`;
+  ctx.font = `${Math.min(canvasW * 0.034, 12) * renderScale}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,10%,40%,0.65)';
   ctx.fillText(relationship.replace(/_/g, ' '), cx, cy + canvasH * 0.27);
   ctx.restore();
 }
 
-function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWordB, renderMode) {
+function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWordB, renderMode, renderScale = 1) {
   // Tokens are always pre-generated by the engine; fall back to semantic pair only if missing
   const tokenA = fixedWordA || getVerbalPair(relationship)[0];
   const tokenB = fixedWordB || getVerbalPair(relationship)[1];
@@ -302,14 +302,14 @@ function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWord
 
   // Use the stored renderMode so target replays look identical to the original.
   const mode = renderMode !== undefined ? renderMode : Math.floor(Math.random() * 3);
-  if (mode === 0) renderVerbalText(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
-  else if (mode === 1) renderVerbalBlended(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
-  else renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship);
+  if (mode === 0) renderVerbalText(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship, renderScale);
+  else if (mode === 1) renderVerbalBlended(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship, renderScale);
+  else renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, wordA, verb, wordB, relationship, renderScale);
 
   return {};
 }
 
-function renderSound(ctx, canvasW, canvasH, relationship, soundA, soundB) {
+function renderSound(ctx, canvasW, canvasH, relationship, soundA, soundB, renderScale = 1) {
   const cx = canvasW / 2;
   const cy = canvasH / 2;
   const [left, relation, right] = buildSoundDisplay(relationship, [soundA || 'tone A', soundB || 'tone B']);
@@ -328,7 +328,7 @@ function renderSound(ctx, canvasW, canvasH, relationship, soundA, soundB) {
   ctx.font = `bold ${Math.min(canvasW * 0.08, 32)}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = '#38bdf8';
   ctx.fillText(String(right), cx, cy + canvasH * 0.16);
-  ctx.font = `${Math.min(canvasW * 0.034, 12)}px 'JetBrains Mono', monospace`;
+  ctx.font = `${Math.min(canvasW * 0.034, 12) * renderScale}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,10%,45%,0.7)';
   ctx.fillText('audio + visual', cx, cy + canvasH * 0.31);
   ctx.restore();
@@ -340,16 +340,16 @@ function renderSound(ctx, canvasW, canvasH, relationship, soundA, soundB) {
 // stimulus: {rel, wordA?, wordB?, shapeA, shapeB, colorA, colorB, renderMode} — always provided
 export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisuals, stimulus) {
   if (isSound(relationship)) {
-    return renderSound(ctx, canvasW, canvasH, relationship, stimulus?.soundA, stimulus?.soundB);
+    return renderSound(ctx, canvasW, canvasH, relationship, stimulus?.soundA, stimulus?.soundB, stimulus?.renderScale || 1);
   }
   if (isVerbal(relationship)) {
-    return renderVerbal(ctx, canvasW, canvasH, relationship, stimulus?.wordA, stimulus?.wordB, stimulus?.renderMode);
+    return renderVerbal(ctx, canvasW, canvasH, relationship, stimulus?.wordA, stimulus?.wordB, stimulus?.renderMode, stimulus?.renderScale || 1);
   }
 
   const visuals = getVisuals(stimulus);
   const cx = canvasW / 2;
   const cy = canvasH / 2;
-  const scale = Math.min(1, Math.max(canvasH / 140, 0.5)); // Aggressive scaling for small canvases
+  const scale = Math.min(1.28, Math.min(1, Math.max(canvasH / 140, 0.5)) * (stimulus?.renderScale || 1)); // Aggressive scaling for small canvases
   ctx.clearRect(0, 0, canvasW, canvasH);
 
   switch (relationship) {
