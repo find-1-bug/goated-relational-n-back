@@ -1,0 +1,80 @@
+{
+  "name": "Trial",
+  "type": "object",
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "description": "Reference to the parent Session"
+    },
+    "trialNumber": {
+      "type": "number",
+      "description": "1-indexed trial number within session"
+    },
+    "streamLabel": {
+      "type": "string",
+      "description": "Stream identifier (A, B, C, etc.)"
+    },
+    "relationship": {
+      "type": "string",
+      "description": "The relationship type shown"
+    },
+    "trialMode": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "type",
+        "rint",
+        "hierarchical"
+      ],
+      "description": "Type of trial (normal, type, rint, or hierarchical)"
+    },
+    "isTarget": {
+      "type": "boolean",
+      "description": "Whether this was a target stimulus"
+    },
+    "userResponded": {
+      "type": "boolean",
+      "description": "Whether user pressed the key for this trial"
+    },
+    "correct": {
+      "type": "boolean",
+      "description": "Whether the response was correct (match on target or no-match on non-target)"
+    },
+    "nBackValue": {
+      "type": "number",
+      "description": "Effective N-level at time of trial"
+    },
+    "binaryLogicPrimary": {
+      "type": "string",
+      "description": "Primary mode in binary logic (if applicable)"
+    },
+    "binaryLogicSecondary": {
+      "type": "string",
+      "description": "Secondary mode in binary logic (if applicable)"
+    },
+    "binaryLogicOp": {
+      "type": "string",
+      "description": "Binary operator if binary logic active (AND, OR, XOR, AND_NOT)"
+    }
+  },
+  "required": [
+    "sessionId",
+    "trialNumber",
+    "streamLabel",
+    "isTarget",
+    "userResponded",
+    "correct"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}
