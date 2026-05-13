@@ -146,9 +146,7 @@ export default function Game() {
             <Link to="/stats" className="px-3 py-1.5 rounded-lg bg-secondary border border-border text-muted-foreground hover:text-foreground text-xs font-mono transition-colors">
               Stats
             </Link>
-            <Link to="/diagnostics" className="px-3 py-1.5 rounded-lg bg-secondary border border-border text-muted-foreground hover:text-foreground text-xs font-mono transition-colors">
-              Diagnostics
-            </Link>
+
           </>
         )}
       </div>

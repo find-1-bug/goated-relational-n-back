@@ -11,7 +11,6 @@ import Stats from '@/pages/Stats';
 import Review from '@/pages/Review';
 import Tutorial from '@/pages/Tutorial';
 import Framework from '@/pages/Framework';
-import Diagnostics from '@/pages/Diagnostics';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -44,7 +43,6 @@ const AuthenticatedApp = () => {
       <Route path="/stats" element={<Stats />} />
       <Route path="/tutorial" element={<Tutorial />} />
       <Route path="/framework" element={<Framework />} />
-      <Route path="/diagnostics" element={<Diagnostics />} />
       <Route path="/review/:sessionId" element={<Review />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
