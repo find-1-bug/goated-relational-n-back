@@ -285,6 +285,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
     return { ...defaults, ...saved };
   });
   const [showTokenMix, setShowTokenMix] = React.useState(false);
+  const [showEnhancementModes, setShowEnhancementModes] = React.useState(false);
 
   const TOKEN_META = [
     { id: 'meaningful',    label: 'Words',       color: '#22d3ee', desc: 'Real words (sun, fire, mind…)' },
@@ -779,8 +780,21 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
         {/* Enhancement Modes */}
         <div className="space-y-2">
-          <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest">Enhancement Modes</label>
-          <div className="grid grid-cols-1 gap-2">
+          <button
+            onClick={() => setShowEnhancementModes(v => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/50 border border-border hover:border-muted-foreground/40 transition-colors">
+            <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Enhancement Modes</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-primary">{modes.length} active</span>
+              {showEnhancementModes ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {showEnhancementModes && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden">
+                <div className="grid grid-cols-1 gap-2 pt-1">
             {MODE_OPTIONS.map(({ id, icon: Icon, label, desc, minN, minStreams }) => {
               const active = modes.includes(id);
               const needsHigherN = minN && nLevel < minN;
@@ -816,7 +830,10 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
                 </button>
               );
             })}
-          </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Controls hint */}
