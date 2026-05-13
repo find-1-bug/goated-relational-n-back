@@ -141,9 +141,9 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
 
     const p = stimulus.cubePosition;
     const axisConfigs = [
-      { color: 0xff4d6d, points: [new THREE.Vector3(-1.5, p.y, p.z), new THREE.Vector3(1.5, p.y, p.z)] },
-      { color: 0x35f2a9, points: [new THREE.Vector3(p.x, -1.5, p.z), new THREE.Vector3(p.x, 1.5, p.z)] },
-      { color: 0x4da3ff, points: [new THREE.Vector3(p.x, p.y, -1.5), new THREE.Vector3(p.x, p.y, 1.5)] },
+      { color: 0xff4d6d, points: [new THREE.Vector3(-1.5, 0, 0), new THREE.Vector3(1.5, 0, 0)] },
+      { color: 0x35f2a9, points: [new THREE.Vector3(0, -1.5, 0), new THREE.Vector3(0, 1.5, 0)] },
+      { color: 0x4da3ff, points: [new THREE.Vector3(0, 0, -1.5), new THREE.Vector3(0, 0, 1.5)] },
     ];
 
     axisConfigs.forEach(({ color, points }) => {
