@@ -35,7 +35,7 @@ function StreamModeBadge({ mode, alwaysShow }) {
 const STREAM_COLORS = ['text-primary', 'text-accent', 'text-chart-3', 'text-chart-4', 'text-chart-5', 'text-primary', 'text-accent', 'text-chart-3', 'text-chart-4'];
 const STREAM_BORDER_COLORS = ['border-border', 'border-accent/20', 'border-chart-3/20', 'border-chart-4/20', 'border-chart-5/20', 'border-border', 'border-accent/20', 'border-chart-3/20', 'border-chart-4/20'];
 const STREAM_DOT_COLORS = ['bg-primary/60', 'bg-accent/60', 'bg-chart-3/60', 'bg-chart-4/60', 'bg-chart-5/60', 'bg-primary/60', 'bg-accent/60', 'bg-chart-3/60', 'bg-chart-4/60'];
-const STREAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+const STREAM_LABELS = Array.from({ length: 20 }, (_, i) => String.fromCharCode(65 + i));
 
 function getRecordedResponses(progressState, round, streamCount) {
   const records = (progressState?.allTrials || []).filter(trial => trial.trialNumber === round);
@@ -114,7 +114,7 @@ function mergeHistoricalWithProgress(historicalState, progressState, streamCount
   };
 }
 
-export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, extraStreams, streamA, alienSettings, noobMode, onFinish, onExit }) {
+export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, extraStreams, streamA, alienSettings, carouselSettings, noobMode, onFinish, onExit }) {
   // extraStreams: [{ key, label, keyDisplay, positionKey, positionKeyDisplay }]
   const getStimulusDuration = useCallback(() => {
     if (stimulusDuration === 'random') return 1000 + Math.random() * 3000;
@@ -136,12 +136,14 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   );
   const [phase, setPhase] = useState('stimulus');
   const [clearCanvas, setClearCanvas] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [responsesUnlocked, setResponsesUnlocked] = useState(true);
   // Store full game state after each generated trial, indexed by round number.
 
   // One response ref per stream (index 0 = stream A, 1..N = extra streams)
   const respondedRefs = useRef(allStreams.map(() => false));
   const positionRespondedRefs = useRef(allStreams.map(() => false));
-  const phaseTimerRef = useRef(null);
+  const phaseTimerRef = useRef([]);
   const gameStateRef = useRef(gameState);
   const phaseRef = useRef(phase);
   const progressStateRef = useRef(gameState);
@@ -150,11 +152,36 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   const hasFinishedRef = useRef(false);
   const hasStartedRef = useRef(false);
 
+  const clearPhaseTimers = useCallback(() => {
+    phaseTimerRef.current.forEach(timer => clearTimeout(timer));
+    phaseTimerRef.current = [];
+  }, []);
+
+  const scheduleTimer = useCallback((callback, delay) => {
+    const timer = setTimeout(callback, delay);
+    phaseTimerRef.current.push(timer);
+    return timer;
+  }, []);
+
+  const getCarouselCapacity = useCallback(() => {
+    if (!carouselSettings?.enabled) return allStreams.length;
+    if (carouselSettings.streamsPerSlide !== 'auto') return Math.max(1, Number(carouselSettings.streamsPerSlide) || allStreams.length);
+    const width = window.innerWidth || 1280;
+    const height = window.innerHeight || 800;
+    const reservedHeight = width < 768 ? 240 : 160;
+    const minStreamWidth = width < 768 ? 240 : 320;
+    const minStreamHeight = width < 768 ? 280 : 340;
+    const cols = Math.max(1, Math.floor((width - 24) / minStreamWidth));
+    const rows = Math.max(1, Math.floor((height - reservedHeight) / minStreamHeight));
+    return Math.max(1, cols * rows);
+  }, [carouselSettings, allStreams.length]);
+
   const finishGame = useCallback((finalState) => {
     if (hasFinishedRef.current) return;
     hasFinishedRef.current = true;
+    clearPhaseTimers();
     onFinish(finalState);
-  }, [onFinish]);
+  }, [onFinish, clearPhaseTimers]);
 
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -165,10 +192,13 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       return advanceRound(currentState, stimulus);
     })();
     
+    clearPhaseTimers();
     setGameState(nextState);
     respondedRefs.current = allStreams.map(() => false);
     positionRespondedRefs.current = allStreams.map(() => false);
     setClearCanvas(false);
+    setActiveSlide(0);
+    setResponsesUnlocked(false);
     setPhase('stimulus');
     
     // Store this state for later playback (only if new trial, not from history)
@@ -179,11 +209,25 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       trialStatesRef.current = updated;
     }
     
+    const slideCount = Math.ceil(allStreams.length / getCarouselCapacity());
+    const duration = getStimulusDuration();
+    const slideDuration = slideCount > 1 ? Math.max(650, Math.floor(duration / slideCount)) : 0;
+
+    if (slideCount <= 1) {
+      setResponsesUnlocked(true);
+    } else {
+      setResponsesUnlocked(false);
+      for (let i = 1; i < slideCount; i += 1) {
+        scheduleTimer(() => setActiveSlide(i), slideDuration * i);
+      }
+      scheduleTimer(() => setResponsesUnlocked(true), slideDuration * slideCount);
+    }
+
     // In noob mode, don't auto-advance — wait for user to click Next
     if (!noobMode) {
-      phaseTimerRef.current = setTimeout(() => endStimulus(nextState), getStimulusDuration());
+      scheduleTimer(() => endStimulus(nextState), duration + (slideCount > 1 ? 900 : 0));
     }
-  }, [noobMode, getStimulusDuration]);
+  }, [noobMode, getStimulusDuration, getCarouselCapacity, scheduleTimer, allStreams.length]);
 
   const endStimulus = useCallback((currentState) => {
     if (noobMode) {
@@ -194,7 +238,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     
     setClearCanvas(true);
     setPhase('wipe');
-    phaseTimerRef.current = setTimeout(() => {
+    scheduleTimer(() => {
       const state = gameStateRef.current;
       const pressedA = respondedRefs.current[0];
       const pressedExtra = respondedRefs.current.slice(1);
@@ -206,7 +250,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       setGameState(updatedState);
       setPhase('feedback');
 
-      phaseTimerRef.current = setTimeout(() => {
+      scheduleTimer(() => {
         if (updatedState.round >= updatedState.totalRounds) {
           finishGame(updatedState);
         } else {
@@ -214,7 +258,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
         }
       }, FEEDBACK_DURATION);
     }, WIPE_DURATION);
-  }, [finishGame, startRound, noobMode]);
+  }, [finishGame, startRound, noobMode, scheduleTimer]);
 
   const handleNextTrial = useCallback(() => {
     // In noob mode, can advance from stimulus phase; otherwise only from feedback
@@ -289,11 +333,12 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       hasStartedRef.current = true;
       startRound(gameState);
     }
-    return () => { if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current); };
+    return clearPhaseTimers;
   }, []);
 
   const markResponse = useCallback((idx, type = 'relation') => {
     if (!(phaseRef.current === 'stimulus')) return;
+    if (!responsesUnlocked) return;
     if (noobMode && (progressStateRef.current?.scoredTrialKeys || []).includes(gameStateRef.current?.round)) return;
     const refs = type === 'position' ? positionRespondedRefs : respondedRefs;
     if (refs.current[idx]) return;
@@ -308,7 +353,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
         return { ...prev, [key]: next };
       });
     }
-  }, [noobMode]);
+  }, [noobMode, responsesUnlocked]);
 
   // Keyboard controls — dynamic per stream key
   useEffect(() => {
@@ -375,16 +420,19 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   }, [phase, clearCanvas, gameState.round, gameState.audioStreamIndexes, gameState.currentRelationship, gameState.extraCurrentRels]);
 
   const numStreams = streamStimuli.length;
-  // Desktop cols: 1→1, 2→2, 3→3, 4→2(2×2), 5→3, 6→3, 7→4, 8→4, 9→3(3×3)
-  // Mobile (< 768px): 2+ streams → 1 col (vertical stack)
-  const desktopCols = numStreams === 1 ? 1
-    : numStreams === 2 ? 2
-    : numStreams === 3 ? 3
-    : numStreams === 4 ? 2
-    : numStreams <= 6 ? 3
-    : numStreams <= 8 ? 4
-    : Math.ceil(Math.sqrt(numStreams));
-  const rows = Math.ceil(numStreams / desktopCols);
+  const streamsPerSlide = getCarouselCapacity();
+  const slideCount = Math.ceil(numStreams / streamsPerSlide);
+  const visibleStart = slideCount > 1 ? activeSlide * streamsPerSlide : 0;
+  const visibleStimuli = streamStimuli.slice(visibleStart, visibleStart + streamsPerSlide);
+  const visibleStreams = allStreams.slice(visibleStart, visibleStart + streamsPerSlide);
+  const visibleCount = visibleStimuli.length;
+  const desktopCols = visibleCount === 1 ? 1
+    : visibleCount === 2 ? 2
+    : visibleCount === 3 ? 3
+    : visibleCount === 4 ? 2
+    : visibleCount <= 6 ? 3
+    : visibleCount <= 8 ? 4
+    : Math.ceil(Math.sqrt(visibleCount));
 
   return (
     <div className="flex flex-col min-h-screen h-screen overflow-hidden px-3 py-3 select-none">
@@ -419,7 +467,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           gridAutoRows: 'minmax(0, 1fr)',
         }}
       >
-        {streamStimuli.map((s, idx) => {
+        {visibleStimuli.map((s, localIdx) => {
+          const idx = visibleStart + localIdx;
           const rintChain = gameState.rintStates?.[idx]?.chainLog;
           const showRintChain = phase === 'stimulus' && allTrialModes[idx] === 'rint' && rintChain?.length > 0;
           return (
@@ -457,7 +506,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
                 )}
                 {(s.responded || s.positionResponded) && phase === 'stimulus' && (
                   <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-                    {s.responded && <div className={`w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx]}`} title="Relation response" />}
+                    {s.responded && <div className={`w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx % STREAM_DOT_COLORS.length]}`} title="Relation response" />}
                     {s.positionResponded && <div className="w-2 h-2 rounded-full bg-amber-400/80" title="Position response" />}
                   </div>
                 )}
@@ -485,6 +534,14 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       </div>
 
 
+      {slideCount > 1 && phase === 'stimulus' && (
+        <div className="mt-1 shrink-0 text-center text-xs font-mono">
+          <span className="text-primary">Slide {Math.min(activeSlide + 1, slideCount)}/{slideCount}</span>
+          <span className="text-muted-foreground/40"> · Streams {STREAM_LABELS[visibleStart]}–{STREAM_LABELS[Math.min(numStreams - 1, visibleStart + streamsPerSlide - 1)]}</span>
+          <span className={responsesUnlocked ? 'text-emerald-400' : 'text-amber-400'}> · {responsesUnlocked ? 'responses unlocked' : 'watch only'}</span>
+        </div>
+      )}
+
       {/* Controls hint */}
       <div className="mt-1 shrink-0 text-center">
         <p className="text-xs font-mono text-muted-foreground/40 flex flex-wrap justify-center gap-x-2 gap-y-0.5">
@@ -502,7 +559,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       </div>
 
       {/* Mobile buttons */}
-      {(phase === 'stimulus' || (noobMode && phase === 'stimulus')) && (
+      {responsesUnlocked && (phase === 'stimulus' || (noobMode && phase === 'stimulus')) && (
         <div className="mt-1 shrink-0 md:hidden grid grid-cols-2 gap-2 w-full max-w-lg mx-auto">
           {noobMode ? (
             <>
@@ -515,13 +572,13 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
               </button>
               {allStreams.flatMap((stream, idx) => [
                 <button key={`${idx}-rel`}
-                  className={`h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx]}`}
+                  className={`h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                   onTouchStart={(e) => { e.preventDefault(); markResponse(idx, 'relation'); }}>
                   {stream.keyDisplay} REL
                 </button>,
                 hasAlienPosition && <button key={`${idx}-pos`}
-                  className={`h-12 rounded-lg bg-secondary border font-mono text-xs text-amber-400 transition-colors ${STREAM_BORDER_COLORS[idx]}`}
+                  className={`h-12 rounded-lg bg-secondary border font-mono text-xs text-amber-400 transition-colors ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                   onTouchStart={(e) => { e.preventDefault(); markResponse(idx, 'position'); }}>
                   {stream.positionKeyDisplay} POS
@@ -537,13 +594,13 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           ) : (
             allStreams.flatMap((stream, idx) => [
               <button key={`${idx}-rel`}
-                className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx]}`}
+                className={`h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]}`}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
                 onTouchStart={(e) => { e.preventDefault(); markResponse(idx, 'relation'); }}>
                 {stream.keyDisplay} REL
               </button>,
               hasAlienPosition && <button key={`${idx}-pos`}
-                className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-amber-400 transition-colors ${STREAM_BORDER_COLORS[idx]}`}
+                className={`h-12 rounded-lg bg-secondary border font-mono text-xs text-amber-400 transition-colors ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]}`}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
                 onTouchStart={(e) => { e.preventDefault(); markResponse(idx, 'position'); }}>
                 {stream.positionKeyDisplay} POS
@@ -554,7 +611,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       )}
 
       {/* Desktop noob mode navigation buttons */}
-      {noobMode && phase === 'stimulus' && (
+      {responsesUnlocked && noobMode && phase === 'stimulus' && (
         <div className="mt-2 shrink-0 hidden md:flex justify-center gap-3 flex-wrap">
           <button
             onClick={handlePrevTrial}
@@ -566,12 +623,12 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           {allStreams.flatMap((stream, idx) => [
             <button key={`${idx}-rel`}
               onMouseDown={(e) => { e.preventDefault(); markResponse(idx, 'relation'); }}
-              className={`px-6 h-10 rounded-lg bg-secondary border font-mono text-sm transition-colors ${STREAM_BORDER_COLORS[idx]}`}>
+              className={`px-6 h-10 rounded-lg bg-secondary border font-mono text-sm transition-colors ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]}`}>
               {stream.keyDisplay} REL
             </button>,
             hasAlienPosition && <button key={`${idx}-pos`}
               onMouseDown={(e) => { e.preventDefault(); markResponse(idx, 'position'); }}
-              className={`px-6 h-10 rounded-lg bg-secondary border font-mono text-sm text-amber-400 transition-colors ${STREAM_BORDER_COLORS[idx]}`}>
+              className={`px-6 h-10 rounded-lg bg-secondary border font-mono text-sm text-amber-400 transition-colors ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]}`}>
               {stream.positionKeyDisplay} POS
             </button>
           ].filter(Boolean))}

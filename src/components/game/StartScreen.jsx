@@ -126,10 +126,28 @@ const KEY_OPTIONS = [
   { code: 'Digit3', display: '3' },
   { code: 'Digit4', display: '4' },
   { code: 'Digit5', display: '5' },
+  { code: 'Digit6', display: '6' },
+  { code: 'Digit7', display: '7' },
+  { code: 'Digit8', display: '8' },
+  { code: 'Digit9', display: '9' },
+  { code: 'Digit0', display: '0' },
+  { code: 'KeyQ', display: 'Q' },
+  { code: 'KeyW', display: 'W' },
+  { code: 'KeyE', display: 'E' },
+  { code: 'KeyR', display: 'R' },
+  { code: 'KeyT', display: 'T' },
+  { code: 'KeyY', display: 'Y' },
+  { code: 'KeyU', display: 'U' },
+  { code: 'KeyI', display: 'I' },
+  { code: 'KeyO', display: 'O' },
+  { code: 'KeyL', display: 'L' },
+  { code: 'KeyB', display: 'B' },
+  { code: 'KeyN', display: 'N' },
+  { code: 'KeyM', display: 'M' },
 ];
 
 const STREAM_COLORS = ['text-primary', 'text-accent', 'text-chart-3', 'text-chart-4', 'text-chart-5', 'text-primary', 'text-accent', 'text-chart-3', 'text-chart-4'];
-const STREAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+const STREAM_LABELS = Array.from({ length: 20 }, (_, i) => String.fromCharCode(65 + i));
 const MAX_STREAMS = STREAM_LABELS.length;
 
 const SPEED_OPTIONS = [
@@ -208,6 +226,10 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
     squareDirection: 'cw',
     squareSpeed: 1,
     squareSpeedMode: 'fixed',
+  });
+  const [carouselSettings, setCarouselSettings] = React.useState(lastSettings?.carouselSettings || {
+    enabled: true,
+    streamsPerSlide: 'auto',
   });
   const alienModeActive = modes.includes('alien_cube') || modes.includes('alien_square');
 
@@ -669,6 +691,32 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
           </div>
         )}
 
+        {/* Carousel */}
+        <div className="space-y-2 rounded-lg bg-secondary/30 border border-border p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest">Automated Carousel</label>
+              <p className="text-xs font-mono text-muted-foreground/50 mt-1">Splits many streams into timed slides, then unlocks responses after all slides.</p>
+            </div>
+            <button
+              onClick={() => setCarouselSettings(prev => ({ ...prev, enabled: !prev.enabled }))}
+              className={`relative w-12 h-6 rounded-full transition-colors ${carouselSettings.enabled ? 'bg-primary' : 'bg-secondary border border-border'}`}
+            >
+              <div className={`absolute w-5 h-5 rounded-full bg-foreground transition-transform ${carouselSettings.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} style={{ top: '2.5px' }} />
+            </button>
+          </div>
+          {carouselSettings.enabled && (
+            <div className="grid grid-cols-3 gap-1 rounded border border-border overflow-hidden">
+              {['auto', 6, 8, 10, 12, 15].map(value => (
+                <button key={value} onClick={() => setCarouselSettings(prev => ({ ...prev, streamsPerSlide: value }))}
+                  className={`px-2 py-1 text-xs font-mono ${carouselSettings.streamsPerSlide === value ? 'bg-primary/15 text-primary' : 'text-muted-foreground'}`}>
+                  {value === 'auto' ? 'Auto' : `${value}/slide`}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Session Length & Speed */}
         <div className="grid grid-cols-2 gap-3">
           {/* Trials */}
@@ -796,7 +844,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
               setTokenWeights(tokenWeights);
               const streamAObj = { key: streamAKey, keyDisplay: KEY_OPTIONS.find(k => k.code === streamAKey)?.display || 'SPACE' };
               const streamAWithPosition = { ...streamAObj, positionKey: streamAPositionKey, positionKeyDisplay: KEY_OPTIONS.find(k => k.code === streamAPositionKey)?.display || 'P' };
-              onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights, streamA: streamAWithPosition, extraStreams, streams: [streamAWithPosition, ...extraStreams], alienSettings }, noobMode);
+              onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights, streamA: streamAWithPosition, extraStreams, streams: [streamAWithPosition, ...extraStreams], alienSettings, carouselSettings }, noobMode);
             }}
             className="h-12 px-10 font-mono font-semibold text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed">
             Start Training
