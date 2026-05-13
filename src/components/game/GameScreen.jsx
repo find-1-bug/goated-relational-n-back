@@ -117,9 +117,9 @@ function mergeHistoricalWithProgress(historicalState, progressState, streamCount
 export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, extraStreams, streamA, alienSettings, carouselSettings, noobMode, onFinish, onExit }) {
   // extraStreams: [{ key, label, keyDisplay, positionKey, positionKeyDisplay }]
   const getStimulusDuration = useCallback(() => {
-    if (stimulusDuration === 'random') return 1000 + Math.random() * 3000;
-    return stimulusDuration || 2800;
-  }, [stimulusDuration]);
+    const duration = stimulusDuration === 'random' ? 1000 + Math.random() * 3000 : stimulusDuration || 2800;
+    return modes.includes('alien_cube') ? Math.max(1400, duration) : duration;
+  }, [stimulusDuration, modes]);
   const hasAlienPosition = modes.includes('alien_cube') || modes.includes('alien_square');
   const allStreams = [
     { key: streamA?.key || 'Space', keyDisplay: streamA?.keyDisplay || 'SPACE', positionKey: streamA?.positionKey || 'KeyP', positionKeyDisplay: streamA?.positionKeyDisplay || 'P', label: 'A' },
