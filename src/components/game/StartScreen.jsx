@@ -312,6 +312,8 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
   const selectedRels = [...enabledRels];
   const totalRels = Object.values(RELATIONSHIP_CATEGORIES).flat().length;
+  const streamCount = 1 + extraStreams.length;
+  const soundOnlySelection = streamCount >= 2 && selectedRels.length > 0 && selectedRels.every(rel => RELATIONSHIP_CATEGORIES.SOUND.includes(rel));
 
   // Build final pool (weighted or flat)
   const finalPool = useCustomMix ? buildWeightedPool(enabledRels, catWeights) : selectedRels;
@@ -700,14 +702,21 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
         </div>
 
         {/* Start */}
+        {soundOnlySelection && (
+          <p className="text-center text-xs font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+            With 2+ streams, choose at least one non-sound relationship too.
+          </p>
+        )}
         <div className="flex justify-center pb-4">
           <Button
+            disabled={soundOnlySelection}
             onClick={() => {
+              if (soundOnlySelection) return;
               setTokenWeights(tokenWeights);
               const streamAObj = { key: streamAKey, keyDisplay: KEY_OPTIONS.find(k => k.code === streamAKey)?.display || 'SPACE' };
               onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights, streamA: streamAObj, extraStreams, streams: [streamAObj, ...extraStreams] }, noobMode);
             }}
-            className="h-12 px-10 font-mono font-semibold text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90">
+            className="h-12 px-10 font-mono font-semibold text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed">
             Start Training
           </Button>
         </div>

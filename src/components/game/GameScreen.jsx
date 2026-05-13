@@ -292,26 +292,34 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       responded: (gameState.extraResponded || [])[i],
     })),
   ];
+  const audioStreamIndexes = gameState.audioStreamIndexes || [];
+  const audioEarForIndex = (idx) => {
+    const audioIndex = audioStreamIndexes.indexOf(idx);
+    if (audioIndex === -1) return null;
+    return audioIndex === 0 ? 'L' : 'R';
+  };
 
   React.useEffect(() => {
     if (phase !== 'stimulus' || clearCanvas) return;
-    const audible = [
+    const allAudible = [
       { rel: gameState.currentRelationship, stimulus: gameState.currentStimulusA, index: 0 },
       ...(gameState.extraCurrentRels || []).map((rel, i) => ({
         rel,
         stimulus: (gameState.extraCurrentStimuli || [])[i],
         index: i + 1,
       })),
-    ].filter(item => isSound(item.rel));
+    ];
 
-    if (audible.length === 0) return;
-    const shuffled = [...audible].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, Math.min(2, shuffled.length));
-    selected.forEach((item, i) => {
+    const selected = (gameState.audioStreamIndexes?.length
+      ? gameState.audioStreamIndexes.map(index => allAudible.find(item => item.index === index)).filter(Boolean)
+      : allAudible.filter(item => isSound(item.rel)).slice(0, 1)
+    ).filter(item => isSound(item.rel));
+
+    selected.slice(0, 2).forEach((item, i) => {
       const pan = selected.length === 1 ? 0 : i === 0 ? -0.85 : 0.85;
       playSoundStimulus(item.stimulus, pan);
     });
-  }, [phase, clearCanvas, gameState.round, gameState.currentRelationship, gameState.extraCurrentRels]);
+  }, [phase, clearCanvas, gameState.round, gameState.audioStreamIndexes, gameState.currentRelationship, gameState.extraCurrentRels]);
 
   const numStreams = streamStimuli.length;
   // Desktop cols: 1→1, 2→2, 3→3, 4→2(2×2), 5→3, 6→3, 7→4, 8→4, 9→3(3×3)
@@ -362,7 +370,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           const rintChain = gameState.rintStates?.[idx]?.chainLog;
           const showRintChain = phase === 'stimulus' && allTrialModes[idx] === 'rint' && rintChain?.length > 0;
           return (
-            <div key={idx} className={`relative rounded-xl bg-secondary/30 border ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]} flex flex-col overflow-hidden`}>
+            <div key={idx} className={`relative rounded-xl border flex flex-col overflow-hidden ${audioEarForIndex(idx) ? 'bg-emerald-500/10 border-emerald-400 shadow-[0_0_28px_rgba(52,211,153,0.28)]' : `bg-secondary/30 ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]}`}`}>
               <div className="flex-1 min-h-0 relative">
                 <GameCanvas
                   relationship={!clearCanvas ? s.rel : null}
@@ -388,6 +396,13 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
                     <StreamModeBadge mode={allTrialModes[idx]} />
                   )}
                 </div>
+                {audioEarForIndex(idx) && phase === 'stimulus' && !clearCanvas && (
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-emerald-400/20 border-2 border-emerald-300/70 flex items-center justify-center text-3xl font-mono font-bold text-emerald-200 shadow-[0_0_24px_rgba(52,211,153,0.35)]">
+                      {audioEarForIndex(idx)}
+                    </div>
+                  </div>
+                )}
                 {s.responded && phase === 'stimulus' && (
                   <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx]}`} />
                 )}

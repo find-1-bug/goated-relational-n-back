@@ -113,6 +113,11 @@ function makeDistractor(targetRelationship, pool) {
   return pickRandomExcluding(candidates, targetRelationship);
 }
 
+function pickSoundStreamIndexes(totalStreams) {
+  const indexes = Array.from({ length: totalStreams }, (_, i) => i).sort(() => Math.random() - 0.5);
+  return indexes.slice(0, Math.min(2, totalStreams));
+}
+
 // Evaluate binary logic between two boolean signals
 // op: 'AND' | 'OR' | 'XOR' | 'AND_NOT'
 export function evalBinaryOp(a, b, op) {
@@ -279,6 +284,7 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     numExtraStreams: numExtra,
     // Per-trial randomized binary configs (only used when binary_logic mode is active)
     trialBinaryConfigs: Array(totalStreams).fill(null).map(() => ({ primaryMode: 'normal', binaryMode: null, binaryOp: 'AND' })),
+    audioStreamIndexes: [],
 
     // Per-stream RINT states (index 0 = stream A, 1..N = extra streams)
     rintStates: createRINTStates(Math.max(1, totalStreams)),
@@ -344,9 +350,18 @@ export function generateNextStimulus(state) {
 
   const trialIndex = round;
   const isBinaryLogic = modes.includes('binary_logic');
+  const totalStreams = 1 + (extraHistories || []).length;
+  const soundPool = pool.filter(isSound);
+  const nonSoundPool = pool.filter(rel => !isSound(rel));
+  const allNonSoundPool = ALL_RELATIONSHIPS.filter(rel => !isSound(rel));
+  const audioStreamIndexes = totalStreams >= 2 && soundPool.length > 0 ? pickSoundStreamIndexes(totalStreams) : [];
+  const streamPoolFor = (index) => {
+    if (audioStreamIndexes.includes(index)) return soundPool;
+    if (audioStreamIndexes.length > 0) return nonSoundPool.length > 0 ? nonSoundPool : allNonSoundPool;
+    return pool;
+  };
 
   // Generate per-trial binary configs if binary_logic mode is active
-  const totalStreams = 1 + (extraHistories || []).length;
   const trialBinaryConfigs = isBinaryLogic
     ? Array.from({ length: totalStreams }, () => randomBinaryConfig(effectiveN))
     : Array(totalStreams).fill({ primaryMode: 'normal', binaryMode: null, binaryOp: 'AND' });
@@ -367,7 +382,7 @@ export function generateNextStimulus(state) {
     history: historyA,
     typeHistory: typeHistoryA,
     rintState: rintStateA,
-    pool, effectiveN,
+    pool: streamPoolFor(0), effectiveN,
     trialMode: trialModeA,
     matchChance: MATCH_CHANCE,
     hasDistractors, trialIndex,
@@ -395,7 +410,7 @@ export function generateNextStimulus(state) {
       history: hist,
       typeHistory: extraTypeHistories[i] || new Map(),
       rintState: streamRINTState,
-      pool, effectiveN,
+      pool: streamPoolFor(1 + i), effectiveN,
       trialMode: extraStreamModes[i],
       matchChance: DUAL_MATCH_CHANCE,
       hasDistractors, trialIndex,
@@ -425,6 +440,7 @@ export function generateNextStimulus(state) {
     extraIsTargets: extraResults.map(r => r.isTarget),
     nextRINTStates,
     trialBinaryConfigs,
+    audioStreamIndexes,
     // Per-stream categories for hierarchical history update
     allCategories: [categoryA, ...extraResults.map(r => getCategory(r.stim.rel))],
   };
@@ -436,7 +452,7 @@ export function advanceRound(state, stimulus) {
   const {
     stimA, relA, extraStimuli, extraIsTargets,
     isTargetA, categoryA, isDistractor,
-    effectiveN, trialMode, extraTrialModes, nextRINTStates, allCategories, trialBinaryConfigs,
+    effectiveN, trialMode, extraTrialModes, nextRINTStates, allCategories, trialBinaryConfigs, audioStreamIndexes,
   } = stimulus;
   const trialIndex = state.round;
 
@@ -477,6 +493,7 @@ export function advanceRound(state, stimulus) {
     trialMode: trialMode ?? 'normal',
     rintStates: nextRINTStates ?? state.rintStates,
     trialBinaryConfigs: trialBinaryConfigs ?? state.trialBinaryConfigs,
+    audioStreamIndexes: audioStreamIndexes ?? [],
     respondedA: false,
     finished: state.round + 1 >= state.totalRounds,
   };
