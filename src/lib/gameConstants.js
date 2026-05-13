@@ -466,8 +466,8 @@ export function buildSoundDisplay(relationship, pair) {
   const labels = {
     PITCH_HIGHER: [a, 'higher pitch than', b],
     PITCH_LOWER: [a, 'lower pitch than', b],
-    RHYTHM_FASTER: [a, 'faster rhythm than', b],
-    RHYTHM_SLOWER: [a, 'slower rhythm than', b],
+    RHYTHM_FASTER: ['fast', 'rhythm', 'beat'],
+    RHYTHM_SLOWER: ['slow', 'rhythm', 'beat'],
     SOUND_SAME_WORD: [a, 'same spoken word as', b],
     SOUND_DIFFERENT_WORD: [a, 'different word from', b],
     SOUND_SAME_LETTER: [a, 'same letter as', b],
