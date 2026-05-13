@@ -294,6 +294,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   ];
   const audioStreamIndexes = gameState.audioStreamIndexes || [];
   const audioEarForIndex = (idx) => {
+    if (!isSound(streamStimuli[idx]?.rel)) return null;
     const audioIndex = audioStreamIndexes.indexOf(idx);
     if (audioIndex === -1) return null;
     return audioIndex === 0 ? 'L' : 'R';
@@ -397,10 +398,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
                   )}
                 </div>
                 {audioEarForIndex(idx) && phase === 'stimulus' && !clearCanvas && (
-                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-emerald-400/20 border-2 border-emerald-300/70 flex items-center justify-center text-3xl font-mono font-bold text-emerald-200 shadow-[0_0_24px_rgba(52,211,153,0.35)]">
-                      {audioEarForIndex(idx)}
-                    </div>
+                  <div className="absolute top-2 right-3 pointer-events-none w-8 h-8 rounded-full bg-emerald-400/25 border border-emerald-300/70 flex items-center justify-center text-sm font-mono font-bold text-emerald-100 shadow-[0_0_16px_rgba(52,211,153,0.35)]">
+                    {audioEarForIndex(idx)}
                   </div>
                 )}
                 {s.responded && phase === 'stimulus' && (

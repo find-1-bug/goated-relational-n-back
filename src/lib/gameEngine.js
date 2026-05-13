@@ -207,7 +207,7 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
     isPrimaryTarget = canHier && getCategory(stim.rel) === nBackCat;
   } else {
     const nBackEntry = canTarget ? history[history.length - effectiveN] : null;
-    if (canTarget && nBackEntry && Math.random() < matchChance) {
+    if (canTarget && nBackEntry && finalPool.includes(nBackEntry.rel) && Math.random() < matchChance) {
       stim = isVerbal(nBackEntry.rel)
         ? (Math.random() < 0.35 ? makeInverseStimulus(nBackEntry) : null) || nBackEntry
         : maybeInvertVisual(makeStimulusEntry(nBackEntry.rel));
