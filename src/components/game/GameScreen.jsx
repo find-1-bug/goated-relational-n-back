@@ -211,7 +211,9 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     
     const slideCount = Math.ceil(allStreams.length / getCarouselCapacity());
     const duration = getStimulusDuration();
-    const slideDuration = slideCount > 1 ? Math.max(650, Math.floor(duration / slideCount)) : 0;
+    const slideDuration = slideCount > 1 ? Math.max(2200, duration) : 0;
+    const responseWindow = slideCount > 1 ? Math.max(3500, duration) : 0;
+    const totalWatchTime = slideCount > 1 ? slideDuration * slideCount : duration;
 
     if (slideCount <= 1) {
       setResponsesUnlocked(true);
@@ -220,12 +222,12 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       for (let i = 1; i < slideCount; i += 1) {
         scheduleTimer(() => setActiveSlide(i), slideDuration * i);
       }
-      scheduleTimer(() => setResponsesUnlocked(true), slideDuration * slideCount);
+      scheduleTimer(() => setResponsesUnlocked(true), totalWatchTime);
     }
 
     // In noob mode, don't auto-advance — wait for user to click Next
     if (!noobMode) {
-      scheduleTimer(() => endStimulus(nextState), duration + (slideCount > 1 ? 900 : 0));
+      scheduleTimer(() => endStimulus(nextState), totalWatchTime + responseWindow);
     }
   }, [noobMode, getStimulusDuration, getCarouselCapacity, scheduleTimer, allStreams.length]);
 
