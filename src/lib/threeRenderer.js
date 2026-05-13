@@ -113,15 +113,19 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     const cubeGroup = new THREE.Group();
     scene.add(cubeGroup);
 
+    const p = stimulus.cubePosition;
+    const targetX = p.y > 0 ? -0.45 : p.y < 0 ? 0.45 : 0;
+    const targetY = p.x > 0 ? -0.58 : p.x < 0 ? 0.58 : 0;
+    const startsReadable = Math.random() < 0.5;
     cubeGroup.rotation.set(
-      (Math.random() - 0.5) * 1.3,
-      (Math.random() - 0.5) * 1.6,
-      (Math.random() - 0.5) * 0.7
+      startsReadable ? targetX : targetX * -0.65,
+      startsReadable ? targetY : targetY * -0.65,
+      (Math.random() - 0.5) * 0.28
     );
     cubeGroup.userData.rotationSpeed = {
-      x: (Math.random() < 0.5 ? -1 : 1) * (0.003 + Math.random() * 0.006),
-      y: (Math.random() < 0.5 ? -1 : 1) * (0.004 + Math.random() * 0.007),
-      z: (Math.random() < 0.5 ? -1 : 1) * (0.001 + Math.random() * 0.003),
+      x: (startsReadable ? -1 : 1) * (targetX || 0.22) / 90,
+      y: (startsReadable ? -1 : 1) * (targetY || 0.28) / 90,
+      z: (Math.random() < 0.5 ? -1 : 1) * (0.001 + Math.random() * 0.002),
     };
 
     const gridMaterial = new THREE.LineBasicMaterial({ color: 0x9aa8ff, transparent: true, opacity: 0.22 });
@@ -140,7 +144,6 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     );
     cubeGroup.add(shell);
 
-    const p = stimulus.cubePosition;
     const axisConfigs = [
       { color: 0xff1744, points: [new THREE.Vector3(-1.5, 0, 0), new THREE.Vector3(0, 0, 0)] },
       { color: 0xffc400, points: [new THREE.Vector3(0, 0, 0), new THREE.Vector3(1.5, 0, 0)] },
