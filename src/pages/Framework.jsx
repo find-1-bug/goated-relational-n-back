@@ -41,6 +41,11 @@ const MODES = [
     example: '"Normal AND RINT" → press only if BOTH a normal match AND a RINT conclusion are true. "Type OR Normal" → press if either condition is true. The live badge on each stream shows the active pair.',
   },
   {
+    mode: '3D Void Mode',
+    rule: 'Biases the session toward animated 3D spatial relationships rendered in a void-like depth scene.',
+    example: 'Instead of flat shapes or words, trials emphasize depth-layering, orbiting, floating, stacking, front/behind, and other spatial transformations similar to 3D position-memory trainers.',
+  },
+  {
     mode: 'Variable N',
     rule: 'N shifts ±1 randomly each trial around your chosen base N.',
     example: 'Base N=3. Trial 5 might require matching 2 trials back; Trial 6 might require 4 trials back. The effective N is shown in the HUD.',

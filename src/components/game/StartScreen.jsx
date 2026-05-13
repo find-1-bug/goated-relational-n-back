@@ -30,6 +30,7 @@ const MODE_OPTIONS = [
   { id: 'mixed_rint',    icon: Shuffle,    label: 'Mixed RINT',        desc: 'Three-way random per trial: Normal / Type / RINT. Maximum flexibility demand. Requires N≥2.', minN: 2 },
   { id: 'impossible',    icon: Zap,        label: 'Impossible',        desc: 'Each stream independently randomizes between Normal, Type, and RINT every trial — different rules per stream simultaneously. Requires ≥2 streams and N≥2.', minN: 2, minStreams: 2 },
   { id: 'binary_logic',  icon: GitBranch,  label: 'Binary Logic',      desc: 'Each trial, each stream is assigned a random pair: <NBack type> <OP> <NBack type> (e.g. NRM AND NOT RINT). A match fires only when the combined boolean condition is true. Shown as live badges on each stream. Requires N≥2.', minN: 2 },
+  { id: 'three_d_void',  icon: Layers,     label: '3D Void Mode',      desc: 'Focuses the session on animated 3D spatial relationships with depth, orbiting, stacking, and motion cues inspired by 3D position-training apps.' },
   { id: 'variable_n',    icon: Shuffle,    label: 'Variable N',        desc: 'N changes randomly each trial (±1 around your chosen N). Forces flexible updating.' },
   { id: 'adaptive',      icon: TrendingUp, label: 'Adaptive N',        desc: 'N auto-adjusts between sessions based on accuracy (≥80% → up, ≤50% → down).' },
   { id: 'distractors',   icon: Shuffle,    label: 'Distractors',       desc: 'Near-match stimuli from the same category create interference in normal mode.' },
@@ -251,6 +252,11 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
         const available = KEY_OPTIONS.find(k => ![streamAKey, ...extraStreams.map(s => s.key)].includes(k.code));
         if (available) setExtraStreams(prev => [...prev, { key: available.code, keyDisplay: available.display, label: STREAM_LABELS[1 + prev.length] || String(2 + prev.length) }]);
       }
+      if (id === 'three_d_void') {
+        setEnabledRels(prev => new Set([...prev, ...RELATIONSHIP_CATEGORIES.SPATIAL_3D]));
+        setEnabledCats(prev => new Set([...prev, 'SPATIAL_3D']));
+      }
+
       // Remove conflicting modes from exclusive groups
       const toRemove = new Set();
       EXCLUSIVE_GROUPS.forEach(group => {
@@ -316,7 +322,11 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const soundOnlySelection = streamCount >= 2 && selectedRels.length > 0 && selectedRels.every(rel => RELATIONSHIP_CATEGORIES.SOUND.includes(rel));
 
   // Build final pool (weighted or flat)
-  const finalPool = useCustomMix ? buildWeightedPool(enabledRels, catWeights) : selectedRels;
+  const mixedPool = useCustomMix ? buildWeightedPool(enabledRels, catWeights) : selectedRels;
+  const threeDVoidPool = mixedPool.filter(rel => RELATIONSHIP_CATEGORIES.SPATIAL_3D.includes(rel));
+  const finalPool = modes.includes('three_d_void')
+    ? (threeDVoidPool.length > 0 ? threeDVoidPool : RELATIONSHIP_CATEGORIES.SPATIAL_3D)
+    : mixedPool;
 
   const setCatWeight = (cat, val) => setCatWeights(prev => ({ ...prev, [cat]: Number(val) }));
 

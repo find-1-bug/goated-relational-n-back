@@ -41,7 +41,16 @@ function createShape3D(shapeType, size, color) {
 
 function setupScene(canvas) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0a0f1a);
+  scene.background = new THREE.Color(0x020617);
+
+  const starGeometry = new THREE.BufferGeometry();
+  const starPositions = [];
+  for (let i = 0; i < 120; i++) {
+    starPositions.push((Math.random() - 0.5) * 28, (Math.random() - 0.5) * 18, -Math.random() * 24);
+  }
+  starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+  const starMaterial = new THREE.PointsMaterial({ color: 0x94a3b8, size: 0.035, transparent: true, opacity: 0.65 });
+  scene.add(new THREE.Points(starGeometry, starMaterial));
 
   const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
   camera.position.set(0, 3, 8);

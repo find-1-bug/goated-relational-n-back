@@ -137,6 +137,9 @@ export default function Tutorial() {
               <span className="text-accent font-semibold">Binary Logic:</span> Each trial assigns <span className="text-foreground font-semibold">two conditions per stream</span> (e.g., "Normal AND RINT", "Type OR Normal") combined with logic operators (AND, OR, XOR, AND_NOT). A match fires only when the combined condition is true. Tests <span className="text-foreground">boolean reasoning & dual tracking</span>. Requires N≥2.
             </div>
             <div>
+              <span className="text-accent font-semibold">3D Void Mode:</span> Focuses the session on <span className="text-foreground font-semibold">animated 3D spatial relationships</span> such as depth, orbiting, stacking, floating, and motion. It emphasizes position tracking in a void-like 3D space.
+            </div>
+            <div>
               <span className="text-accent font-semibold">Variable N:</span> N <span className="text-foreground font-semibold">randomly shifts ±1</span> each trial around your chosen N. Tests <span className="text-foreground">flexible working memory updating</span>.
             </div>
             <div>
