@@ -190,13 +190,17 @@ function drawToken(ctx, token, x, y, canvasW, color, renderScale = 1) {
   ctx.restore();
 }
 
+function relationTextScale(renderScale = 1) {
+  return renderScale > 1 ? Math.min(3.4, renderScale * 2.55) : 1.25;
+}
+
 // Mode 0: pure text/token (tokenA — verb — tokenB), stacked vertically
 function renderVerbalText(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB, relationship, renderScale = 1) {
   const pillH = drawVerbalPill(ctx, cx, cy, canvasW, canvasH);
   drawToken(ctx, tokenA, cx, cy - canvasH * 0.15, canvasW, '#22d3ee', renderScale);
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `${Math.min(canvasW * 0.052, 20) * Math.min(1.65, renderScale * 1.28)}px 'JetBrains Mono', monospace`;
+  ctx.font = `${Math.min(canvasW * 0.052, 20) * relationTextScale(renderScale)}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,20%,65%,0.9)';
   ctx.fillText(verb, cx, cy);
   ctx.restore();
@@ -221,7 +225,7 @@ function renderVerbalShapes(ctx, cx, cy, canvasW, canvasH, verb, relationship, r
   drawShape(ctx, shapeB, cx + canvasW * 0.28, cy, shapeSize, colorB, true);
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `${Math.min(canvasW * 0.052, 19) * Math.min(1.65, renderScale * 1.28)}px 'JetBrains Mono', monospace`;
+  ctx.font = `${Math.min(canvasW * 0.052, 19) * relationTextScale(renderScale)}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,20%,70%,0.9)';
   ctx.fillText(verb, cx, cy);
   ctx.font = `${Math.min(canvasW * 0.034, 12) * renderScale}px 'JetBrains Mono', monospace`;
@@ -255,7 +259,7 @@ function renderVerbalBlended(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tokenB
 
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `${Math.min(canvasW * 0.046, 17) * Math.min(1.65, renderScale * 1.28)}px 'JetBrains Mono', monospace`;
+  ctx.font = `${Math.min(canvasW * 0.046, 17) * relationTextScale(renderScale)}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,20%,65%,0.9)';
   ctx.fillText(verb, cx, cy);
   ctx.font = `${Math.min(canvasW * 0.034, 12) * renderScale}px 'JetBrains Mono', monospace`;
@@ -271,7 +275,7 @@ function renderVerbalSymbolVerb(ctx, cx, cy, canvasW, canvasH, tokenA, verb, tok
   // Verb as styled badge in center
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const verbSize = Math.min(canvasW * 0.044, 16) * Math.min(1.65, renderScale * 1.28);
+  const verbSize = Math.min(canvasW * 0.044, 16) * relationTextScale(renderScale);
   ctx.font = `${verbSize}px 'JetBrains Mono', monospace`;
   // badge bg
   const tw = ctx.measureText(verb).width + 16;
@@ -322,7 +326,7 @@ function renderSound(ctx, canvasW, canvasH, relationship, soundA, soundB, render
   ctx.font = `bold ${Math.min(canvasW * 0.08, 32)}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = '#fb7185';
   ctx.fillText(String(left), cx, cy - canvasH * 0.16);
-  ctx.font = `${Math.min(canvasW * 0.048, 18) * Math.min(1.65, renderScale * 1.28)}px 'JetBrains Mono', monospace`;
+  ctx.font = `${Math.min(canvasW * 0.048, 18) * relationTextScale(renderScale)}px 'JetBrains Mono', monospace`;
   ctx.fillStyle = 'hsla(210,20%,70%,0.9)';
   ctx.fillText(relation, cx, cy);
   ctx.font = `bold ${Math.min(canvasW * 0.08, 32)}px 'JetBrains Mono', monospace`;
