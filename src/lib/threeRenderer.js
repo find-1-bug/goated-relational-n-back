@@ -60,7 +60,7 @@ function createRelationPanelTexture(relationship, stimulus, alienCubeScale = 1) 
   ctx.roundRect(18, 18, panelCanvas.width - 36, panelCanvas.height - 36, 22);
   ctx.stroke();
 
-  const zoom = Math.min(1.9, 1.45 * alienCubeScale);
+  const zoom = Math.min(1.98, 1.45 * alienCubeScale);
   const scaledW = panelCanvas.width * zoom;
   const scaledH = panelCanvas.height * zoom;
   ctx.drawImage(
@@ -116,10 +116,10 @@ function setupScene(canvas) {
 export function render3DRelationship(canvas, relationship, colors, rintChain = null, stimulus = null, options = {}) {
   const streamCount = options.streamCount || 1;
   const streamDepthOffset = Math.max(0, streamCount - 1);
-  const alienCubeScale = stimulus?.cubePosition ? Math.min(1.28, 1 + streamDepthOffset * 0.05) : 1;
+  const alienCubeScale = stimulus?.cubePosition ? Math.min(1.36, 1.12 + streamDepthOffset * 0.04) : 1;
   const { scene, camera, renderer } = setupScene(canvas);
   if (stimulus?.cubePosition) {
-    camera.position.z = Math.min(4.2, 3.15 + streamDepthOffset * 0.18);
+    camera.position.z = Math.min(4.65, 3.55 + streamDepthOffset * 0.14);
     camera.lookAt(0, 0, 0);
   }
 
@@ -198,7 +198,10 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       new THREE.PlaneGeometry(panelWidth, panelHeight),
       new THREE.MeshBasicMaterial({ map: texture, transparent: false, side: THREE.DoubleSide })
     );
-    relPanel.position.set(p.x, p.y, p.z + 0.18 + streamDepthOffset * 0.04);
+    const safePanelX = THREE.MathUtils.clamp(p.x * 0.68, -0.72, 0.72);
+    const safePanelY = THREE.MathUtils.clamp(p.y * 0.68, -0.72, 0.72);
+    const safePanelZ = THREE.MathUtils.clamp(p.z * 0.55, -0.55, 0.75);
+    relPanel.position.set(safePanelX, safePanelY, safePanelZ + 0.24 + streamDepthOffset * 0.03);
     relPanel.lookAt(camera.position);
 
     const glow = new THREE.Mesh(
