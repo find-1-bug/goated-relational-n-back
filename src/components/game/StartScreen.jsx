@@ -700,9 +700,10 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
             </div>
             <button
               onClick={() => setCarouselSettings(prev => ({ ...prev, enabled: !prev.enabled }))}
-              className={`relative w-12 h-6 rounded-full transition-colors ${carouselSettings.enabled ? 'bg-primary' : 'bg-secondary border border-border'}`}
+              className="grid grid-cols-2 rounded-lg border border-border bg-background/60 p-0.5 text-xs font-mono shrink-0"
             >
-              <div className={`absolute w-5 h-5 rounded-full bg-foreground transition-transform ${carouselSettings.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} style={{ top: '2.5px' }} />
+              <span className={`px-2.5 py-1 rounded-md transition-colors ${!carouselSettings.enabled ? 'bg-secondary text-foreground' : 'text-muted-foreground/50'}`}>Off</span>
+              <span className={`px-2.5 py-1 rounded-md transition-colors ${carouselSettings.enabled ? 'bg-primary text-primary-foreground' : 'text-muted-foreground/50'}`}>On</span>
             </button>
           </div>
           {carouselSettings.enabled && (
