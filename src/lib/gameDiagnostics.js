@@ -17,6 +17,9 @@ const RINT_POOL = filterTransitiveRelationships(ALL_RELATIONSHIPS, true, false);
 
 const MODE_CASES = [
   { label: 'Normal', modes: [] },
+  { label: 'Alien Cube', modes: ['alien_cube'] },
+  { label: 'Alien Cube + Type', modes: ['alien_cube', 'type_nback'] },
+  { label: 'Alien Cube + Binary', modes: ['alien_cube', 'binary_logic'], minN: 2, needsRintPool: true },
   { label: 'Type N-Back', modes: ['type_nback'] },
   { label: 'RINT', modes: ['rint'], minN: 2, needsRintPool: true },
   { label: 'Mixed N-Back', modes: ['mixed_nback'] },
@@ -124,6 +127,21 @@ function assertStateInvariants(state, expectedStreams, expectedRound) {
   assertCondition((state.trialBinaryConfigs || []).length === expectedStreams, 'binary config length mismatch');
 }
 
+function assertCubePosition(position, label) {
+  assertCondition(!!position, `${label} cube position missing`);
+  ['x', 'y', 'z'].forEach(axis => {
+    assertCondition(Number.isInteger(position[axis]), `${label} cube ${axis} coordinate must be an integer`);
+    assertCondition(position[axis] >= -1 && position[axis] <= 1, `${label} cube ${axis} coordinate out of range`);
+  });
+}
+
+function assertAlienCubeState(state) {
+  assertCubePosition(state.currentStimulusA?.cubePosition, 'Stream A');
+  (state.extraCurrentStimuli || []).forEach((stimulus, index) => {
+    assertCubePosition(stimulus?.cubePosition, `Stream ${String.fromCharCode(66 + index)}`);
+  });
+}
+
 function assertTrialShape(trial) {
   assertCondition(Number.isFinite(trial.trialNumber), 'trial number missing');
   assertCondition(typeof trial.streamLabel === 'string', 'stream label missing');
@@ -188,6 +206,7 @@ function simulateTimedCase(testCase) {
 
     state = advanceRound(state, stimulus);
     assertStateInvariants(state, streamCount, i + 1);
+    if (modes.includes('alien_cube')) assertAlienCubeState(state);
 
     const responses = makeResponses(i, streamCount);
     state = processResponses(state, responses);
@@ -225,6 +244,7 @@ function simulateNoobCase(testCase) {
     if (i >= 1) {
       const historical = cloneState(trialStates[i]);
       assertStateInvariants(historical, streamCount, i);
+      if (modes.includes('alien_cube')) assertAlienCubeState(historical);
       const editedHistorical = processResponses(historical, {
         pressedA: !responses.pressedA,
         pressedExtra: responses.pressedExtra.map(v => !v),
