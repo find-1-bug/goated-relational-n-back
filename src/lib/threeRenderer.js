@@ -60,7 +60,7 @@ function createRelationPanelTexture(relationship, stimulus) {
   ctx.roundRect(18, 18, panelCanvas.width - 36, panelCanvas.height - 36, 22);
   ctx.stroke();
 
-  const zoom = 1.24;
+  const zoom = 1.45;
   const scaledW = panelCanvas.width * zoom;
   const scaledH = panelCanvas.height * zoom;
   ctx.drawImage(
