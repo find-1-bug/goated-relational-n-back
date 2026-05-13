@@ -531,6 +531,7 @@ export function generateNextStimulus(state) {
       binaryOp: cfg.binaryOp,
       alienCube,
       alienSquare,
+      alienTesseract,
       alienSettings,
     });
   });

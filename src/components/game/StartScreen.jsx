@@ -214,7 +214,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const savedRels = (lastSettings?.rels || []).filter(rel => allRels.includes(rel));
 
   const [nLevel, setNLevel] = React.useState(suggestedN || lastSettings?.n || 2);
-  const [modes, setModes] = React.useState(lastSettings?.modes || []);
+  const [modes, setModes] = React.useState(() => [...new Set(lastSettings?.modes || [])]);
 
   // Multi-stream config: stream A key + extra streams
   const [streamAKey, setStreamAKey] = React.useState(
@@ -391,6 +391,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const totalRels = Object.values(RELATIONSHIP_CATEGORIES).flat().length;
   const streamCount = 1 + extraStreams.length;
   const soundOnlySelection = streamCount >= 2 && selectedRels.length > 0 && selectedRels.every(rel => RELATIONSHIP_CATEGORIES.SOUND.includes(rel));
+  const activeEnhancementCount = MODE_OPTIONS.filter(({ id }) => modes.includes(id)).length;
 
   // Build final pool (weighted or flat)
   const mixedPool = useCustomMix ? buildWeightedPool(enabledRels, catWeights) : selectedRels;
@@ -790,7 +791,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
             className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/50 border border-border hover:border-muted-foreground/40 transition-colors">
             <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Enhancement Modes</span>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-primary">{modes.length} active</span>
+              <span className="text-xs font-mono text-primary">{activeEnhancementCount} active</span>
               {showEnhancementModes ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
             </div>
           </button>
