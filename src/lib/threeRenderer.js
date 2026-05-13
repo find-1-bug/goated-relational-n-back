@@ -141,15 +141,18 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
 
     const p = stimulus.cubePosition;
     const axisConfigs = [
-      { color: 0xff4d6d, points: [new THREE.Vector3(-1.5, 0, 0), new THREE.Vector3(1.5, 0, 0)] },
-      { color: 0x35f2a9, points: [new THREE.Vector3(0, -1.5, 0), new THREE.Vector3(0, 1.5, 0)] },
-      { color: 0x4da3ff, points: [new THREE.Vector3(0, 0, -1.5), new THREE.Vector3(0, 0, 1.5)] },
+      { color: 0xff4d6d, points: [new THREE.Vector3(-1.5, 0, 0), new THREE.Vector3(0, 0, 0)] },
+      { color: 0xffb3c1, points: [new THREE.Vector3(0, 0, 0), new THREE.Vector3(1.5, 0, 0)] },
+      { color: 0x35f2a9, points: [new THREE.Vector3(0, -1.5, 0), new THREE.Vector3(0, 0, 0)] },
+      { color: 0xb8ffe3, points: [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1.5, 0)] },
+      { color: 0x4da3ff, points: [new THREE.Vector3(0, 0, -1.5), new THREE.Vector3(0, 0, 0)] },
+      { color: 0xc4ddff, points: [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 1.5)] },
     ];
 
     axisConfigs.forEach(({ color, points }) => {
       const axis = new THREE.Mesh(
         new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 2, 0.022, 8, false),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 })
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.92 })
       );
       cubeGroup.add(axis);
     });
