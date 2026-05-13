@@ -119,8 +119,9 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       (Math.random() - 0.5) * 0.7
     );
     cubeGroup.userData.rotationSpeed = {
-      x: 0.003 + Math.random() * 0.006,
-      y: 0.004 + Math.random() * 0.007,
+      x: (Math.random() < 0.5 ? -1 : 1) * (0.003 + Math.random() * 0.006),
+      y: (Math.random() < 0.5 ? -1 : 1) * (0.004 + Math.random() * 0.007),
+      z: (Math.random() < 0.5 ? -1 : 1) * (0.001 + Math.random() * 0.003),
     };
 
     const gridMaterial = new THREE.LineBasicMaterial({ color: 0x9aa8ff, transparent: true, opacity: 0.22 });
@@ -308,6 +309,7 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       const speed = mesh.userData?.rotationSpeed;
       mesh.rotation.x += speed?.x || 0.003;
       mesh.rotation.y += speed?.y || 0.005;
+      mesh.rotation.z += speed?.z || 0;
     });
 
     if (stimulus?.cubePosition && meshes[1]) {

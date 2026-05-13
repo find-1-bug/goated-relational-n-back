@@ -11,7 +11,8 @@ export function streamStats(hits, misses, falseAlarms, correctRejections) {
   const total = totalTargets + totalNonTargets;
   const hitRate = totalTargets > 0 ? Math.round((hits / totalTargets) * 100) : 0;
   const falseAlarmRate = totalNonTargets > 0 ? Math.round((falseAlarms / totalNonTargets) * 100) : 0;
-  const accuracy = total > 0 ? Math.round(((hits + correctRejections) / total) * 100) : 0;
+  const scoredAttempts = totalTargets + falseAlarms;
+  const accuracy = scoredAttempts > 0 ? Math.round((hits / scoredAttempts) * 100) : 0;
   return { hits, misses, falseAlarms, correctRejections, total, accuracy, hitRate, falseAlarmRate };
 }
 
