@@ -46,6 +46,12 @@ function createRelationPanelTexture(relationship, stimulus) {
   panelCanvas.height = 560;
   const ctx = panelCanvas.getContext('2d');
 
+  const contentCanvas = document.createElement('canvas');
+  contentCanvas.width = 900;
+  contentCanvas.height = 560;
+  const contentCtx = contentCanvas.getContext('2d');
+  renderRelationship(contentCtx, contentCanvas.width, contentCanvas.height, relationship, null, stimulus);
+
   ctx.fillStyle = 'rgba(8, 13, 22, 0.92)';
   ctx.fillRect(0, 0, panelCanvas.width, panelCanvas.height);
   ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
@@ -54,7 +60,16 @@ function createRelationPanelTexture(relationship, stimulus) {
   ctx.roundRect(18, 18, panelCanvas.width - 36, panelCanvas.height - 36, 22);
   ctx.stroke();
 
-  renderRelationship(ctx, panelCanvas.width, panelCanvas.height, relationship, null, stimulus);
+  const zoom = 1.24;
+  const scaledW = panelCanvas.width * zoom;
+  const scaledH = panelCanvas.height * zoom;
+  ctx.drawImage(
+    contentCanvas,
+    (panelCanvas.width - scaledW) / 2,
+    (panelCanvas.height - scaledH) / 2,
+    scaledW,
+    scaledH
+  );
 
   const texture = new THREE.CanvasTexture(panelCanvas);
   texture.colorSpace = THREE.SRGBColorSpace;
