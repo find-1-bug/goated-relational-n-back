@@ -58,6 +58,12 @@ export const RELATIONSHIP_CATEGORIES = {
     'NORTH_EAST_OF', 'NORTH_WEST_OF', 'SOUTH_EAST_OF', 'SOUTH_WEST_OF',
     'INSIDE_OF', 'OUTSIDE_OF', 'NEXT_TO', 'FAR_FROM',
   ],
+  SOUND: [
+    'PITCH_HIGHER', 'PITCH_LOWER', 'RHYTHM_FASTER', 'RHYTHM_SLOWER',
+    'SOUND_SAME_WORD', 'SOUND_DIFFERENT_WORD',
+    'SOUND_SAME_LETTER', 'SOUND_DIFFERENT_LETTER',
+    'SOUND_HIGHER_NUMBER', 'SOUND_LOWER_NUMBER',
+  ],
 };
 
 export const RELATIONSHIPS = [
@@ -66,6 +72,7 @@ export const RELATIONSHIPS = [
   ...RELATIONSHIP_CATEGORIES.TRAIT,
   ...RELATIONSHIP_CATEGORIES.QUANT,
   ...RELATIONSHIP_CATEGORIES.VERBAL,
+  ...RELATIONSHIP_CATEGORIES.SOUND,
 ];
 
 export const TRANSITIVE_RELATIONSHIPS = [
@@ -93,6 +100,7 @@ export const CATEGORY_LABELS = {
   TRAIT: 'Trait',
   QUANT: 'Quantitative',
   VERBAL: 'Verbal',
+  SOUND: 'Sound',
 };
 
 export function getCategory(relationship) {
@@ -428,6 +436,50 @@ export function buildVerbalDisplay(relationship, pair) {
 }
 
 export const isVerbal = (rel) => RELATIONSHIP_CATEGORIES.VERBAL.includes(rel);
+export const isSound = (rel) => RELATIONSHIP_CATEGORIES.SOUND.includes(rel);
+
+const SOUND_WORDS = ['alpha', 'bravo', 'delta', 'echo', 'nova', 'pulse', 'signal', 'vector'];
+const SOUND_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'K', 'M', 'R', 'T'];
+const SOUND_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+export function getSoundPair(relationship) {
+  if (relationship.includes('WORD')) {
+    const a = pickRandom(SOUND_WORDS);
+    const b = relationship.includes('SAME') ? a : pickRandomExcluding(SOUND_WORDS, a);
+    return [a, b];
+  }
+  if (relationship.includes('LETTER')) {
+    const a = pickRandom(SOUND_LETTERS);
+    const b = relationship.includes('SAME') ? a : pickRandomExcluding(SOUND_LETTERS, a);
+    return [a, b];
+  }
+  if (relationship.includes('NUMBER')) {
+    const a = pickRandom(SOUND_NUMBERS);
+    const candidates = relationship === 'SOUND_HIGHER_NUMBER'
+      ? SOUND_NUMBERS.filter(n => n < a)
+      : SOUND_NUMBERS.filter(n => n > a);
+    const b = pickRandom(candidates.length ? candidates : SOUND_NUMBERS.filter(n => n !== a));
+    return [String(a), String(b)];
+  }
+  return ['tone A', 'tone B'];
+}
+
+export function buildSoundDisplay(relationship, pair) {
+  const [a, b] = pair;
+  const labels = {
+    PITCH_HIGHER: [a, 'higher pitch than', b],
+    PITCH_LOWER: [a, 'lower pitch than', b],
+    RHYTHM_FASTER: [a, 'faster rhythm than', b],
+    RHYTHM_SLOWER: [a, 'slower rhythm than', b],
+    SOUND_SAME_WORD: [a, 'same spoken word as', b],
+    SOUND_DIFFERENT_WORD: [a, 'different word from', b],
+    SOUND_SAME_LETTER: [a, 'same letter as', b],
+    SOUND_DIFFERENT_LETTER: [a, 'different letter from', b],
+    SOUND_HIGHER_NUMBER: [a, 'higher number than', b],
+    SOUND_LOWER_NUMBER: [a, 'lower number than', b],
+  };
+  return labels[relationship] || [a, relationship.replace(/_/g, ' ').toLowerCase(), b];
+}
 
 // ─── Timing & probability constants ───────────────────────────────────────────
 export const MATCH_CHANCE = 0.3;

@@ -11,7 +11,9 @@ import {
 import {
   WIPE_DURATION,
   FEEDBACK_DURATION,
+  isSound,
 } from '@/lib/gameConstants';
+import { playSoundStimulus } from '@/lib/audioRelationships';
 
 function StreamModeBadge({ mode, alwaysShow }) {
   if (!mode) return null;
@@ -290,6 +292,26 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       responded: (gameState.extraResponded || [])[i],
     })),
   ];
+
+  React.useEffect(() => {
+    if (phase !== 'stimulus' || clearCanvas) return;
+    const audible = [
+      { rel: gameState.currentRelationship, stimulus: gameState.currentStimulusA, index: 0 },
+      ...(gameState.extraCurrentRels || []).map((rel, i) => ({
+        rel,
+        stimulus: (gameState.extraCurrentStimuli || [])[i],
+        index: i + 1,
+      })),
+    ].filter(item => isSound(item.rel));
+
+    if (audible.length === 0) return;
+    const shuffled = [...audible].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(2, shuffled.length));
+    selected.forEach((item, i) => {
+      const pan = selected.length === 1 ? 0 : i === 0 ? -0.85 : 0.85;
+      playSoundStimulus(item.stimulus, pan);
+    });
+  }, [phase, clearCanvas, gameState.round, gameState.currentRelationship, gameState.extraCurrentRels]);
 
   const numStreams = streamStimuli.length;
   // Desktop cols: 1→1, 2→2, 3→3, 4→2(2×2), 5→3, 6→3, 7→4, 8→4, 9→3(3×3)

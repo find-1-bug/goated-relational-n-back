@@ -12,7 +12,9 @@ import {
   pickRandom,
   pickRandomExcluding,
   isVerbal,
+  isSound,
   getVerbalPair,
+  getSoundPair,
   pickTokenType,
   pickTokenWord,
   makeInverseStimulus,
@@ -36,6 +38,10 @@ function makeStimulusEntry(rel) {
   const shape3DB = pickRandomExcluding(['cube', 'sphere', 'pyramid', 'cone', 'torus', 'octahedron'], shape3DA);
   const size3DA = 2 + Math.random() * 1.5;
   const size3DB = 2 + Math.random() * 1.5;
+  if (isSound(rel)) {
+    const [soundA, soundB] = getSoundPair(rel);
+    return { rel, soundA, soundB, wordA: soundA, wordB: soundB, shapeA, shapeB, colorA, colorB, renderMode, shape3DA, shape3DB, size3DA, size3DB };
+  }
   if (isVerbal(rel)) {
     let wordA, wordB;
     if (Math.random() < 0.40) {

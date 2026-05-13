@@ -1,5 +1,5 @@
 import { drawShape } from './shapeRenderer';
-import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, getVerbalPair, buildVerbalDisplay, VORONOI_TOKEN_PREFIX, RELATIONSHIP_CATEGORIES } from './gameConstants';
+import { SHAPES, COLORS, pickRandom, pickRandomExcluding, randomBetween, isVerbal, isSound, getVerbalPair, buildVerbalDisplay, buildSoundDisplay, VORONOI_TOKEN_PREFIX, RELATIONSHIP_CATEGORIES } from './gameConstants';
 
 // Check if a relationship is 3D
 export function is3D(relationship) {
@@ -309,9 +309,39 @@ function renderVerbal(ctx, canvasW, canvasH, relationship, fixedWordA, fixedWord
   return {};
 }
 
+function renderSound(ctx, canvasW, canvasH, relationship, soundA, soundB) {
+  const cx = canvasW / 2;
+  const cy = canvasH / 2;
+  const [left, relation, right] = buildSoundDisplay(relationship, [soundA || 'tone A', soundB || 'tone B']);
+  ctx.clearRect(0, 0, canvasW, canvasH);
+  drawVerbalPill(ctx, cx, cy, canvasW, canvasH);
+
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.min(canvasW * 0.08, 32)}px 'JetBrains Mono', monospace`;
+  ctx.fillStyle = '#fb7185';
+  ctx.fillText(String(left), cx, cy - canvasH * 0.16);
+  ctx.font = `${Math.min(canvasW * 0.048, 18)}px 'JetBrains Mono', monospace`;
+  ctx.fillStyle = 'hsla(210,20%,70%,0.9)';
+  ctx.fillText(relation, cx, cy);
+  ctx.font = `bold ${Math.min(canvasW * 0.08, 32)}px 'JetBrains Mono', monospace`;
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillText(String(right), cx, cy + canvasH * 0.16);
+  ctx.font = `${Math.min(canvasW * 0.034, 12)}px 'JetBrains Mono', monospace`;
+  ctx.fillStyle = 'hsla(210,10%,45%,0.7)';
+  ctx.fillText('audio + visual', cx, cy + canvasH * 0.31);
+  ctx.restore();
+
+  return {};
+}
+
 // ── Main dispatch ──────────────────────────────────────────────────────────────
 // stimulus: {rel, wordA?, wordB?, shapeA, shapeB, colorA, colorB, renderMode} — always provided
 export function renderRelationship(ctx, canvasW, canvasH, relationship, prevVisuals, stimulus) {
+  if (isSound(relationship)) {
+    return renderSound(ctx, canvasW, canvasH, relationship, stimulus?.soundA, stimulus?.soundB);
+  }
   if (isVerbal(relationship)) {
     return renderVerbal(ctx, canvasW, canvasH, relationship, stimulus?.wordA, stimulus?.wordB, stimulus?.renderMode);
   }

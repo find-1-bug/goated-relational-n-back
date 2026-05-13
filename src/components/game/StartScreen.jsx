@@ -49,6 +49,7 @@ const CATEGORY_META = {
   TRAIT:      { label: 'Trait',        color: 'text-violet-400',   border: 'border-violet-400/40', bg: 'bg-violet-400/10' },
   QUANT:      { label: 'Quantitative', color: 'text-amber-400',    border: 'border-amber-400/40',  bg: 'bg-amber-400/10' },
   VERBAL:     { label: 'Verbal',       color: 'text-emerald-400',  border: 'border-emerald-400/40',bg: 'bg-emerald-400/10' },
+  SOUND:      { label: 'Sound',        color: 'text-rose-400',     border: 'border-rose-400/40',   bg: 'bg-rose-400/10' },
 };
 
 const REL_DISPLAY = {
@@ -97,6 +98,12 @@ const REL_DISPLAY = {
   NORTH_OF: 'North Of', SOUTH_OF: 'South Of', EAST_OF: 'East Of', WEST_OF: 'West Of',
   NORTH_EAST_OF: 'NE Of', NORTH_WEST_OF: 'NW Of', SOUTH_EAST_OF: 'SE Of', SOUTH_WEST_OF: 'SW Of',
   INSIDE_OF: 'Inside Of', OUTSIDE_OF: 'Outside Of', NEXT_TO: 'Next To', FAR_FROM: 'Far From',
+  // Sound
+  PITCH_HIGHER: 'Pitch Higher', PITCH_LOWER: 'Pitch Lower',
+  RHYTHM_FASTER: 'Rhythm Faster', RHYTHM_SLOWER: 'Rhythm Slower',
+  SOUND_SAME_WORD: 'Same Word', SOUND_DIFFERENT_WORD: 'Different Word',
+  SOUND_SAME_LETTER: 'Same Letter', SOUND_DIFFERENT_LETTER: 'Different Letter',
+  SOUND_HIGHER_NUMBER: 'Higher Number', SOUND_LOWER_NUMBER: 'Lower Number',
 };
 
 const KEY_OPTIONS = [
@@ -196,7 +203,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
   // Category mix weights (0–100 sliders, equal by default)
   const [catWeights, setCatWeights] = React.useState(
-    lastSettings?.catWeights || { SPATIAL: 25, SPATIAL_3D: 15, TRAIT: 25, QUANT: 25, VERBAL: 10 }
+    lastSettings?.catWeights || { SPATIAL: 20, SPATIAL_3D: 15, TRAIT: 20, QUANT: 20, VERBAL: 10, SOUND: 15 }
   );
   const [useCustomMix, setUseCustomMix] = React.useState(lastSettings?.useCustomMix || false);
   const [showStimuliMix, setShowStimuliMix] = React.useState(false);
