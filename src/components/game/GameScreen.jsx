@@ -375,10 +375,11 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
             <div key={idx} className={`relative rounded-xl border flex flex-col overflow-hidden ${audioEarForIndex(idx) ? 'bg-emerald-500/10 border-emerald-400 shadow-[0_0_28px_rgba(52,211,153,0.28)]' : `bg-secondary/30 ${STREAM_BORDER_COLORS[idx % STREAM_BORDER_COLORS.length]}`}`}>
               <div className="flex-1 min-h-0 relative">
                 <GameCanvas
-                  relationship={!clearCanvas ? s.rel : null}
-                  stimulus={s.stimulus}
-                  clearCanvas={clearCanvas}
-                  rintChain={gameState.rintStates?.[idx]?.chainLog}
+                relationship={!clearCanvas ? s.rel : null}
+                stimulus={s.stimulus}
+                clearCanvas={clearCanvas}
+                rintChain={gameState.rintStates?.[idx]?.chainLog}
+                streamCount={numStreams}
                 />
                 <div className="absolute top-2 left-3 flex items-center gap-1 flex-wrap max-w-[90%]">
                   <span className={`text-xs font-mono uppercase tracking-widest ${STREAM_COLORS[idx % STREAM_COLORS.length]} opacity-70 shrink-0`}>

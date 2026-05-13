@@ -40,7 +40,7 @@ function createShape3D(shapeType, size, color) {
   return mesh;
 }
 
-function createRelationPanelTexture(relationship, stimulus) {
+function createRelationPanelTexture(relationship, stimulus, alienCubeScale = 1) {
   const panelCanvas = document.createElement('canvas');
   panelCanvas.width = 900;
   panelCanvas.height = 560;
@@ -60,7 +60,7 @@ function createRelationPanelTexture(relationship, stimulus) {
   ctx.roundRect(18, 18, panelCanvas.width - 36, panelCanvas.height - 36, 22);
   ctx.stroke();
 
-  const zoom = 1.45;
+  const zoom = Math.min(1.9, 1.45 * alienCubeScale);
   const scaledW = panelCanvas.width * zoom;
   const scaledH = panelCanvas.height * zoom;
   ctx.drawImage(
@@ -113,8 +113,14 @@ function setupScene(canvas) {
   return { scene, camera, renderer };
 }
 
-export function render3DRelationship(canvas, relationship, colors, rintChain = null, stimulus = null) {
+export function render3DRelationship(canvas, relationship, colors, rintChain = null, stimulus = null, options = {}) {
+  const streamCount = options.streamCount || 1;
+  const alienCubeScale = stimulus?.cubePosition ? Math.min(1.55, 1 + Math.max(0, streamCount - 1) * 0.12) : 1;
   const { scene, camera, renderer } = setupScene(canvas);
+  if (stimulus?.cubePosition) {
+    camera.position.z = Math.max(2.35, 3.15 - Math.max(0, streamCount - 1) * 0.16);
+    camera.lookAt(0, 0, 0);
+  }
 
   const toThreeColor = (c) => {
     if (typeof c === 'number') return c;
@@ -153,6 +159,8 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       }
     }
 
+    cubeGroup.scale.setScalar(alienCubeScale);
+
     const shell = new THREE.Mesh(
       new THREE.BoxGeometry(3, 3, 3),
       new THREE.MeshBasicMaterial({ color: 0x6d7cff, transparent: true, opacity: 0.045, side: THREE.BackSide })
@@ -184,9 +192,9 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     cubeGroup.add(activeCellEdges);
 
     const isCompactView = canvas.clientWidth < 420 || canvas.clientHeight < 320;
-    const panelWidth = isCompactView ? 2.1 : 2.65;
-    const panelHeight = isCompactView ? 1.3 : 1.65;
-    const texture = createRelationPanelTexture(relationship, stimulus);
+    const panelWidth = (isCompactView ? 2.1 : 2.65) * alienCubeScale;
+    const panelHeight = (isCompactView ? 1.3 : 1.65) * alienCubeScale;
+    const texture = createRelationPanelTexture(relationship, stimulus, alienCubeScale);
     const relPanel = new THREE.Mesh(
       new THREE.PlaneGeometry(panelWidth, panelHeight),
       new THREE.MeshBasicMaterial({ map: texture, transparent: false, side: THREE.DoubleSide })
