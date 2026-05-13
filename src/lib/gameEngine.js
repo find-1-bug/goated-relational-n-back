@@ -146,13 +146,25 @@ function sameSquarePosition(a, b) {
   return !!a && !!b && a.x === b.x && a.y === b.y;
 }
 
+function resolveAlienSettings(alienSettings = {}) {
+  const pickDirection = (direction) => direction === 'random' ? (Math.random() < 0.5 ? 'cw' : 'ccw') : direction;
+  const pickSpeed = (speed, mode) => mode === 'random' ? 0.25 + Math.random() * 2.75 : Number(speed || 1);
+  return {
+    ...alienSettings,
+    cubeDirection: pickDirection(alienSettings.cubeDirection || 'cw'),
+    cubeSpeed: pickSpeed(alienSettings.cubeSpeed, alienSettings.cubeSpeedMode),
+    squareDirection: pickDirection(alienSettings.squareDirection || 'cw'),
+    squareSpeed: pickSpeed(alienSettings.squareSpeed, alienSettings.squareSpeedMode),
+  };
+}
+
 function withAlienPosition(stim, { cubePosition, squarePosition, alienMode, alienSettings }) {
   if (!stim) return stim;
   return {
     ...stim,
     ...(alienMode === 'square' ? { squarePosition: squarePosition || pickSquarePosition() } : { cubePosition: cubePosition || pickCubePosition() }),
     alienMode,
-    alienSettings,
+    alienSettings: resolveAlienSettings(alienSettings),
   };
 }
 

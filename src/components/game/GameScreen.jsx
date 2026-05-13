@@ -116,6 +116,10 @@ function mergeHistoricalWithProgress(historicalState, progressState, streamCount
 
 export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, extraStreams, streamA, alienSettings, noobMode, onFinish, onExit }) {
   // extraStreams: [{ key, label, keyDisplay, positionKey, positionKeyDisplay }]
+  const getStimulusDuration = useCallback(() => {
+    if (stimulusDuration === 'random') return 1000 + Math.random() * 3000;
+    return stimulusDuration || 2800;
+  }, [stimulusDuration]);
   const hasAlienPosition = modes.includes('alien_cube') || modes.includes('alien_square');
   const allStreams = [
     { key: streamA?.key || 'Space', keyDisplay: streamA?.keyDisplay || 'SPACE', positionKey: streamA?.positionKey || 'KeyP', positionKeyDisplay: streamA?.positionKeyDisplay || 'P', label: 'A' },
@@ -177,9 +181,9 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     
     // In noob mode, don't auto-advance — wait for user to click Next
     if (!noobMode) {
-      phaseTimerRef.current = setTimeout(() => endStimulus(nextState), stimulusDuration || 2800);
+      phaseTimerRef.current = setTimeout(() => endStimulus(nextState), getStimulusDuration());
     }
-  }, [noobMode]);
+  }, [noobMode, getStimulusDuration]);
 
   const endStimulus = useCallback((currentState) => {
     if (noobMode) {

@@ -137,6 +137,7 @@ const SPEED_OPTIONS = [
   { label: 'Normal', ms: 2800 },
   { label: 'Fast',   ms: 1800 },
   { label: 'Turbo',  ms: 1000 },
+  { label: 'Random', ms: 'random' },
 ];
 
 function StreamRow({ label, labelColor, borderColor, keyCode, positionKeyCode, showPositionKey, onKeyChange, onPositionKeyChange, allStreamKeys, thisKey, thisPositionKey, onRemove }) {
@@ -203,8 +204,10 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const [alienSettings, setAlienSettings] = React.useState(lastSettings?.alienSettings || {
     cubeDirection: 'cw',
     cubeSpeed: 1,
+    cubeSpeedMode: 'fixed',
     squareDirection: 'cw',
     squareSpeed: 1,
+    squareSpeedMode: 'fixed',
   });
   const alienModeActive = modes.includes('alien_cube') || modes.includes('alien_square');
 
@@ -639,21 +642,27 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
               { id: 'cube', label: 'Cube', active: modes.includes('alien_cube') },
               { id: 'square', label: 'Square', active: modes.includes('alien_square') },
             ].filter(item => item.active).map(item => (
-              <div key={item.id} className="grid grid-cols-2 gap-2 items-center">
-                <div className="flex rounded border border-border overflow-hidden">
-                  {['cw', 'ccw'].map(dir => (
+              <div key={item.id} className="space-y-2">
+                <div className="grid grid-cols-3 gap-1 rounded border border-border overflow-hidden">
+                  {['cw', 'ccw', 'random'].map(dir => (
                     <button key={dir} onClick={() => updateAlienSetting(`${item.id}Direction`, dir)}
-                      className={`flex-1 px-2 py-1 text-xs font-mono ${alienSettings[`${item.id}Direction`] === dir ? 'bg-primary/15 text-primary' : 'text-muted-foreground'}`}>
-                      {dir === 'cw' ? 'Clockwise' : 'Counter'}
+                      className={`px-2 py-1 text-xs font-mono ${alienSettings[`${item.id}Direction`] === dir ? 'bg-primary/15 text-primary' : 'text-muted-foreground'}`}>
+                      {dir === 'cw' ? 'Clockwise' : dir === 'ccw' ? 'Counter' : 'Random'}
                     </button>
                   ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-muted-foreground">Speed</span>
+                <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
+                  <button onClick={() => updateAlienSetting(`${item.id}SpeedMode`, alienSettings[`${item.id}SpeedMode`] === 'random' ? 'fixed' : 'random')}
+                    className={`px-2 py-1 rounded border text-xs font-mono ${alienSettings[`${item.id}SpeedMode`] === 'random' ? 'border-primary bg-primary/15 text-primary' : 'border-border text-muted-foreground'}`}>
+                    {alienSettings[`${item.id}SpeedMode`] === 'random' ? 'Random Speed' : 'Fixed Speed'}
+                  </button>
                   <input type="range" min="0.25" max="3" step="0.25" value={alienSettings[`${item.id}Speed`] || 1}
+                    disabled={alienSettings[`${item.id}SpeedMode`] === 'random'}
                     onChange={e => updateAlienSetting(`${item.id}Speed`, Number(e.target.value))}
-                    className="flex-1 h-1.5" />
-                  <span className="text-xs font-mono text-primary w-8">{alienSettings[`${item.id}Speed`] || 1}×</span>
+                    className="h-1.5 disabled:opacity-40" />
+                  <span className="text-xs font-mono text-primary w-16 text-right">
+                    {alienSettings[`${item.id}SpeedMode`] === 'random' ? '0.25–3×' : `${alienSettings[`${item.id}Speed`] || 1}×`}
+                  </span>
                 </div>
               </div>
             ))}

@@ -48,8 +48,14 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas, rintCh
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
-      ctx.scale(dpr, dpr);
-      renderAlienSquare(ctx, rect.width, rect.height, relationship, stimulus);
+      let animationId;
+      const draw = () => {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        renderAlienSquare(ctx, rect.width, rect.height, relationship, stimulus);
+        animationId = requestAnimationFrame(draw);
+      };
+      draw();
+      cleanupRef.current = () => cancelAnimationFrame(animationId);
     } else if (stimulus?.cubePosition || is3D(relationship)) {
       // Use 3D renderer
       if (cleanupRef.current) cleanupRef.current();

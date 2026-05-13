@@ -31,6 +31,20 @@ export function renderAlienSquare(ctx, canvasW, canvasH, relationship, stimulus)
     ctx.beginPath(); ctx.moveTo(-size / 2, i * cell); ctx.lineTo(size / 2, i * cell); ctx.stroke();
   }
 
+  [
+    { color: '#ff1744', from: [-size / 2, 0], to: [0, 0] },
+    { color: '#ffc400', from: [0, 0], to: [size / 2, 0] },
+    { color: '#7c3aed', from: [0, -size / 2], to: [0, 0] },
+    { color: '#39ff14', from: [0, 0], to: [0, size / 2] },
+  ].forEach(axis => {
+    ctx.strokeStyle = axis.color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(axis.from[0], axis.from[1]);
+    ctx.lineTo(axis.to[0], axis.to[1]);
+    ctx.stroke();
+  });
+
   ctx.strokeStyle = stimulus?.colorA || '#22d3ee';
   ctx.lineWidth = 4;
   ctx.strokeRect(pos.x * cell - cell / 2, pos.y * cell - cell / 2, cell, cell);

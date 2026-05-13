@@ -17,7 +17,7 @@ export default function Game() {
   const [speedMs, setSpeedMs] = useState(2800);
   const [extraStreams, setExtraStreams] = useState([]);
   const [streamA, setStreamA] = useState({ key: 'Space', keyDisplay: 'SPACE', positionKey: 'KeyP', positionKeyDisplay: 'P' });
-  const [alienSettings, setAlienSettings] = useState({ cubeDirection: 'cw', cubeSpeed: 1, squareDirection: 'cw', squareSpeed: 1 });
+  const [alienSettings, setAlienSettings] = useState({ cubeDirection: 'cw', cubeSpeed: 1, cubeSpeedMode: 'fixed', squareDirection: 'cw', squareSpeed: 1, squareSpeedMode: 'fixed' });
   const [noobMode, setNoobMode] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [gameRunId, setGameRunId] = useState(0);
@@ -40,7 +40,7 @@ export default function Game() {
     setSpeedMs(stimulusMs || 2800);
     setExtraStreams(extraSettings?.extraStreams || []);
     setStreamA(extraSettings?.streamA || { key: 'Space', keyDisplay: 'SPACE', positionKey: 'KeyP', positionKeyDisplay: 'P' });
-    setAlienSettings(extraSettings?.alienSettings || { cubeDirection: 'cw', cubeSpeed: 1, squareDirection: 'cw', squareSpeed: 1 });
+    setAlienSettings(extraSettings?.alienSettings || { cubeDirection: 'cw', cubeSpeed: 1, cubeSpeedMode: 'fixed', squareDirection: 'cw', squareSpeed: 1, squareSpeedMode: 'fixed' });
     setNoobMode(noob || false);
     setStartTime(Date.now());
     setGameRunId(id => id + 1);
