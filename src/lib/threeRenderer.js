@@ -60,7 +60,7 @@ function createRelationPanelTexture(relationship, stimulus, alienCubeScale = 1) 
   ctx.roundRect(18, 18, panelCanvas.width - 36, panelCanvas.height - 36, 22);
   ctx.stroke();
 
-  const zoom = Math.min(1.98, 1.45 * alienCubeScale);
+  const zoom = Math.min(1.45, 1.16 * alienCubeScale);
   const scaledW = panelCanvas.width * zoom;
   const scaledH = panelCanvas.height * zoom;
   ctx.drawImage(
@@ -198,9 +198,9 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       new THREE.PlaneGeometry(panelWidth, panelHeight),
       new THREE.MeshBasicMaterial({ map: texture, transparent: false, side: THREE.DoubleSide })
     );
-    const safePanelX = THREE.MathUtils.clamp(p.x * 0.68, -0.72, 0.72);
-    const safePanelY = THREE.MathUtils.clamp(p.y * 0.68, -0.72, 0.72);
-    const safePanelZ = THREE.MathUtils.clamp(p.z * 0.55, -0.55, 0.75);
+    const safePanelX = THREE.MathUtils.clamp(p.x * 0.48, -0.52, 0.52);
+    const safePanelY = THREE.MathUtils.clamp(p.y * 0.48, -0.52, 0.52);
+    const safePanelZ = THREE.MathUtils.clamp(p.z * 0.42, -0.42, 0.62);
     relPanel.position.set(safePanelX, safePanelY, safePanelZ + 0.24 + streamDepthOffset * 0.03);
     relPanel.lookAt(camera.position);
 
