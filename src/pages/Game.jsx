@@ -18,7 +18,7 @@ export default function Game() {
   const [extraStreams, setExtraStreams] = useState([]);
   const [streamA, setStreamA] = useState({ key: 'Space', keyDisplay: 'SPACE', positionKey: 'KeyP', positionKeyDisplay: 'P' });
   const [alienSettings, setAlienSettings] = useState({ cubeDirection: 'cw', cubeSpeed: 1, cubeSpeedMode: 'fixed', squareDirection: 'cw', squareSpeed: 1, squareSpeedMode: 'fixed' });
-  const [carouselSettings, setCarouselSettings] = useState({ enabled: true, streamsPerSlide: 'auto' });
+  const [carouselSettings, setCarouselSettings] = useState({ enabled: true, streamsPerSlide: 'auto', slideMs: 2800 });
   const [noobMode, setNoobMode] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [gameRunId, setGameRunId] = useState(0);
@@ -42,7 +42,7 @@ export default function Game() {
     setExtraStreams(extraSettings?.extraStreams || []);
     setStreamA(extraSettings?.streamA || { key: 'Space', keyDisplay: 'SPACE', positionKey: 'KeyP', positionKeyDisplay: 'P' });
     setAlienSettings(extraSettings?.alienSettings || { cubeDirection: 'cw', cubeSpeed: 1, cubeSpeedMode: 'fixed', squareDirection: 'cw', squareSpeed: 1, squareSpeedMode: 'fixed' });
-    setCarouselSettings(extraSettings?.carouselSettings || { enabled: true, streamsPerSlide: 'auto' });
+    setCarouselSettings({ enabled: true, streamsPerSlide: 'auto', slideMs: 2800, ...(extraSettings?.carouselSettings || {}) });
     setNoobMode(noob || false);
     setStartTime(Date.now());
     setGameRunId(id => id + 1);
@@ -59,7 +59,7 @@ export default function Game() {
         extraStreams: extraSettings?.extraStreams || [],
         streamA: extraSettings?.streamA || { key: 'Space', keyDisplay: 'SPACE', positionKey: 'KeyP', positionKeyDisplay: 'P' },
         alienSettings: extraSettings?.alienSettings,
-        carouselSettings: extraSettings?.carouselSettings || { enabled: true, streamsPerSlide: 'auto' },
+        carouselSettings: { enabled: true, streamsPerSlide: 'auto', slideMs: 2800, ...(extraSettings?.carouselSettings || {}) },
         noobMode: noob || false,
       }
     };

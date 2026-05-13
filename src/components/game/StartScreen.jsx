@@ -158,6 +158,13 @@ const SPEED_OPTIONS = [
   { label: 'Random', ms: 'random' },
 ];
 
+const CAROUSEL_SPEED_OPTIONS = [
+  { label: 'Slow', ms: 3600 },
+  { label: 'Normal', ms: 2800 },
+  { label: 'Fast', ms: 2000 },
+  { label: 'Turbo', ms: 1400 },
+];
+
 function StreamRow({ label, labelColor, borderColor, keyCode, positionKeyCode, showPositionKey, onKeyChange, onPositionKeyChange, allStreamKeys, thisKey, thisPositionKey, onRemove }) {
   return (
     <div className={`rounded-lg bg-secondary/50 border ${borderColor} p-2`}>
@@ -227,9 +234,11 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
     squareSpeed: 1,
     squareSpeedMode: 'fixed',
   });
-  const [carouselSettings, setCarouselSettings] = React.useState(lastSettings?.carouselSettings || {
+  const [carouselSettings, setCarouselSettings] = React.useState({
     enabled: true,
     streamsPerSlide: 'auto',
+    slideMs: 2800,
+    ...(lastSettings?.carouselSettings || {}),
   });
   const alienModeActive = modes.includes('alien_cube') || modes.includes('alien_square');
 
@@ -707,13 +716,26 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
             </button>
           </div>
           {carouselSettings.enabled && (
-            <div className="grid grid-cols-3 gap-1 rounded border border-border overflow-hidden">
-              {['auto', 6, 8, 10, 12, 15].map(value => (
-                <button key={value} onClick={() => setCarouselSettings(prev => ({ ...prev, streamsPerSlide: value }))}
-                  className={`px-2 py-1 text-xs font-mono ${carouselSettings.streamsPerSlide === value ? 'bg-primary/15 text-primary' : 'text-muted-foreground'}`}>
-                  {value === 'auto' ? 'Auto' : `${value}/slide`}
-                </button>
-              ))}
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-1 rounded border border-border overflow-hidden">
+                {['auto', 6, 8, 10, 12, 15].map(value => (
+                  <button key={value} onClick={() => setCarouselSettings(prev => ({ ...prev, streamsPerSlide: value }))}
+                    className={`px-2 py-1 text-xs font-mono ${carouselSettings.streamsPerSlide === value ? 'bg-primary/15 text-primary' : 'text-muted-foreground'}`}>
+                    {value === 'auto' ? 'Auto' : `${value}/slide`}
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-mono text-muted-foreground/60 uppercase tracking-widest">Carousel Speed</label>
+                <div className="grid grid-cols-4 gap-1">
+                  {CAROUSEL_SPEED_OPTIONS.map(opt => (
+                    <button key={opt.ms} onClick={() => setCarouselSettings(prev => ({ ...prev, slideMs: opt.ms }))}
+                      className={`px-2 py-1.5 rounded text-xs font-mono transition-all border ${carouselSettings.slideMs === opt.ms ? 'border-primary bg-primary/15 text-primary' : 'border-border text-muted-foreground hover:border-muted-foreground/40'}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>

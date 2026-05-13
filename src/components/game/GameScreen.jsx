@@ -211,8 +211,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     
     const slideCount = Math.ceil(allStreams.length / getCarouselCapacity());
     const duration = getStimulusDuration();
-    const slideDuration = slideCount > 1 ? Math.max(2200, duration) : 0;
-    const responseWindow = slideCount > 1 ? Math.max(3500, duration) : 0;
+    const slideDuration = slideCount > 1 ? Math.max(1200, carouselSettings?.slideMs || 2800) : 0;
+    const responseWindow = slideCount > 1 ? Math.max(1000, duration) : 0;
     const totalWatchTime = slideCount > 1 ? slideDuration * slideCount : duration;
 
     if (slideCount <= 1) {
