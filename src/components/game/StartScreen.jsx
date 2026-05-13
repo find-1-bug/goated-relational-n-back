@@ -101,9 +101,6 @@ const REL_DISPLAY = {
   // Sound
   PITCH_HIGHER: 'Pitch Higher', PITCH_LOWER: 'Pitch Lower',
   RHYTHM_FASTER: 'Rhythm Faster', RHYTHM_SLOWER: 'Rhythm Slower',
-  SOUND_SAME_WORD: 'Same Word', SOUND_DIFFERENT_WORD: 'Different Word',
-  SOUND_SAME_LETTER: 'Same Letter', SOUND_DIFFERENT_LETTER: 'Different Letter',
-  SOUND_HIGHER_NUMBER: 'Higher Number', SOUND_LOWER_NUMBER: 'Lower Number',
 };
 
 const KEY_OPTIONS = [
@@ -167,6 +164,7 @@ function StreamRow({ label, labelColor, borderColor, keyCode, onKeyChange, allSt
 export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const allCats = Object.keys(RELATIONSHIP_CATEGORIES);
   const allRels = Object.values(RELATIONSHIP_CATEGORIES).flat();
+  const savedRels = (lastSettings?.rels || []).filter(rel => allRels.includes(rel));
 
   const [nLevel, setNLevel] = React.useState(suggestedN || lastSettings?.n || 2);
   const [modes, setModes] = React.useState(lastSettings?.modes || []);
@@ -232,11 +230,11 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
 
   // Selected individual relationships
   const [enabledRels, setEnabledRels] = React.useState(
-    lastSettings?.rels ? new Set(lastSettings.rels) : new Set(allRels)
+    savedRels.length ? new Set(savedRels) : new Set(allRels)
   );
   // Derive enabled cats from enabled rels
   const [enabledCats, setEnabledCats] = React.useState(() => {
-    const initRels = lastSettings?.rels ? new Set(lastSettings.rels) : new Set(allRels);
+    const initRels = savedRels.length ? new Set(savedRels) : new Set(allRels);
     return new Set(allCats.filter(cat =>
       RELATIONSHIP_CATEGORIES[cat].some(r => initRels.has(r))
     ));
