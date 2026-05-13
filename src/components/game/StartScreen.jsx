@@ -746,10 +746,12 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
             <span className="text-xs font-mono text-muted-foreground">
               <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-semibold">
                 {KEY_OPTIONS.find(k => k.code === streamAKey)?.display || 'SPACE'}
-              </kbd> = Stream A
+              </kbd> = Stream A REL
+              {alienModeActive && <>{' '}<kbd className="px-1.5 py-0.5 rounded bg-muted text-amber-400 font-semibold">{KEY_OPTIONS.find(k => k.code === streamAPositionKey)?.display || 'P'}</kbd> = Stream A POS</>}
               {extraStreams.map((s, i) => (
                 <span key={i}>
-                  {' '}&nbsp;<kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-semibold">{s.keyDisplay}</kbd> = Stream {STREAM_LABELS[1 + i]}
+                  {' '}&nbsp;<kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-semibold">{s.keyDisplay}</kbd> = Stream {STREAM_LABELS[1 + i]} REL
+                  {alienModeActive && <>{' '}<kbd className="px-1.5 py-0.5 rounded bg-muted text-amber-400 font-semibold">{s.positionKeyDisplay || s.keyDisplay}</kbd> = Stream {STREAM_LABELS[1 + i]} POS</>}
                 </span>
               ))}
 

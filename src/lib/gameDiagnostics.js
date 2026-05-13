@@ -166,7 +166,8 @@ function assertTrialShape(trial) {
 }
 
 function assertScoredInvariants(state, expectedStreams, expectedRound) {
-  const expectedTrialRecords = expectedRound * expectedStreams;
+  const recordMultiplier = state.modes?.includes('alien_cube') || state.modes?.includes('alien_square') ? 2 : 1;
+  const expectedTrialRecords = expectedRound * expectedStreams * recordMultiplier;
   const scoredKeys = state.scoredTrialKeys || [];
   const uniqueKeys = new Set(scoredKeys);
   const results = calculateResults(state);
@@ -184,6 +185,8 @@ function makeResponses(roundIndex, streamCount) {
   return {
     pressedA: roundIndex % 3 === 0,
     pressedExtra: Array.from({ length: streamCount - 1 }, (_, idx) => (roundIndex + idx) % 4 === 0),
+    pressedPositionA: roundIndex % 4 === 0,
+    pressedPositionExtra: Array.from({ length: streamCount - 1 }, (_, idx) => (roundIndex + idx) % 5 === 0),
   };
 }
 
@@ -194,6 +197,8 @@ function assertDoubleScoringBlocked(state, streamCount, responses) {
   const rescored = processResponses(state, {
     pressedA: !responses.pressedA,
     pressedExtra: responses.pressedExtra.map(v => !v),
+    pressedPositionA: !responses.pressedPositionA,
+    pressedPositionExtra: (responses.pressedPositionExtra || []).map(v => !v),
   });
   assertCondition(rescored.allTrials.length === beforeRecords, 'double scoring changed trial records');
   assertCondition(rescored.scoredTrialKeys.length === beforeKeys, 'double scoring changed scored keys');
@@ -228,7 +233,8 @@ function simulateTimedCase(testCase) {
   }
 
   const results = calculateResults(state);
-  assertCondition(results.overall.total === totalRounds * streamCount, 'final result total mismatch');
+  const multiplier = modes.includes('alien_cube') || modes.includes('alien_square') ? 2 : 1;
+  assertCondition(results.overall.total === totalRounds * streamCount * multiplier, 'final result total mismatch');
   return results;
 }
 
@@ -261,6 +267,8 @@ function simulateNoobCase(testCase) {
       const editedHistorical = processResponses(historical, {
         pressedA: !responses.pressedA,
         pressedExtra: responses.pressedExtra.map(v => !v),
+    pressedPositionA: !responses.pressedPositionA,
+    pressedPositionExtra: (responses.pressedPositionExtra || []).map(v => !v),
       });
       assertCondition((editedHistorical.scoredTrialKeys || []).length === 1, 'historical replay should only score the replayed trial locally');
       assertScoredInvariants(progressState, streamCount, i + 1);
@@ -268,7 +276,8 @@ function simulateNoobCase(testCase) {
   }
 
   const results = calculateResults(progressState);
-  assertCondition(results.overall.total === totalRounds * streamCount, 'Noob final result total mismatch');
+  const multiplier = modes.includes('alien_cube') || modes.includes('alien_square') ? 2 : 1;
+  assertCondition(results.overall.total === totalRounds * streamCount * multiplier, 'Noob final result total mismatch');
   return results;
 }
 

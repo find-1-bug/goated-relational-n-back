@@ -119,7 +119,11 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   const hasAlienPosition = modes.includes('alien_cube') || modes.includes('alien_square');
   const allStreams = [
     { key: streamA?.key || 'Space', keyDisplay: streamA?.keyDisplay || 'SPACE', positionKey: streamA?.positionKey || 'KeyP', positionKeyDisplay: streamA?.positionKeyDisplay || 'P', label: 'A' },
-    ...(extraStreams || []),
+    ...(extraStreams || []).map((stream) => ({
+      ...stream,
+      positionKey: stream.positionKey || stream.key,
+      positionKeyDisplay: stream.positionKeyDisplay || stream.keyDisplay,
+    })),
   ];
   const numExtra = (extraStreams || []).length;
 
@@ -270,6 +274,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       const restoredState = mergeHistoricalWithProgress(historicalState, progressStateRef.current, allStreams.length);
       setGameState(restoredState);
       respondedRefs.current = [restoredState.respondedA, ...(restoredState.extraResponded || [])];
+      positionRespondedRefs.current = [restoredState.positionRespondedA, ...(restoredState.extraPositionResponded || [])];
       setClearCanvas(false);
       setPhase('stimulus');
     }
@@ -526,28 +531,20 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
               </button>
             </>
           ) : (
-            allStreams.map((stream, idx) => (
-              <button key={idx}
+            allStreams.flatMap((stream, idx) => [
+              <button key={`${idx}-rel`}
                 className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx]}`}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  if (phase === 'stimulus' && !respondedRefs.current[idx]) {
-                    respondedRefs.current[idx] = true;
-                    if (idx === 0) {
-                      setGameState(prev => ({ ...prev, respondedA: true }));
-                    } else {
-                      setGameState(prev => {
-                        const next = [...(prev.extraResponded || [])];
-                        next[idx - 1] = true;
-                        return { ...prev, extraResponded: next };
-                      });
-                    }
-                  }
-                }}>
-                {stream.keyDisplay}
+                onTouchStart={(e) => { e.preventDefault(); markResponse(idx, 'relation'); }}>
+                {stream.keyDisplay} REL
+              </button>,
+              hasAlienPosition && <button key={`${idx}-pos`}
+                className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-amber-400 transition-colors ${STREAM_BORDER_COLORS[idx]}`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+                onTouchStart={(e) => { e.preventDefault(); markResponse(idx, 'position'); }}>
+                {stream.positionKeyDisplay} POS
               </button>
-            ))
+            ].filter(Boolean))
           )}
         </div>
       )}
