@@ -75,8 +75,8 @@ function setupScene(canvas) {
   const starMaterial = new THREE.PointsMaterial({ color: 0x94a3b8, size: 0.035, transparent: true, opacity: 0.65 });
   scene.add(new THREE.Points(starGeometry, starMaterial));
 
-  const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-  camera.position.set(0, 3, 8);
+  const camera = new THREE.PerspectiveCamera(78, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+  camera.position.set(0, 1.45, 4.35);
   camera.lookAt(0, 0, 0);
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -94,10 +94,6 @@ function setupScene(canvas) {
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   scene.add(ambientLight);
 
-  // Lightweight grid floor
-  const gridHelper = new THREE.GridHelper(16, 8, 0x2d3748, 0x1a202c);
-  gridHelper.position.y = -2.5;
-  scene.add(gridHelper);
 
   return { scene, camera, renderer };
 }
@@ -117,7 +113,17 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     const cubeGroup = new THREE.Group();
     scene.add(cubeGroup);
 
-    const gridMaterial = new THREE.LineBasicMaterial({ color: 0x8ea2ff, transparent: true, opacity: 0.46 });
+    cubeGroup.rotation.set(
+      (Math.random() - 0.5) * 1.3,
+      (Math.random() - 0.5) * 1.6,
+      (Math.random() - 0.5) * 0.7
+    );
+    cubeGroup.userData.rotationSpeed = {
+      x: 0.003 + Math.random() * 0.006,
+      y: 0.004 + Math.random() * 0.007,
+    };
+
+    const gridMaterial = new THREE.LineBasicMaterial({ color: 0x9aa8ff, transparent: true, opacity: 0.22 });
     for (let i = -1.5; i <= 1.5; i += 1) {
       for (let j = -1.5; j <= 1.5; j += 1) {
         [[[-1.5, i, j], [1.5, i, j]], [[i, -1.5, j], [i, 1.5, j]], [[i, j, -1.5], [i, j, 1.5]]].forEach(([a, b]) => {
@@ -129,9 +135,23 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
 
     const shell = new THREE.Mesh(
       new THREE.BoxGeometry(3, 3, 3),
-      new THREE.MeshBasicMaterial({ color: 0x6d7cff, transparent: true, opacity: 0.08, side: THREE.BackSide })
+      new THREE.MeshBasicMaterial({ color: 0x6d7cff, transparent: true, opacity: 0.045, side: THREE.BackSide })
     );
     cubeGroup.add(shell);
+
+    for (let x = -1; x <= 1; x++) {
+      for (let y = -1; y <= 1; y++) {
+        for (let z = -1; z <= 1; z++) {
+          const hue = ((x + 1) * 70 + (y + 1) * 35 + (z + 1) * 18) / 360;
+          const marker = new THREE.Mesh(
+            new THREE.SphereGeometry(0.045, 8, 6),
+            new THREE.MeshBasicMaterial({ color: new THREE.Color().setHSL(hue, 0.85, 0.62), transparent: true, opacity: 0.82 })
+          );
+          marker.position.set(x, y, z);
+          cubeGroup.add(marker);
+        }
+      }
+    }
 
     const p = stimulus.cubePosition;
     const texture = createRelationPanelTexture(relationship, stimulus);
@@ -283,8 +303,9 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
 
     meshes.forEach((mesh, index) => {
       if (stimulus?.cubePosition && index === 1) return;
-      mesh.rotation.x += index === 0 && stimulus?.cubePosition ? 0.006 : 0.003;
-      mesh.rotation.y += index === 0 && stimulus?.cubePosition ? 0.009 : 0.005;
+      const speed = mesh.userData?.rotationSpeed;
+      mesh.rotation.x += speed?.x || 0.003;
+      mesh.rotation.y += speed?.y || 0.005;
     });
 
     if (stimulus?.cubePosition && meshes[1]) {
