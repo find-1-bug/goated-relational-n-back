@@ -140,18 +140,19 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     cubeGroup.add(shell);
 
     const p = stimulus.cubePosition;
-    const axonHue = ((p.x + 1) * 70 + (p.y + 1) * 35 + (p.z + 1) * 18) / 360;
-    const axonColor = new THREE.Color().setHSL(axonHue, 0.95, 0.62);
-    const axonCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-1.45, p.y * 0.55, -1.45),
-      new THREE.Vector3(p.x * 0.92, p.y * 0.92, p.z * 0.92),
-      new THREE.Vector3(1.45, -p.y * 0.55, 1.45),
-    ]);
-    const axon = new THREE.Mesh(
-      new THREE.TubeGeometry(axonCurve, 28, 0.026, 8, false),
-      new THREE.MeshBasicMaterial({ color: axonColor, transparent: true, opacity: 0.86 })
-    );
-    cubeGroup.add(axon);
+    const axisConfigs = [
+      { color: 0xff4d6d, points: [new THREE.Vector3(-1.5, p.y, p.z), new THREE.Vector3(1.5, p.y, p.z)] },
+      { color: 0x35f2a9, points: [new THREE.Vector3(p.x, -1.5, p.z), new THREE.Vector3(p.x, 1.5, p.z)] },
+      { color: 0x4da3ff, points: [new THREE.Vector3(p.x, p.y, -1.5), new THREE.Vector3(p.x, p.y, 1.5)] },
+    ];
+
+    axisConfigs.forEach(({ color, points }) => {
+      const axis = new THREE.Mesh(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 2, 0.022, 8, false),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 })
+      );
+      cubeGroup.add(axis);
+    });
     const texture = createRelationPanelTexture(relationship, stimulus);
     const relPanel = new THREE.Mesh(
       new THREE.PlaneGeometry(2.65, 1.65),
