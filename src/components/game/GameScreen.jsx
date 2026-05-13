@@ -216,7 +216,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     const responseWindow = carouselActive ? Math.max(1000, duration) : 0;
     const totalWatchTime = carouselActive ? slideDuration * slideCount : duration;
 
-    if (slideCount <= 1) {
+    if (!carouselActive) {
       setResponsesUnlocked(true);
     } else {
       setResponsesUnlocked(false);
@@ -425,7 +425,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   const numStreams = streamStimuli.length;
   const streamsPerSlide = getCarouselCapacity();
   const slideCount = Math.ceil(numStreams / streamsPerSlide);
-  const visibleStart = slideCount > 1 ? activeSlide * streamsPerSlide : 0;
+  const isCarouselActive = carouselSettings?.enabled && slideCount > 1;
+  const visibleStart = isCarouselActive ? activeSlide * streamsPerSlide : 0;
   const visibleStimuli = streamStimuli.slice(visibleStart, visibleStart + streamsPerSlide);
   const visibleStreams = allStreams.slice(visibleStart, visibleStart + streamsPerSlide);
   const visibleCount = visibleStimuli.length;
@@ -538,7 +539,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       </div>
 
 
-      {slideCount > 1 && phase === 'stimulus' && (
+      {isCarouselActive && phase === 'stimulus' && (
         <div className="mt-1 shrink-0 text-center text-xs font-mono">
           <span className="text-primary">Slide {Math.min(activeSlide + 1, slideCount)}/{slideCount}</span>
           <span className="text-muted-foreground/40"> · Streams {STREAM_LABELS[visibleStart]}–{STREAM_LABELS[Math.min(numStreams - 1, visibleStart + streamsPerSlide - 1)]}</span>

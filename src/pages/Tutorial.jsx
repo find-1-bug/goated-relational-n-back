@@ -43,7 +43,7 @@ export default function Tutorial() {
           <ol className="space-y-2 text-sm font-mono text-foreground/90">
             <li><span className="text-primary font-bold">1.</span> Choose N-level (how many trials back to remember)</li>
             <li><span className="text-primary font-bold">2.</span> Pick relationship types (spatial, trait, quantitative, verbal, sound)</li>
-            <li><span className="text-primary font-bold">3.</span> Set trial count & speed</li>
+            <li><span className="text-primary font-bold">3.</span> Set trial count, trial speed, and optional carousel speed</li>
             <li><span className="text-primary font-bold">4.</span> Press the key when you see a match</li>
             <li><span className="text-primary font-bold">5.</span> Get feedback on accuracy & track progress in Stats</li>
           </ol>
@@ -90,10 +90,10 @@ export default function Tutorial() {
               <span className="text-primary font-semibold">Streams:</span> Multiple simultaneous sequences (Stream A, B, C, etc.). Up to 20 streams can be configured for extreme training.
             </div>
             <div>
-              <span className="text-primary font-semibold">Automated Carousel:</span> When many streams cannot fit comfortably, the game splits them into timed slides. Watch all slides first, then responses unlock for the full trial.
+              <span className="text-primary font-semibold">Automated Carousel:</span> When many streams cannot fit comfortably, the game splits them into timed slides. Watch all slides first, then responses unlock for the response window. Carousel Speed controls slide timing separately from Trial Speed.
             </div>
             <div>
-              <span className="text-primary font-semibold">Speed:</span> How long each stimulus displays before disappearing. Random speed varies the display time each trial.
+              <span className="text-primary font-semibold">Speed:</span> How long each trial stays active before disappearing. Random speed varies the display time each trial; Alien Cube keeps a small minimum display time so 3D scenes can render reliably.
             </div>
             <div>
               <span className="text-primary font-semibold">Noob Mode:</span> Manual trial navigation with Prev/Next buttons
@@ -164,7 +164,7 @@ export default function Tutorial() {
         <div className="rounded-lg bg-accent/10 border border-accent/30 p-6 mb-8">
           <h2 className="text-lg font-mono font-semibold text-accent mb-3">Tips for Better Accuracy</h2>
           <ul className="space-y-2 text-sm font-mono text-foreground/90">
-            <li>• <span className="text-accent">Focus:</span> Concentrate on the current stimulus and N-back relationship; in Carousel mode, wait until all slides finish before answering</li>
+            <li>• <span className="text-accent">Focus:</span> Concentrate on the current stimulus and N-back relationship; in Carousel mode, watch every slide first, then answer once responses unlock</li>
             <li>• <span className="text-accent">Consistent Pacing:</span> Start slow, increase speed as you improve; use Random speed when you want unpredictable timing</li>
             <li>• <span className="text-accent">Review Sessions:</span> Check your performance in Stats to identify weak modes</li>
             <li>• <span className="text-accent">Progressive Difficulty:</span> Use Adaptive Mode to auto-adjust N-level</li>
