@@ -75,8 +75,8 @@ function setupScene(canvas) {
   const starMaterial = new THREE.PointsMaterial({ color: 0x94a3b8, size: 0.035, transparent: true, opacity: 0.65 });
   scene.add(new THREE.Points(starGeometry, starMaterial));
 
-  const camera = new THREE.PerspectiveCamera(78, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-  camera.position.set(0, 1.45, 4.35);
+  const camera = new THREE.PerspectiveCamera(72, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+  camera.position.set(0, 0.85, 3.15);
   camera.lookAt(0, 0, 0);
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -139,37 +139,29 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     );
     cubeGroup.add(shell);
 
-    for (let x = -1; x <= 1; x++) {
-      for (let y = -1; y <= 1; y++) {
-        for (let z = -1; z <= 1; z++) {
-          const hue = ((x + 1) * 70 + (y + 1) * 35 + (z + 1) * 18) / 360;
-          const color = new THREE.Color().setHSL(hue, 0.9, 0.6);
-          const geometry = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(x - 0.18, y, z), new THREE.Vector3(x + 0.18, y, z),
-            new THREE.Vector3(x, y - 0.18, z), new THREE.Vector3(x, y + 0.18, z),
-            new THREE.Vector3(x, y, z - 0.18), new THREE.Vector3(x, y, z + 0.18),
-            new THREE.Vector3(x + 0.05, y + 0.05, z), new THREE.Vector3(x + 0.22, y + 0.16, z + 0.08),
-            new THREE.Vector3(x - 0.05, y - 0.05, z), new THREE.Vector3(x - 0.22, y - 0.16, z - 0.08)
-          ]);
-          cubeGroup.add(new THREE.LineSegments(
-            geometry,
-            new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.62 })
-          ));
-        }
-      }
-    }
-
     const p = stimulus.cubePosition;
+    const axonHue = ((p.x + 1) * 70 + (p.y + 1) * 35 + (p.z + 1) * 18) / 360;
+    const axonColor = new THREE.Color().setHSL(axonHue, 0.95, 0.62);
+    const axonCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-1.45, p.y * 0.55, -1.45),
+      new THREE.Vector3(p.x * 0.92, p.y * 0.92, p.z * 0.92),
+      new THREE.Vector3(1.45, -p.y * 0.55, 1.45),
+    ]);
+    const axon = new THREE.Mesh(
+      new THREE.TubeGeometry(axonCurve, 28, 0.026, 8, false),
+      new THREE.MeshBasicMaterial({ color: axonColor, transparent: true, opacity: 0.86 })
+    );
+    cubeGroup.add(axon);
     const texture = createRelationPanelTexture(relationship, stimulus);
     const relPanel = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.85, 1.15),
+      new THREE.PlaneGeometry(2.65, 1.65),
       new THREE.MeshBasicMaterial({ map: texture, transparent: false, side: THREE.DoubleSide })
     );
     relPanel.position.set(p.x, p.y, p.z);
     relPanel.lookAt(camera.position);
 
     const glow = new THREE.Mesh(
-      new THREE.BoxGeometry(1.5, 0.92, 0.08),
+      new THREE.BoxGeometry(2.18, 1.34, 0.08),
       new THREE.MeshBasicMaterial({ color: toThreeColor(colors[0]), transparent: true, opacity: 0.18 })
     );
     glow.position.copy(relPanel.position);
