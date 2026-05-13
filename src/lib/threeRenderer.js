@@ -339,16 +339,9 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     scene.add(mesh2);
   }
 
-  // Animation loop: capped to reduce GPU load during fast multi-stream sessions
+  // Animation loop: keep rotating for the full trial duration
   let animationId;
-  let frameCount = 0;
-  const maxFrames = 90;
   const animate = () => {
-    if (frameCount >= maxFrames) {
-      renderer.render(scene, camera);
-      return;
-    }
-    frameCount += 1;
     animationId = requestAnimationFrame(animate);
 
     meshes.forEach((mesh, index) => {

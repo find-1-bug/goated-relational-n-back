@@ -48,10 +48,17 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas, rintCh
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
+
+      const panelCanvas = document.createElement('canvas');
+      panelCanvas.width = 640;
+      panelCanvas.height = 400;
+      const panelCtx = panelCanvas.getContext('2d');
+      renderRelationship(panelCtx, panelCanvas.width, panelCanvas.height, relationship, null, { ...stimulus, renderScale: 0.95 });
+
       let animationId;
       const draw = () => {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        renderAlienSquare(ctx, rect.width, rect.height, relationship, stimulus);
+        renderAlienSquare(ctx, rect.width, rect.height, relationship, stimulus, panelCanvas);
         animationId = requestAnimationFrame(draw);
       };
       draw();

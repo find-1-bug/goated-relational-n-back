@@ -6,7 +6,7 @@ export function is3D(relationship) {
   return RELATIONSHIP_CATEGORIES.SPATIAL_3D.includes(relationship);
 }
 
-export function renderAlienSquare(ctx, canvasW, canvasH, relationship, stimulus) {
+export function renderAlienSquare(ctx, canvasW, canvasH, relationship, stimulus, panelCanvas = null) {
   ctx.clearRect(0, 0, canvasW, canvasH);
   ctx.save();
   ctx.fillStyle = 'rgba(2, 6, 23, 0.95)';
@@ -16,7 +16,7 @@ export function renderAlienSquare(ctx, canvasW, canvasH, relationship, stimulus)
   const direction = settings.squareDirection === 'ccw' ? -1 : 1;
   const speed = Number(settings.squareSpeed || 1);
   const angle = direction * performance.now() * 0.00025 * speed;
-  const size = Math.min(canvasW, canvasH) * 0.68;
+  const size = Math.min(canvasW, canvasH) * 0.82;
   const cell = size / 3;
   const cx = canvasW / 2;
   const cy = canvasH / 2;
@@ -45,9 +45,19 @@ export function renderAlienSquare(ctx, canvasW, canvasH, relationship, stimulus)
     ctx.stroke();
   });
 
+  const selectedX = pos.x * cell - cell / 2;
+  const selectedY = pos.y * cell - cell / 2;
+  ctx.fillStyle = 'rgba(34, 211, 238, 0.16)';
+  ctx.fillRect(selectedX, selectedY, cell, cell);
+  ctx.shadowColor = stimulus?.colorA || '#22d3ee';
+  ctx.shadowBlur = 18;
   ctx.strokeStyle = stimulus?.colorA || '#22d3ee';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(pos.x * cell - cell / 2, pos.y * cell - cell / 2, cell, cell);
+  ctx.lineWidth = 7;
+  ctx.strokeRect(selectedX, selectedY, cell, cell);
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.82)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(selectedX + 4, selectedY + 4, cell - 8, cell - 8);
   ctx.restore();
 
   const panelW = Math.min(canvasW * 0.72, 420);
@@ -62,7 +72,11 @@ export function renderAlienSquare(ctx, canvasW, canvasH, relationship, stimulus)
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.translate(-panelW / 2, -panelH / 2);
-  renderRelationship(ctx, panelW, panelH, relationship, null, { ...stimulus, renderScale: 0.95 });
+  if (panelCanvas) {
+    ctx.drawImage(panelCanvas, 0, 0, panelW, panelH);
+  } else {
+    renderRelationship(ctx, panelW, panelH, relationship, null, { ...stimulus, renderScale: 0.95 });
+  }
   ctx.restore();
 }
 
