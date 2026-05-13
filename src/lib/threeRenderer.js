@@ -160,6 +160,14 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       );
       cubeGroup.add(axis);
     });
+
+    const activeCellEdges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
+      new THREE.LineBasicMaterial({ color: toThreeColor(colors[0]), transparent: true, opacity: 0.98 })
+    );
+    activeCellEdges.position.set(p.x, p.y, p.z);
+    cubeGroup.add(activeCellEdges);
+
     const isCompactView = canvas.clientWidth < 420 || canvas.clientHeight < 320;
     const panelWidth = isCompactView ? 2.1 : 2.65;
     const panelHeight = isCompactView ? 1.3 : 1.65;
