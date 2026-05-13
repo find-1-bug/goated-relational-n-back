@@ -503,25 +503,25 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
 
       {/* Mobile buttons */}
       {(phase === 'stimulus' || (noobMode && phase === 'stimulus')) && (
-        <div className="mt-1 shrink-0 md:hidden flex gap-2 w-full max-w-lg mx-auto">
+        <div className="mt-1 shrink-0 md:hidden grid grid-cols-2 gap-2 w-full max-w-lg mx-auto">
           {noobMode ? (
             <>
               <button
                 onClick={handlePrevTrial}
                 disabled={gameState.round <= 1}
-                className="flex-1 h-12 rounded-lg bg-secondary border border-border text-muted-foreground font-mono text-xs hover:border-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="h-12 rounded-lg bg-secondary border border-border text-muted-foreground font-mono text-xs hover:border-muted-foreground/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 ← Prev
               </button>
               {allStreams.flatMap((stream, idx) => [
                 <button key={`${idx}-rel`}
-                  className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx]}`}
+                  className={`h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx]}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                   onTouchStart={(e) => { e.preventDefault(); markResponse(idx, 'relation'); }}>
                   {stream.keyDisplay} REL
                 </button>,
                 hasAlienPosition && <button key={`${idx}-pos`}
-                  className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-amber-400 transition-colors ${STREAM_BORDER_COLORS[idx]}`}
+                  className={`h-12 rounded-lg bg-secondary border font-mono text-xs text-amber-400 transition-colors ${STREAM_BORDER_COLORS[idx]}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                   onTouchStart={(e) => { e.preventDefault(); markResponse(idx, 'position'); }}>
                   {stream.positionKeyDisplay} POS
@@ -529,7 +529,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
               ].filter(Boolean))}
               <button
                 onClick={handleNextTrial}
-                className="flex-1 h-12 rounded-lg bg-primary text-primary-foreground font-mono text-xs hover:bg-primary/90 transition-colors"
+                className="h-12 rounded-lg bg-primary text-primary-foreground font-mono text-xs hover:bg-primary/90 transition-colors"
               >
                 Next →
               </button>

@@ -64,7 +64,7 @@ export function renderAlienSquare(ctx, canvasW, canvasH, relationship, stimulus,
   const panelH = Math.min(canvasH * 0.42, 260);
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.fillStyle = 'rgba(8, 13, 22, 0.9)';
+  ctx.fillStyle = canvasW < 420 ? 'rgba(8, 13, 22, 0.72)' : 'rgba(8, 13, 22, 0.84)';
   ctx.beginPath();
   ctx.roundRect(-panelW / 2, -panelH / 2, panelW, panelH, 18);
   ctx.fill();
@@ -77,6 +77,20 @@ export function renderAlienSquare(ctx, canvasW, canvasH, relationship, stimulus,
   } else {
     renderRelationship(ctx, panelW, panelH, relationship, null, { ...stimulus, renderScale: 0.95 });
   }
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.shadowColor = stimulus?.colorA || '#22d3ee';
+  ctx.shadowBlur = canvasW < 420 ? 24 : 18;
+  ctx.strokeStyle = stimulus?.colorA || '#22d3ee';
+  ctx.lineWidth = canvasW < 420 ? 8 : 6;
+  ctx.strokeRect(selectedX, selectedY, cell, cell);
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(selectedX + 5, selectedY + 5, cell - 10, cell - 10);
   ctx.restore();
 }
 
