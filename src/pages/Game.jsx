@@ -16,7 +16,8 @@ export default function Game() {
   const [rounds, setRounds] = useState(20);
   const [speedMs, setSpeedMs] = useState(2800);
   const [extraStreams, setExtraStreams] = useState([]);
-  const [streamA, setStreamA] = useState({ key: 'Space', keyDisplay: 'SPACE' });
+  const [streamA, setStreamA] = useState({ key: 'Space', keyDisplay: 'SPACE', positionKey: 'KeyP', positionKeyDisplay: 'P' });
+  const [alienSettings, setAlienSettings] = useState({ cubeDirection: 'cw', cubeSpeed: 1, squareDirection: 'cw', squareSpeed: 1 });
   const [noobMode, setNoobMode] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [gameRunId, setGameRunId] = useState(0);
@@ -38,7 +39,8 @@ export default function Game() {
     setRounds(totalRounds || 20);
     setSpeedMs(stimulusMs || 2800);
     setExtraStreams(extraSettings?.extraStreams || []);
-    setStreamA(extraSettings?.streamA || { key: 'Space', keyDisplay: 'SPACE' });
+    setStreamA(extraSettings?.streamA || { key: 'Space', keyDisplay: 'SPACE', positionKey: 'KeyP', positionKeyDisplay: 'P' });
+    setAlienSettings(extraSettings?.alienSettings || { cubeDirection: 'cw', cubeSpeed: 1, squareDirection: 'cw', squareSpeed: 1 });
     setNoobMode(noob || false);
     setStartTime(Date.now());
     setGameRunId(id => id + 1);
@@ -53,7 +55,8 @@ export default function Game() {
         useCustomMix: extraSettings?.useCustomMix,
         tokenWeights: extraSettings?.tokenWeights,
         extraStreams: extraSettings?.extraStreams || [],
-        streamA: extraSettings?.streamA || { key: 'Space', keyDisplay: 'SPACE' },
+        streamA: extraSettings?.streamA || { key: 'Space', keyDisplay: 'SPACE', positionKey: 'KeyP', positionKeyDisplay: 'P' },
+        alienSettings: extraSettings?.alienSettings,
         noobMode: noob || false,
       }
     };
@@ -79,6 +82,8 @@ export default function Game() {
       falseAlarmsA: results.A.falseAlarms,
       correctRejectionsA: results.A.correctRejections,
       extraStreamStats: results.extra || [],
+      positionStatsA: results.positionA,
+      extraPositionStats: results.extraPosition || [],
       durationSeconds,
       noobMode,
       trials: state.allTrials || [] // trials saved during gameplay
@@ -123,6 +128,7 @@ export default function Game() {
           stimulusDuration={speedMs}
           extraStreams={extraStreams}
           streamA={streamA}
+          alienSettings={alienSettings}
           noobMode={noobMode}
           onFinish={handleFinish}
           onExit={handleBack}

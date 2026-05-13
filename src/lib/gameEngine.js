@@ -118,20 +118,42 @@ function pickSoundStreamIndexes(totalStreams) {
   return indexes.slice(0, Math.min(2, totalStreams));
 }
 
-function pickCubePosition() {
-  return {
-    x: Math.floor(Math.random() * 3) - 1,
-    y: Math.floor(Math.random() * 3) - 1,
-    z: Math.floor(Math.random() * 3) - 1,
-  };
+function pickCubePosition(excludePosition = null) {
+  const positions = [];
+  for (let x = -1; x <= 1; x += 1) {
+    for (let y = -1; y <= 1; y += 1) {
+      for (let z = -1; z <= 1; z += 1) positions.push({ x, y, z });
+    }
+  }
+  const candidates = excludePosition ? positions.filter(p => !sameCubePosition(p, excludePosition)) : positions;
+  return pickRandom(candidates.length ? candidates : positions);
+}
+
+function pickSquarePosition(excludePosition = null) {
+  const positions = [];
+  for (let x = -1; x <= 1; x += 1) {
+    for (let y = -1; y <= 1; y += 1) positions.push({ x, y });
+  }
+  const candidates = excludePosition ? positions.filter(p => !sameSquarePosition(p, excludePosition)) : positions;
+  return pickRandom(candidates.length ? candidates : positions);
 }
 
 function sameCubePosition(a, b) {
   return !!a && !!b && a.x === b.x && a.y === b.y && a.z === b.z;
 }
 
-function withCubePosition(stim, position) {
-  return stim ? { ...stim, cubePosition: position || pickCubePosition() } : stim;
+function sameSquarePosition(a, b) {
+  return !!a && !!b && a.x === b.x && a.y === b.y;
+}
+
+function withAlienPosition(stim, { cubePosition, squarePosition, alienMode, alienSettings }) {
+  if (!stim) return stim;
+  return {
+    ...stim,
+    ...(alienMode === 'square' ? { squarePosition: squarePosition || pickSquarePosition() } : { cubePosition: cubePosition || pickCubePosition() }),
+    alienMode,
+    alienSettings,
+  };
 }
 
 // Evaluate binary logic between two boolean signals
@@ -178,8 +200,8 @@ function rollTrialMode(modes, effectiveN) {
 
 // Generate stimulus for a single stream, given its own history/typeHistory/rintState
 // streamConfig: { trialMode, binaryMode, binaryOp, hierHistory } for Hierarchical and Binary Logic
-function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex, hierHistory, binaryMode, binaryOp, signalOnly = false, baseStim = null, alienCube = false }) {
-   let stim, isPrimaryTarget = false, nextRINTState = rintState;
+function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex, hierHistory, binaryMode, binaryOp, signalOnly = false, baseStim = null, alienCube = false, alienSquare = false, alienSettings = {} }) {
+   let stim, isPrimaryTarget = false, isPositionTarget = false, nextRINTState = rintState;
    const canTarget = history.length >= effectiveN;
 
    // RINT requires transitive relationships; Type N-Back can use all relationship types
@@ -197,12 +219,8 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
   }
 
   const nBackEntry = canTarget ? history[history.length - effectiveN] : null;
-  const forceAlienCubeTarget = alienCube && canTarget && nBackEntry && Math.random() < matchChance;
 
-  if (forceAlienCubeTarget) {
-    stim = withCubePosition(makeStimulusEntry(nBackEntry.rel), nBackEntry.cubePosition);
-    isPrimaryTarget = true;
-  } else if (trialMode === 'rint') {
+  if (trialMode === 'rint') {
     const rintResult = generateRINTStimulus(rintState, finalPool, effectiveN, matchChance);
     stim = rintResult.stim;
     isPrimaryTarget = rintResult.isTarget;
@@ -240,9 +258,19 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
     isPrimaryTarget = canTarget && relationshipMatches(stim.rel, nBackEntry?.rel);
   }
 
-  if (alienCube) {
-    stim = withCubePosition(stim, stim?.cubePosition);
-    isPrimaryTarget = isPrimaryTarget && sameCubePosition(stim.cubePosition, nBackEntry?.cubePosition);
+  if (alienCube || alienSquare) {
+    const alienMode = alienSquare ? 'square' : 'cube';
+    const targetPosition = alienSquare ? nBackEntry?.squarePosition : nBackEntry?.cubePosition;
+    const shouldMatchPosition = canTarget && targetPosition && Math.random() < matchChance;
+    stim = withAlienPosition(stim, {
+      alienMode,
+      alienSettings,
+      cubePosition: alienCube ? (shouldMatchPosition ? targetPosition : pickCubePosition(targetPosition)) : null,
+      squarePosition: alienSquare ? (shouldMatchPosition ? targetPosition : pickSquarePosition(targetPosition)) : null,
+    });
+    isPositionTarget = canTarget && (alienSquare
+      ? sameSquarePosition(stim.squarePosition, targetPosition)
+      : sameCubePosition(stim.cubePosition, targetPosition));
   }
 
   // Hierarchical signal: is the category of this stim the same as N back?
@@ -278,7 +306,7 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
     isTarget = isPrimaryTarget;
   }
 
-  return { stim, isTarget, isPrimaryTarget, isHierTarget, nextRINTState };
+  return { stim, isTarget, isPrimaryTarget, isPositionTarget, isHierTarget, nextRINTState };
 }
 
 // Random binary config for a single stream
@@ -297,13 +325,14 @@ function randomBinaryConfig(effectiveN) {
 
 // ─── State Creation ──────────────────────────────────────────────────────────
 
-export function createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams = [] }) {
+export function createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams = [], alienSettings = {} }) {
   const numExtra = extraStreams.length;
   const totalStreams = 1 + numExtra;
 
   return {
     nLevel,
     modes,
+    alienSettings,
     relationshipPool: relationshipPool || ALL_RELATIONSHIPS,
     round: 0,
     totalRounds: totalRounds || TOTAL_ROUNDS,
@@ -324,6 +353,7 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     currentRelationship: null,
     currentStimulusA: null,
     isTargetA: false,
+    isPositionTargetA: false,
 
     // Extra streams
     extraHistories: Array.from({ length: numExtra }, () => []),
@@ -331,7 +361,9 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     extraCurrentRels: Array(numExtra).fill(null),
     extraCurrentStimuli: Array(numExtra).fill(null),
     extraIsTargets: Array(numExtra).fill(false),
+    extraPositionTargets: Array(numExtra).fill(false),
     extraResponded: Array(numExtra).fill(false),
+    extraPositionResponded: Array(numExtra).fill(false),
     extraHits: Array(numExtra).fill(0),
     extraMisses: Array(numExtra).fill(0),
     extraFalseAlarms: Array(numExtra).fill(0),
@@ -344,6 +376,14 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
     missesA: 0,
     falseAlarmsA: 0,
     correctRejectionsA: 0,
+    positionHitsA: 0,
+    positionMissesA: 0,
+    positionFalseAlarmsA: 0,
+    positionCorrectRejectionsA: 0,
+    extraPositionHits: Array(numExtra).fill(0),
+    extraPositionMisses: Array(numExtra).fill(0),
+    extraPositionFalseAlarms: Array(numExtra).fill(0),
+    extraPositionCorrectRejections: Array(numExtra).fill(0),
 
     trialMode: 'normal',
     extraTrialModes: Array(numExtra).fill('normal'),
@@ -358,7 +398,7 @@ export function createGameState({ nLevel, modes, relationshipPool, totalRounds, 
 export function generateNextStimulus(state) {
   const {
     nLevel, round, historyA, typeHistoryA, modes, relationshipPool,
-    extraHistories, extraTypeHistories, rintStates, hierHistories, streamConfigs,
+    extraHistories, extraTypeHistories, rintStates, hierHistories, alienSettings,
   } = state;
 
   const pool = (relationshipPool && relationshipPool.length > 0) ? relationshipPool : ALL_RELATIONSHIPS;
@@ -377,6 +417,7 @@ export function generateNextStimulus(state) {
   const trialIndex = round;
   const isBinaryLogic = modes.includes('binary_logic');
   const alienCube = modes.includes('alien_cube');
+  const alienSquare = modes.includes('alien_square');
   const totalStreams = 1 + (extraHistories || []).length;
   const soundPool = pool.filter(isSound);
   const nonSoundPool = pool.filter(rel => !isSound(rel));
@@ -417,6 +458,8 @@ export function generateNextStimulus(state) {
     binaryMode: isBinaryLogic ? cfgA.binaryMode : null,
     binaryOp: cfgA.binaryOp,
     alienCube,
+    alienSquare,
+    alienSettings,
   });
 
   const stimA = resultA.stim;
@@ -446,6 +489,8 @@ export function generateNextStimulus(state) {
       binaryMode: isBinaryLogic ? cfg.binaryMode : null,
       binaryOp: cfg.binaryOp,
       alienCube,
+      alienSquare,
+      alienSettings,
     });
   });
 
@@ -460,6 +505,7 @@ export function generateNextStimulus(state) {
     stimA,
     relA: stimA.rel,
     isTargetA: resultA.isTarget,
+    isPositionTargetA: resultA.isPositionTarget,
     categoryA,
     isDistractor: false,
     effectiveN,
@@ -467,6 +513,7 @@ export function generateNextStimulus(state) {
     extraTrialModes: extraStreamModes,
     extraStimuli: extraResults.map(r => r.stim),
     extraIsTargets: extraResults.map(r => r.isTarget),
+    extraPositionTargets: extraResults.map(r => r.isPositionTarget),
     nextRINTStates,
     trialBinaryConfigs,
     audioStreamIndexes,
@@ -479,8 +526,8 @@ export function generateNextStimulus(state) {
 
 export function advanceRound(state, stimulus) {
   const {
-    stimA, relA, extraStimuli, extraIsTargets,
-    isTargetA, categoryA, isDistractor,
+    stimA, relA, extraStimuli, extraIsTargets, extraPositionTargets,
+    isTargetA, isPositionTargetA, categoryA, isDistractor,
     effectiveN, trialMode, extraTrialModes, nextRINTStates, allCategories, trialBinaryConfigs, audioStreamIndexes,
   } = stimulus;
   const trialIndex = state.round;
@@ -512,36 +559,48 @@ export function advanceRound(state, stimulus) {
     extraCurrentRels: (extraStimuli || []).map(s => s?.rel ?? null),
     extraCurrentStimuli: extraStimuli || [],
     extraIsTargets: extraIsTargets || [],
+    extraPositionTargets: extraPositionTargets || [],
     extraResponded: Array(state.numExtraStreams).fill(false),
+    extraPositionResponded: Array(state.numExtraStreams).fill(false),
     extraTrialModes: extraTrialModes || Array(state.numExtraStreams).fill('normal'),
     currentRelationship: relA,
     currentStimulusA: stimA,
     currentCategory: categoryA,
     isTargetA,
+    isPositionTargetA,
     isDistractor,
     trialMode: trialMode ?? 'normal',
     rintStates: nextRINTStates ?? state.rintStates,
     trialBinaryConfigs: trialBinaryConfigs ?? state.trialBinaryConfigs,
     audioStreamIndexes: audioStreamIndexes ?? [],
     respondedA: false,
+    positionRespondedA: false,
     finished: state.round + 1 >= state.totalRounds,
   };
 }
 
 // ─── Process Responses ────────────────────────────────────────────────────────
 
-export function processResponses(state, { pressedA, pressedExtra = [] }) {
+export function processResponses(state, { pressedA, pressedExtra = [], pressedPositionA = false, pressedPositionExtra = [] }) {
   const trialKey = state.round;
   if ((state.scoredTrialKeys || []).includes(trialKey)) return state;
 
+  const hasAlienPosition = state.modes?.includes('alien_cube') || state.modes?.includes('alien_square');
   let next = { ...state, scoredTrialKeys: [...(state.scoredTrialKeys || []), trialKey] };
   const trialRecords = [];
 
-  // Stream A
+  // Stream A relation
   if (state.isTargetA && pressedA) next.hitsA++;
   else if (state.isTargetA && !pressedA) next.missesA++;
   else if (!state.isTargetA && pressedA) next.falseAlarmsA++;
   else next.correctRejectionsA++;
+
+  if (hasAlienPosition) {
+    if (state.isPositionTargetA && pressedPositionA) next.positionHitsA++;
+    else if (state.isPositionTargetA && !pressedPositionA) next.positionMissesA++;
+    else if (!state.isPositionTargetA && pressedPositionA) next.positionFalseAlarmsA++;
+    else next.positionCorrectRejectionsA++;
+  }
 
   trialRecords.push({
     trialNumber: state.round,
@@ -552,17 +611,40 @@ export function processResponses(state, { pressedA, pressedExtra = [] }) {
     isTarget: state.isTargetA,
     userResponded: !!pressedA,
     correct: state.isTargetA === !!pressedA,
+    responseType: 'relation',
     nBackValue: state.currentEffectiveN ?? state.nLevel,
     binaryLogicPrimary: state.trialBinaryConfigs?.[0]?.primaryMode,
     binaryLogicSecondary: state.trialBinaryConfigs?.[0]?.binaryMode,
     binaryLogicOp: state.trialBinaryConfigs?.[0]?.binaryOp,
   });
 
+  if (hasAlienPosition) {
+    trialRecords.push({
+      trialNumber: state.round,
+      streamLabel: 'A',
+      relationship: state.currentRelationship,
+      stimulus: state.currentStimulusA,
+      trialMode: state.trialMode,
+      isTarget: state.isPositionTargetA,
+      userResponded: !!pressedPositionA,
+      correct: state.isPositionTargetA === !!pressedPositionA,
+      responseType: 'position',
+      nBackValue: state.currentEffectiveN ?? state.nLevel,
+      binaryLogicPrimary: state.trialBinaryConfigs?.[0]?.primaryMode,
+      binaryLogicSecondary: state.trialBinaryConfigs?.[0]?.binaryMode,
+      binaryLogicOp: state.trialBinaryConfigs?.[0]?.binaryOp,
+    });
+  }
+
   // Extra streams
   const nextExtraHits = [...(state.extraHits || [])];
   const nextExtraMisses = [...(state.extraMisses || [])];
   const nextExtraFA = [...(state.extraFalseAlarms || [])];
   const nextExtraCR = [...(state.extraCorrectRejections || [])];
+  const nextExtraPositionHits = [...(state.extraPositionHits || [])];
+  const nextExtraPositionMisses = [...(state.extraPositionMisses || [])];
+  const nextExtraPositionFA = [...(state.extraPositionFalseAlarms || [])];
+  const nextExtraPositionCR = [...(state.extraPositionCorrectRejections || [])];
   (state.extraIsTargets || []).forEach((isTarget, i) => {
     const pressed = pressedExtra[i] || false;
     if (isTarget && pressed) nextExtraHits[i] = (nextExtraHits[i] || 0) + 1;
@@ -579,16 +661,46 @@ export function processResponses(state, { pressedA, pressedExtra = [] }) {
       isTarget,
       userResponded: pressed,
       correct: isTarget === pressed,
+      responseType: 'relation',
       nBackValue: state.currentEffectiveN ?? state.nLevel,
       binaryLogicPrimary: state.trialBinaryConfigs?.[i + 1]?.primaryMode,
       binaryLogicSecondary: state.trialBinaryConfigs?.[i + 1]?.binaryMode,
       binaryLogicOp: state.trialBinaryConfigs?.[i + 1]?.binaryOp,
     });
+
+    if (hasAlienPosition) {
+      const positionTarget = (state.extraPositionTargets || [])[i] || false;
+      const positionPressed = pressedPositionExtra[i] || false;
+      if (positionTarget && positionPressed) nextExtraPositionHits[i] = (nextExtraPositionHits[i] || 0) + 1;
+      else if (positionTarget && !positionPressed) nextExtraPositionMisses[i] = (nextExtraPositionMisses[i] || 0) + 1;
+      else if (!positionTarget && positionPressed) nextExtraPositionFA[i] = (nextExtraPositionFA[i] || 0) + 1;
+      else nextExtraPositionCR[i] = (nextExtraPositionCR[i] || 0) + 1;
+
+      trialRecords.push({
+        trialNumber: state.round,
+        streamLabel: String.fromCharCode(66 + i),
+        relationship: state.extraCurrentRels?.[i],
+        stimulus: state.extraCurrentStimuli?.[i],
+        trialMode: state.extraTrialModes?.[i] || 'normal',
+        isTarget: positionTarget,
+        userResponded: positionPressed,
+        correct: positionTarget === positionPressed,
+        responseType: 'position',
+        nBackValue: state.currentEffectiveN ?? state.nLevel,
+        binaryLogicPrimary: state.trialBinaryConfigs?.[i + 1]?.primaryMode,
+        binaryLogicSecondary: state.trialBinaryConfigs?.[i + 1]?.binaryMode,
+        binaryLogicOp: state.trialBinaryConfigs?.[i + 1]?.binaryOp,
+      });
+    }
   });
   next.extraHits = nextExtraHits;
   next.extraMisses = nextExtraMisses;
   next.extraFalseAlarms = nextExtraFA;
   next.extraCorrectRejections = nextExtraCR;
+  next.extraPositionHits = nextExtraPositionHits;
+  next.extraPositionMisses = nextExtraPositionMisses;
+  next.extraPositionFalseAlarms = nextExtraPositionFA;
+  next.extraPositionCorrectRejections = nextExtraPositionCR;
   next.allTrials = [...(state.allTrials || []), ...trialRecords];
 
   return next;

@@ -30,7 +30,8 @@ const MODE_OPTIONS = [
   { id: 'mixed_rint',    icon: Shuffle,    label: 'Mixed RINT',        desc: 'Three-way random per trial: Normal / Type / RINT. Maximum flexibility demand. Requires N≥2.', minN: 2 },
   { id: 'impossible',    icon: Zap,        label: 'Impossible',        desc: 'Each stream independently randomizes between Normal, Type, and RINT every trial — different rules per stream simultaneously. Requires ≥2 streams and N≥2.', minN: 2, minStreams: 2 },
   { id: 'binary_logic',  icon: GitBranch,  label: 'Binary Logic',      desc: 'Each trial, each stream is assigned a random pair: <NBack type> <OP> <NBack type> (e.g. NRM AND NOT RINT). A match fires only when the combined boolean condition is true. Shown as live badges on each stream. Requires N≥2.', minN: 2 },
-  { id: 'alien_cube',   icon: Layers,     label: 'Alien Cube Mode',    desc: 'Each stream appears inside a rotating transparent 3×3×3 cube. A target requires BOTH the relationship and its cube position to match N steps back.' },
+  { id: 'alien_cube',   icon: Layers,     label: 'Alien Cube Mode',    desc: 'Each stream appears inside a rotating transparent 3×3×3 cube. Relation and position can be answered with separate keys.' },
+  { id: 'alien_square', icon: Layers,     label: 'Alien Square Mode',  desc: 'Each stream appears inside a rotating 3×3 square. Relation and square position can be answered with separate keys.' },
   { id: 'variable_n',    icon: Shuffle,    label: 'Variable N',        desc: 'N changes randomly each trial (±1 around your chosen N). Forces flexible updating.' },
   { id: 'adaptive',      icon: TrendingUp, label: 'Adaptive N',        desc: 'N auto-adjusts between sessions based on accuracy (≥80% → up, ≤50% → down).' },
   { id: 'distractors',   icon: Shuffle,    label: 'Distractors',       desc: 'Near-match stimuli from the same category create interference in normal mode.' },
@@ -42,6 +43,7 @@ const EXCLUSIVE_GROUPS = [
   ['rint', 'mixed_rint', 'impossible'],
   // binary_logic overrides the primary nback type selection per trial so conflicts with fixed-mode selectors
   ['binary_logic', 'mixed_nback', 'mixed_rint', 'impossible'],
+  ['alien_cube', 'alien_square'],
 ];
 
 const CATEGORY_META = {
@@ -114,6 +116,7 @@ const KEY_OPTIONS = [
   { code: 'KeyH',   display: 'H' },
   { code: 'KeyJ',   display: 'J' },
   { code: 'KeyK',   display: 'K' },
+  { code: 'KeyP',   display: 'P' },
   { code: 'KeyZ',   display: 'Z' },
   { code: 'KeyX',   display: 'X' },
   { code: 'KeyC',   display: 'C' },
@@ -136,11 +139,12 @@ const SPEED_OPTIONS = [
   { label: 'Turbo',  ms: 1000 },
 ];
 
-function StreamRow({ label, labelColor, borderColor, keyCode, onKeyChange, allStreamKeys, thisKey, onRemove }) {
+function StreamRow({ label, labelColor, borderColor, keyCode, positionKeyCode, showPositionKey, onKeyChange, onPositionKeyChange, allStreamKeys, thisKey, thisPositionKey, onRemove }) {
   return (
     <div className={`rounded-lg bg-secondary/50 border ${borderColor} p-2`}>
       <div className="flex items-center gap-2">
         <span className={`text-xs font-mono font-semibold ${labelColor} w-16 shrink-0`}>{label}</span>
+        {showPositionKey && <span className="text-xs font-mono text-muted-foreground/60 w-8">REL</span>}
         <select
           value={keyCode}
           onChange={e => onKeyChange(e.target.value)}
@@ -151,6 +155,21 @@ function StreamRow({ label, labelColor, borderColor, keyCode, onKeyChange, allSt
             </option>
           ))}
         </select>
+        {showPositionKey && (
+          <>
+            <span className="text-xs font-mono text-muted-foreground/60 w-8 text-right">POS</span>
+            <select
+              value={positionKeyCode}
+              onChange={e => onPositionKeyChange(e.target.value)}
+              className="flex-1 bg-secondary border border-border rounded px-2 py-1 text-xs font-mono text-foreground">
+              {KEY_OPTIONS.map(k => (
+                <option key={k.code} value={k.code} disabled={allStreamKeys.includes(k.code) && k.code !== thisPositionKey}>
+                  {k.display}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
         {onRemove && (
           <button onClick={onRemove}
             className="w-6 h-6 rounded bg-secondary border border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 flex items-center justify-center transition-colors text-sm shrink-0">
@@ -174,18 +193,30 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
   const [streamAKey, setStreamAKey] = React.useState(
     lastSettings?.streamA?.key || 'Space'
   );
+  const [streamAPositionKey, setStreamAPositionKey] = React.useState(
+    lastSettings?.streamA?.positionKey || 'KeyP'
+  );
   const [extraStreams, setExtraStreams] = React.useState(
     lastSettings?.extraStreams || []
   );
 
-  // extra stream: { key, keyDisplay, label }
-  const allStreamKeys = [streamAKey, ...extraStreams.map(s => s.key)];
+  const [alienSettings, setAlienSettings] = React.useState(lastSettings?.alienSettings || {
+    cubeDirection: 'cw',
+    cubeSpeed: 1,
+    squareDirection: 'cw',
+    squareSpeed: 1,
+  });
+  const alienModeActive = modes.includes('alien_cube') || modes.includes('alien_square');
+
+  // extra stream: { key, keyDisplay, positionKey, positionKeyDisplay, label }
+  const allStreamKeys = [streamAKey, ...(alienModeActive ? [streamAPositionKey] : []), ...extraStreams.flatMap(s => [s.key, ...(alienModeActive ? [s.positionKey] : [])]).filter(Boolean)];
   const addStream = () => {
     if (1 + extraStreams.length >= MAX_STREAMS) return;
     const nextLabel = STREAM_LABELS[1 + extraStreams.length];
     const available = KEY_OPTIONS.find(k => !allStreamKeys.includes(k.code));
+    const positionAvailable = KEY_OPTIONS.find(k => k.code !== available?.code && !allStreamKeys.includes(k.code));
     if (!available) return;
-    setExtraStreams(prev => [...prev, { key: available.code, keyDisplay: available.display, label: nextLabel }]);
+    setExtraStreams(prev => [...prev, { key: available.code, keyDisplay: available.display, positionKey: positionAvailable?.code || available.code, positionKeyDisplay: positionAvailable?.display || available.display, label: nextLabel }]);
   };
   const removeStream = (idx) => {
     setExtraStreams(prev => prev.filter((_, i) => i !== idx));
@@ -195,6 +226,12 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
     if (!opt) return;
     setExtraStreams(prev => prev.map((s, i) => i === idx ? { ...s, key: opt.code, keyDisplay: opt.display } : s));
   };
+  const setStreamPositionKey = (idx, code) => {
+    const opt = KEY_OPTIONS.find(k => k.code === code);
+    if (!opt) return;
+    setExtraStreams(prev => prev.map((s, i) => i === idx ? { ...s, positionKey: opt.code, positionKeyDisplay: opt.display } : s));
+  };
+  const updateAlienSetting = (key, value) => setAlienSettings(prev => ({ ...prev, [key]: value }));
   const [showRelTypes, setShowRelTypes] = React.useState(false);
   const [rounds, setRounds] = React.useState(lastSettings?.rounds || 20);
   const [speedMs, setSpeedMs] = React.useState(lastSettings?.speedMs || 2800);
@@ -565,8 +602,9 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
             {/* Stream A */}
             <StreamRow
               label="Stream A" labelColor="text-primary" borderColor="border-primary/20"
-              keyCode={streamAKey} onKeyChange={setStreamAKey}
-              allStreamKeys={allStreamKeys} thisKey={streamAKey}
+              keyCode={streamAKey} positionKeyCode={streamAPositionKey} showPositionKey={alienModeActive}
+              onKeyChange={setStreamAKey} onPositionKeyChange={setStreamAPositionKey}
+              allStreamKeys={allStreamKeys} thisKey={streamAKey} thisPositionKey={streamAPositionKey}
             />
             {/* Extra streams */}
             {extraStreams.map((stream, idx) => {
@@ -576,8 +614,9 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
               return (
                 <StreamRow key={idx}
                   label={`Stream ${label}`} labelColor={color} borderColor={border}
-                  keyCode={stream.key} onKeyChange={code => setStreamKey(idx, code)}
-                  allStreamKeys={allStreamKeys} thisKey={stream.key}
+                  keyCode={stream.key} positionKeyCode={stream.positionKey || stream.key} showPositionKey={alienModeActive}
+                  onKeyChange={code => setStreamKey(idx, code)} onPositionKeyChange={code => setStreamPositionKey(idx, code)}
+                  allStreamKeys={allStreamKeys} thisKey={stream.key} thisPositionKey={stream.positionKey}
                   onRemove={() => removeStream(idx)}
                 />
               );
@@ -591,6 +630,35 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
             </button>
           </div>
         </div>
+
+        {/* Alien Settings */}
+        {alienModeActive && (
+          <div className="space-y-3 rounded-lg bg-secondary/30 border border-border p-3">
+            <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest">Alien Rotation</label>
+            {[
+              { id: 'cube', label: 'Cube', active: modes.includes('alien_cube') },
+              { id: 'square', label: 'Square', active: modes.includes('alien_square') },
+            ].filter(item => item.active).map(item => (
+              <div key={item.id} className="grid grid-cols-2 gap-2 items-center">
+                <div className="flex rounded border border-border overflow-hidden">
+                  {['cw', 'ccw'].map(dir => (
+                    <button key={dir} onClick={() => updateAlienSetting(`${item.id}Direction`, dir)}
+                      className={`flex-1 px-2 py-1 text-xs font-mono ${alienSettings[`${item.id}Direction`] === dir ? 'bg-primary/15 text-primary' : 'text-muted-foreground'}`}>
+                      {dir === 'cw' ? 'Clockwise' : 'Counter'}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-muted-foreground">Speed</span>
+                  <input type="range" min="0.25" max="3" step="0.25" value={alienSettings[`${item.id}Speed`] || 1}
+                    onChange={e => updateAlienSetting(`${item.id}Speed`, Number(e.target.value))}
+                    className="flex-1 h-1.5" />
+                  <span className="text-xs font-mono text-primary w-8">{alienSettings[`${item.id}Speed`] || 1}×</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Session Length & Speed */}
         <div className="grid grid-cols-2 gap-3">
@@ -716,7 +784,8 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
               if (soundOnlySelection) return;
               setTokenWeights(tokenWeights);
               const streamAObj = { key: streamAKey, keyDisplay: KEY_OPTIONS.find(k => k.code === streamAKey)?.display || 'SPACE' };
-              onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights, streamA: streamAObj, extraStreams, streams: [streamAObj, ...extraStreams] }, noobMode);
+              const streamAWithPosition = { ...streamAObj, positionKey: streamAPositionKey, positionKeyDisplay: KEY_OPTIONS.find(k => k.code === streamAPositionKey)?.display || 'P' };
+              onStart(nLevel, modes, finalPool, rounds, speedMs, { catWeights, useCustomMix, rels: selectedRels, tokenWeights, streamA: streamAWithPosition, extraStreams, streams: [streamAWithPosition, ...extraStreams], alienSettings }, noobMode);
             }}
             className="h-12 px-10 font-mono font-semibold text-sm tracking-wide bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed">
             Start Training

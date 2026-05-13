@@ -119,6 +119,9 @@ function setupScene(canvas) {
 
 export function render3DRelationship(canvas, relationship, colors, rintChain = null, stimulus = null, options = {}) {
   const streamCount = options.streamCount || 1;
+  const alienSettings = options.alienSettings || stimulus?.alienSettings || {};
+  const cubeDirection = alienSettings.cubeDirection === 'ccw' ? -1 : 1;
+  const cubeSpeed = Number(alienSettings.cubeSpeed || 1);
   const streamDepthOffset = Math.max(0, streamCount - 1);
   const alienCubeScale = stimulus?.cubePosition ? Math.min(1.36, 1.12 + streamDepthOffset * 0.04) : 1;
   const { scene, camera, renderer } = setupScene(canvas);
@@ -149,9 +152,9 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       (Math.random() - 0.5) * 0.28
     );
     cubeGroup.userData.rotationSpeed = {
-      x: (startsReadable ? -1 : 1) * (targetX || 0.22) / 90,
-      y: (startsReadable ? -1 : 1) * (targetY || 0.28) / 90,
-      z: (Math.random() < 0.5 ? -1 : 1) * (0.001 + Math.random() * 0.002),
+      x: cubeDirection * cubeSpeed * (targetX || 0.22) / 90,
+      y: cubeDirection * cubeSpeed * (targetY || 0.28) / 90,
+      z: cubeDirection * cubeSpeed * 0.002,
     };
 
     const gridMaterial = new THREE.LineBasicMaterial({ color: 0x9aa8ff, transparent: true, opacity: 0.22 });

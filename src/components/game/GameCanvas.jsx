@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { renderRelationship, is3D } from '@/lib/relationshipRenderer';
+import { renderRelationship, renderAlienSquare, is3D } from '@/lib/relationshipRenderer';
 import { render3DRelationship } from '@/lib/threeRenderer';
 
 export default function GameCanvas({ relationship, stimulus, clearCanvas, rintChain, streamCount = 1 }) {
@@ -30,7 +30,27 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas, rintCh
       return;
     }
 
-    if (stimulus?.cubePosition || is3D(relationship)) {
+    if (stimulus?.squarePosition) {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (!canvas) return;
+      if (container) {
+        container.querySelectorAll('canvas[data-three-canvas="true"]').forEach(node => node.remove());
+        if (canvas.parentElement !== container) container.appendChild(canvas);
+      }
+      canvas.style.display = 'block';
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      renderAlienSquare(ctx, rect.width, rect.height, relationship, stimulus);
+    } else if (stimulus?.cubePosition || is3D(relationship)) {
       // Use 3D renderer
       if (cleanupRef.current) cleanupRef.current();
       const container = containerRef.current;
@@ -46,7 +66,7 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas, rintCh
       container.appendChild(tempCanvas);
 
       const colors = [stimulus?.colorA || '#22d3ee', stimulus?.colorB || '#a78bfa'];
-      cleanupRef.current = render3DRelationship(tempCanvas, relationship, colors, rintChain, stimulus, { streamCount });
+      cleanupRef.current = render3DRelationship(tempCanvas, relationship, colors, rintChain, stimulus, { streamCount, alienSettings: stimulus?.alienSettings });
     } else {
       // Use 2D renderer
       if (cleanupRef.current) {

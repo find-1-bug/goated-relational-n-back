@@ -20,6 +20,8 @@ const MODE_CASES = [
   { label: 'Alien Cube', modes: ['alien_cube'] },
   { label: 'Alien Cube + Type', modes: ['alien_cube', 'type_nback'] },
   { label: 'Alien Cube + Binary', modes: ['alien_cube', 'binary_logic'], minN: 2, needsRintPool: true },
+  { label: 'Alien Square', modes: ['alien_square'] },
+  { label: 'Alien Square + Type', modes: ['alien_square', 'type_nback'] },
   { label: 'Type N-Back', modes: ['type_nback'] },
   { label: 'RINT', modes: ['rint'], minN: 2, needsRintPool: true },
   { label: 'Mixed N-Back', modes: ['mixed_nback'] },
@@ -135,10 +137,21 @@ function assertCubePosition(position, label) {
   });
 }
 
-function assertAlienCubeState(state) {
-  assertCubePosition(state.currentStimulusA?.cubePosition, 'Stream A');
+function assertSquarePosition(position, label) {
+  assertCondition(!!position, `${label} square position missing`);
+  ['x', 'y'].forEach(axis => {
+    assertCondition(Number.isInteger(position[axis]), `${label} square ${axis} coordinate must be an integer`);
+    assertCondition(position[axis] >= -1 && position[axis] <= 1, `${label} square ${axis} coordinate out of range`);
+  });
+}
+
+function assertAlienState(state) {
+  const isSquare = state.modes?.includes('alien_square');
+  if (isSquare) assertSquarePosition(state.currentStimulusA?.squarePosition, 'Stream A');
+  else assertCubePosition(state.currentStimulusA?.cubePosition, 'Stream A');
   (state.extraCurrentStimuli || []).forEach((stimulus, index) => {
-    assertCubePosition(stimulus?.cubePosition, `Stream ${String.fromCharCode(66 + index)}`);
+    if (isSquare) assertSquarePosition(stimulus?.squarePosition, `Stream ${String.fromCharCode(66 + index)}`);
+    else assertCubePosition(stimulus?.cubePosition, `Stream ${String.fromCharCode(66 + index)}`);
   });
 }
 
@@ -206,7 +219,7 @@ function simulateTimedCase(testCase) {
 
     state = advanceRound(state, stimulus);
     assertStateInvariants(state, streamCount, i + 1);
-    if (modes.includes('alien_cube')) assertAlienCubeState(state);
+    if (modes.includes('alien_cube') || modes.includes('alien_square')) assertAlienState(state);
 
     const responses = makeResponses(i, streamCount);
     state = processResponses(state, responses);
@@ -244,7 +257,7 @@ function simulateNoobCase(testCase) {
     if (i >= 1) {
       const historical = cloneState(trialStates[i]);
       assertStateInvariants(historical, streamCount, i);
-      if (modes.includes('alien_cube')) assertAlienCubeState(historical);
+      if (modes.includes('alien_cube') || modes.includes('alien_square')) assertAlienState(historical);
       const editedHistorical = processResponses(historical, {
         pressedA: !responses.pressedA,
         pressedExtra: responses.pressedExtra.map(v => !v),

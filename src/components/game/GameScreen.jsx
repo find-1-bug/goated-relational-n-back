@@ -39,17 +39,20 @@ const STREAM_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
 
 function getRecordedResponses(progressState, round, streamCount) {
   const records = (progressState?.allTrials || []).filter(trial => trial.trialNumber === round);
-  const respondedA = records.find(trial => trial.streamLabel === 'A')?.userResponded || false;
+  const respondedA = records.find(trial => trial.streamLabel === 'A' && (trial.responseType || 'relation') === 'relation')?.userResponded || false;
+  const positionRespondedA = records.find(trial => trial.streamLabel === 'A' && trial.responseType === 'position')?.userResponded || false;
   const extraResponded = Array(Math.max(0, streamCount - 1)).fill(false);
+  const extraPositionResponded = Array(Math.max(0, streamCount - 1)).fill(false);
 
   records.forEach(trial => {
     const index = (trial.streamLabel || '').charCodeAt(0) - 66;
     if (index >= 0 && index < extraResponded.length) {
-      extraResponded[index] = !!trial.userResponded;
+      if (trial.responseType === 'position') extraPositionResponded[index] = !!trial.userResponded;
+      else extraResponded[index] = !!trial.userResponded;
     }
   });
 
-  return { respondedA, extraResponded };
+  return { respondedA, positionRespondedA, extraResponded, extraPositionResponded };
 }
 
 function makeHistoricalSnapshot(state) {
@@ -57,14 +60,24 @@ function makeHistoricalSnapshot(state) {
     ...structuredClone(state),
     respondedA: false,
     extraResponded: Array(state.numExtraStreams || 0).fill(false),
+    positionRespondedA: false,
+    extraPositionResponded: Array(state.numExtraStreams || 0).fill(false),
     hitsA: 0,
     missesA: 0,
     falseAlarmsA: 0,
     correctRejectionsA: 0,
+    positionHitsA: 0,
+    positionMissesA: 0,
+    positionFalseAlarmsA: 0,
+    positionCorrectRejectionsA: 0,
     extraHits: Array(state.numExtraStreams || 0).fill(0),
     extraMisses: Array(state.numExtraStreams || 0).fill(0),
     extraFalseAlarms: Array(state.numExtraStreams || 0).fill(0),
     extraCorrectRejections: Array(state.numExtraStreams || 0).fill(0),
+    extraPositionHits: Array(state.numExtraStreams || 0).fill(0),
+    extraPositionMisses: Array(state.numExtraStreams || 0).fill(0),
+    extraPositionFalseAlarms: Array(state.numExtraStreams || 0).fill(0),
+    extraPositionCorrectRejections: Array(state.numExtraStreams || 0).fill(0),
     scoredTrialKeys: [],
     allTrials: [],
   };
@@ -77,37 +90,49 @@ function mergeHistoricalWithProgress(historicalState, progressState, streamCount
   return {
     ...historical,
     respondedA: recordedResponses.respondedA,
+    positionRespondedA: recordedResponses.positionRespondedA,
     extraResponded: recordedResponses.extraResponded,
+    extraPositionResponded: recordedResponses.extraPositionResponded,
     hitsA: progressState.hitsA,
     missesA: progressState.missesA,
     falseAlarmsA: progressState.falseAlarmsA,
     correctRejectionsA: progressState.correctRejectionsA,
+    positionHitsA: progressState.positionHitsA,
+    positionMissesA: progressState.positionMissesA,
+    positionFalseAlarmsA: progressState.positionFalseAlarmsA,
+    positionCorrectRejectionsA: progressState.positionCorrectRejectionsA,
     extraHits: progressState.extraHits || [],
     extraMisses: progressState.extraMisses || [],
     extraFalseAlarms: progressState.extraFalseAlarms || [],
     extraCorrectRejections: progressState.extraCorrectRejections || [],
+    extraPositionHits: progressState.extraPositionHits || [],
+    extraPositionMisses: progressState.extraPositionMisses || [],
+    extraPositionFalseAlarms: progressState.extraPositionFalseAlarms || [],
+    extraPositionCorrectRejections: progressState.extraPositionCorrectRejections || [],
     scoredTrialKeys: progressState.scoredTrialKeys || [],
     allTrials: progressState.allTrials || [],
   };
 }
 
-export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, extraStreams, streamA, noobMode, onFinish, onExit }) {
-  // extraStreams: [{ key, label, keyDisplay }]
+export default function GameScreen({ nLevel, modes, relationshipPool, totalRounds, stimulusDuration, extraStreams, streamA, alienSettings, noobMode, onFinish, onExit }) {
+  // extraStreams: [{ key, label, keyDisplay, positionKey, positionKeyDisplay }]
+  const hasAlienPosition = modes.includes('alien_cube') || modes.includes('alien_square');
   const allStreams = [
-    { key: streamA?.key || 'Space', keyDisplay: streamA?.keyDisplay || 'SPACE', label: 'A' },
+    { key: streamA?.key || 'Space', keyDisplay: streamA?.keyDisplay || 'SPACE', positionKey: streamA?.positionKey || 'KeyP', positionKeyDisplay: streamA?.positionKeyDisplay || 'P', label: 'A' },
     ...(extraStreams || []),
   ];
   const numExtra = (extraStreams || []).length;
 
   const [gameState, setGameState] = useState(() =>
-    createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams: extraStreams || [] })
+    createGameState({ nLevel, modes, relationshipPool, totalRounds, extraStreams: extraStreams || [], alienSettings })
   );
   const [phase, setPhase] = useState('stimulus');
   const [clearCanvas, setClearCanvas] = useState(false);
   // Store full game state after each generated trial, indexed by round number.
 
-  // One responded ref per stream (index 0 = stream A, 1..N = extra streams)
+  // One response ref per stream (index 0 = stream A, 1..N = extra streams)
   const respondedRefs = useRef(allStreams.map(() => false));
+  const positionRespondedRefs = useRef(allStreams.map(() => false));
   const phaseTimerRef = useRef(null);
   const gameStateRef = useRef(gameState);
   const phaseRef = useRef(phase);
@@ -134,6 +159,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     
     setGameState(nextState);
     respondedRefs.current = allStreams.map(() => false);
+    positionRespondedRefs.current = allStreams.map(() => false);
     setClearCanvas(false);
     setPhase('stimulus');
     
@@ -164,8 +190,10 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       const state = gameStateRef.current;
       const pressedA = respondedRefs.current[0];
       const pressedExtra = respondedRefs.current.slice(1);
+      const pressedPositionA = positionRespondedRefs.current[0];
+      const pressedPositionExtra = positionRespondedRefs.current.slice(1);
 
-      const updatedState = processResponses(state, { pressedA, pressedExtra });
+      const updatedState = processResponses(state, { pressedA, pressedExtra, pressedPositionA, pressedPositionExtra });
       progressStateRef.current = updatedState;
       setGameState(updatedState);
       setPhase('feedback');
@@ -191,12 +219,14 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     const state = gameStateRef.current;
     const pressedA = respondedRefs.current[0];
     const pressedExtra = respondedRefs.current.slice(1);
+    const pressedPositionA = positionRespondedRefs.current[0];
+    const pressedPositionExtra = positionRespondedRefs.current.slice(1);
 
     if (noobMode) {
       const alreadyScored = (progressStateRef.current?.scoredTrialKeys || []).includes(state.round);
       const progressState = alreadyScored
         ? progressStateRef.current
-        : processResponses(state, { pressedA, pressedExtra });
+        : processResponses(state, { pressedA, pressedExtra, pressedPositionA, pressedPositionExtra });
 
       progressStateRef.current = progressState;
 
@@ -211,6 +241,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
         const restoredState = mergeHistoricalWithProgress(savedNextState, progressState, allStreams.length);
         setGameState(restoredState);
         respondedRefs.current = [restoredState.respondedA, ...(restoredState.extraResponded || [])];
+        positionRespondedRefs.current = [restoredState.positionRespondedA, ...(restoredState.extraPositionResponded || [])];
         setClearCanvas(false);
         setPhase('stimulus');
       } else {
@@ -220,7 +251,7 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
       return;
     }
 
-    const updatedState = processResponses(state, { pressedA, pressedExtra });
+    const updatedState = processResponses(state, { pressedA, pressedExtra, pressedPositionA, pressedPositionExtra });
     progressStateRef.current = updatedState;
 
     if (updatedState.round >= updatedState.totalRounds) {
@@ -252,44 +283,55 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
     return () => { if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current); };
   }, []);
 
+  const markResponse = useCallback((idx, type = 'relation') => {
+    if (!(phaseRef.current === 'stimulus')) return;
+    if (noobMode && (progressStateRef.current?.scoredTrialKeys || []).includes(gameStateRef.current?.round)) return;
+    const refs = type === 'position' ? positionRespondedRefs : respondedRefs;
+    if (refs.current[idx]) return;
+    refs.current[idx] = true;
+    if (idx === 0) {
+      setGameState(prev => type === 'position' ? { ...prev, positionRespondedA: true } : { ...prev, respondedA: true });
+    } else {
+      setGameState(prev => {
+        const key = type === 'position' ? 'extraPositionResponded' : 'extraResponded';
+        const next = [...(prev[key] || [])];
+        next[idx - 1] = true;
+        return { ...prev, [key]: next };
+      });
+    }
+  }, [noobMode]);
+
   // Keyboard controls — dynamic per stream key
   useEffect(() => {
     const handleKey = (e) => {
       if (phase !== 'stimulus') return;
       if (noobMode && (progressStateRef.current?.scoredTrialKeys || []).includes(gameStateRef.current?.round)) return;
-      // Check each stream's key
       allStreams.forEach((stream, idx) => {
         if (e.code === stream.key) {
           e.preventDefault();
-          if (!(noobMode && (progressStateRef.current?.scoredTrialKeys || []).includes(gameStateRef.current?.round)) && !respondedRefs.current[idx]) {
-            respondedRefs.current[idx] = true;
-            if (idx === 0) {
-              setGameState(prev => ({ ...prev, respondedA: true }));
-            } else {
-              setGameState(prev => {
-                const next = [...(prev.extraResponded || [])];
-                next[idx - 1] = true;
-                return { ...prev, extraResponded: next };
-              });
-            }
-          }
+          markResponse(idx, 'relation');
+        }
+        if (hasAlienPosition && e.code === stream.positionKey) {
+          e.preventDefault();
+          markResponse(idx, 'position');
         }
       });
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [phase]);
+  }, [phase, markResponse, hasAlienPosition]);
 
   // Get current stimulus & rel for each stream (A + extras)
   const allTrialModes = [gameState.trialMode, ...(gameState.extraTrialModes || [])];
   const allTrialBinaryConfigs = gameState.trialBinaryConfigs || [];
   const isBinaryLogic = modes.includes('binary_logic');
   const streamStimuli = [
-    { rel: gameState.currentRelationship, stimulus: gameState.currentStimulusA, responded: gameState.respondedA },
+    { rel: gameState.currentRelationship, stimulus: gameState.currentStimulusA, responded: gameState.respondedA, positionResponded: gameState.positionRespondedA },
     ...(gameState.extraCurrentRels || []).map((rel, i) => ({
       rel,
       stimulus: (gameState.extraCurrentStimuli || [])[i],
       responded: (gameState.extraResponded || [])[i],
+      positionResponded: (gameState.extraPositionResponded || [])[i],
     })),
   ];
   const audioStreamIndexes = gameState.audioStreamIndexes || [];
@@ -404,8 +446,11 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
                     {audioEarForIndex(idx)}
                   </div>
                 )}
-                {s.responded && phase === 'stimulus' && (
-                  <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx]}`} />
+                {(s.responded || s.positionResponded) && phase === 'stimulus' && (
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+                    {s.responded && <div className={`w-2 h-2 rounded-full ${STREAM_DOT_COLORS[idx]}`} title="Relation response" />}
+                    {s.positionResponded && <div className="w-2 h-2 rounded-full bg-amber-400/80" title="Position response" />}
+                  </div>
                 )}
                 {phase === 'wipe' && (
                   <div className="absolute inset-0 bg-background/90 rounded-xl flex items-center justify-center">
@@ -437,7 +482,8 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           {allStreams.map((stream, idx) => (
             <span key={idx}>
               <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-semibold text-xs">{stream.keyDisplay}</kbd>
-              {' '}={' '}{STREAM_LABELS[idx]}
+              {' '}= {STREAM_LABELS[idx]} REL
+              {hasAlienPosition && <><kbd className="ml-1 px-1 py-0.5 rounded bg-muted text-amber-400 font-semibold text-xs">{stream.positionKeyDisplay}</kbd> = {STREAM_LABELS[idx]} POS</>}
             </span>
           ))}
 
@@ -458,28 +504,20 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
               >
                 ← Prev
               </button>
-              {allStreams.map((stream, idx) => (
-                <button key={idx}
+              {allStreams.flatMap((stream, idx) => [
+                <button key={`${idx}-rel`}
                   className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-muted-foreground transition-colors ${STREAM_BORDER_COLORS[idx]}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    if (!(noobMode && (progressStateRef.current?.scoredTrialKeys || []).includes(gameStateRef.current?.round)) && !respondedRefs.current[idx]) {
-                      respondedRefs.current[idx] = true;
-                      if (idx === 0) {
-                        setGameState(prev => ({ ...prev, respondedA: true }));
-                      } else {
-                        setGameState(prev => {
-                          const next = [...(prev.extraResponded || [])];
-                          next[idx - 1] = true;
-                          return { ...prev, extraResponded: next };
-                        });
-                      }
-                    }
-                  }}>
-                  {stream.keyDisplay}
+                  onTouchStart={(e) => { e.preventDefault(); markResponse(idx, 'relation'); }}>
+                  {stream.keyDisplay} REL
+                </button>,
+                hasAlienPosition && <button key={`${idx}-pos`}
+                  className={`flex-1 h-12 rounded-lg bg-secondary border font-mono text-xs text-amber-400 transition-colors ${STREAM_BORDER_COLORS[idx]}`}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                  onTouchStart={(e) => { e.preventDefault(); markResponse(idx, 'position'); }}>
+                  {stream.positionKeyDisplay} POS
                 </button>
-              ))}
+              ].filter(Boolean))}
               <button
                 onClick={handleNextTrial}
                 className="flex-1 h-12 rounded-lg bg-primary text-primary-foreground font-mono text-xs hover:bg-primary/90 transition-colors"
@@ -524,27 +562,18 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
           >
             ← Prev Trial
           </button>
-          {allStreams.map((stream, idx) => (
-            <button key={idx}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                if (!(noobMode && (progressStateRef.current?.scoredTrialKeys || []).includes(gameStateRef.current?.round)) && !respondedRefs.current[idx]) {
-                  respondedRefs.current[idx] = true;
-                  if (idx === 0) {
-                    setGameState(prev => ({ ...prev, respondedA: true }));
-                  } else {
-                    setGameState(prev => {
-                      const next = [...(prev.extraResponded || [])];
-                      next[idx - 1] = true;
-                      return { ...prev, extraResponded: next };
-                    });
-                  }
-                }
-              }}
+          {allStreams.flatMap((stream, idx) => [
+            <button key={`${idx}-rel`}
+              onMouseDown={(e) => { e.preventDefault(); markResponse(idx, 'relation'); }}
               className={`px-6 h-10 rounded-lg bg-secondary border font-mono text-sm transition-colors ${STREAM_BORDER_COLORS[idx]}`}>
-              {stream.keyDisplay}
+              {stream.keyDisplay} REL
+            </button>,
+            hasAlienPosition && <button key={`${idx}-pos`}
+              onMouseDown={(e) => { e.preventDefault(); markResponse(idx, 'position'); }}
+              className={`px-6 h-10 rounded-lg bg-secondary border font-mono text-sm text-amber-400 transition-colors ${STREAM_BORDER_COLORS[idx]}`}>
+              {stream.positionKeyDisplay} POS
             </button>
-          ))}
+          ].filter(Boolean))}
           <button
             onClick={handleNextTrial}
             className="px-6 h-10 rounded-lg bg-primary text-primary-foreground font-mono text-sm hover:bg-primary/90 transition-colors"

@@ -6,6 +6,52 @@ export function is3D(relationship) {
   return RELATIONSHIP_CATEGORIES.SPATIAL_3D.includes(relationship);
 }
 
+export function renderAlienSquare(ctx, canvasW, canvasH, relationship, stimulus) {
+  ctx.clearRect(0, 0, canvasW, canvasH);
+  ctx.save();
+  ctx.fillStyle = 'rgba(2, 6, 23, 0.95)';
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  const settings = stimulus?.alienSettings || {};
+  const direction = settings.squareDirection === 'ccw' ? -1 : 1;
+  const speed = Number(settings.squareSpeed || 1);
+  const angle = direction * performance.now() * 0.00025 * speed;
+  const size = Math.min(canvasW, canvasH) * 0.68;
+  const cell = size / 3;
+  const cx = canvasW / 2;
+  const cy = canvasH / 2;
+  const pos = stimulus?.squarePosition || { x: 0, y: 0 };
+
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.strokeStyle = 'rgba(154, 168, 255, 0.28)';
+  ctx.lineWidth = 2;
+  for (let i = -1.5; i <= 1.5; i += 1) {
+    ctx.beginPath(); ctx.moveTo(i * cell, -size / 2); ctx.lineTo(i * cell, size / 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-size / 2, i * cell); ctx.lineTo(size / 2, i * cell); ctx.stroke();
+  }
+
+  ctx.strokeStyle = stimulus?.colorA || '#22d3ee';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(pos.x * cell - cell / 2, pos.y * cell - cell / 2, cell, cell);
+  ctx.restore();
+
+  const panelW = Math.min(canvasW * 0.72, 420);
+  const panelH = Math.min(canvasH * 0.42, 260);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.fillStyle = 'rgba(8, 13, 22, 0.9)';
+  ctx.beginPath();
+  ctx.roundRect(-panelW / 2, -panelH / 2, panelW, panelH, 18);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.translate(-panelW / 2, -panelH / 2);
+  renderRelationship(ctx, panelW, panelH, relationship, null, { ...stimulus, renderScale: 0.95 });
+  ctx.restore();
+}
+
 // Visuals are now always taken from the stimulus entry (pre-generated in gameEngine).
 // This ensures target replays look identical to the original stimulus.
 function getVisuals(stimulus) {
