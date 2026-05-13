@@ -63,6 +63,7 @@ const CATEGORIES = [
   { name: 'Trait', color: 'text-violet-400', desc: 'Visual property comparisons between two shapes.', examples: 'Same Color, Same Shape, Rotated, Hollow vs Solid, Size Gradient, Shadow Copy, Striped…' },
   { name: 'Quantitative', color: 'text-amber-400', desc: 'Numeric count or size ratios between groups.', examples: '2:1, 3:1, Equal Count, Pyramid, Balanced Scale, Increasing Row, Decreasing Row…' },
   { name: 'Verbal', color: 'text-emerald-400', desc: 'Language-based relationships across 4 sub-types: semantic, comparison, temporal, directional.', examples: 'Causes, Part Of, Bigger Than, Before, After, North Of, Inside Of, Depends On, Transforms Into…' },
+  { name: 'Sound', color: 'text-rose-400', desc: 'Non-verbal audio relationships based on synthesized tones and beat timing.', examples: 'Pitch Higher, Pitch Lower, Rhythm Faster, Rhythm Slower…' },
 ];
 
 const TOKENS = [
@@ -116,7 +117,7 @@ export default function Framework() {
         </Section>
 
         {/* Relationship Taxonomy */}
-        <Section title="Relationship Taxonomy (5 Categories)">
+        <Section title="Relationship Taxonomy (6 Categories)">
           <div className="space-y-4">
             {CATEGORIES.map(({ name, color, desc, examples }) => (
               <div key={name} className="rounded-lg bg-secondary/40 border border-border p-3">
@@ -184,6 +185,23 @@ export default function Framework() {
             <div><span className="text-accent">Stream B:</span> sun <span className="text-amber-400">NORTH OF</span> moon &nbsp;<span className="text-muted-foreground/50">[TYPE this trial]</span></div>
             <div><span className="text-chart-3">Stream C:</span> fire <span className="text-violet-400">CAUSES</span> smoke &nbsp;<span className="text-muted-foreground/50">[NRM this trial]</span></div>
           </div>
+        </Section>
+
+        {/* Audio-Visual Sound System */}
+        <Section title="Audio-Visual Sound System" colorClass="text-emerald-400" borderClass="border-emerald-500/30" bgClass="bg-emerald-500/10">
+          <p className="text-sm font-mono text-foreground/90 leading-relaxed mb-4">
+            Sound relationships are intentionally non-verbal. The engine now uses pure synthesized cues — pitch direction and rhythm speed — rather than spoken words, letters, or numbers.
+          </p>
+          <ul className="text-sm font-mono text-muted-foreground space-y-1 mb-4 ml-3">
+            <li>• <span className="text-emerald-400">Pitch cues</span> distinguish higher vs lower tone patterns.</li>
+            <li>• <span className="text-emerald-400">Rhythm cues</span> distinguish fast vs slow beat patterns.</li>
+            <li>• <span className="text-emerald-400">Multi-stream audio</span> selects up to two sound streams and marks them visually with green borders.</li>
+            <li>• <span className="text-emerald-400">L/R badges</span> show which stream is assigned to the left or right audio side.</li>
+            <li>• <span className="text-emerald-400">Speaker support</span> offsets the right-side sound slightly after the left so the two cues remain separable without headphones.</li>
+          </ul>
+          <p className="text-xs font-mono text-muted-foreground">
+            To preserve task clarity, multi-stream sessions cannot be started with only sound relationships enabled; at least one non-sound relationship must be included.
+          </p>
         </Section>
 
         {/* RINT Logic Constraint */}

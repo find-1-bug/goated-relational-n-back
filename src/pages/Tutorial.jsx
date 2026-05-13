@@ -42,7 +42,7 @@ export default function Tutorial() {
           <h2 className="text-lg font-mono font-semibold text-primary mb-3">Quick Start</h2>
           <ol className="space-y-2 text-sm font-mono text-foreground/90">
             <li><span className="text-primary font-bold">1.</span> Choose N-level (how many trials back to remember)</li>
-            <li><span className="text-primary font-bold">2.</span> Pick relationship types (spatial, trait, quantitative, verbal)</li>
+            <li><span className="text-primary font-bold">2.</span> Pick relationship types (spatial, trait, quantitative, verbal, sound)</li>
             <li><span className="text-primary font-bold">3.</span> Set trial count & speed</li>
             <li><span className="text-primary font-bold">4.</span> Press the key when you see a match</li>
             <li><span className="text-primary font-bold">5.</span> Get feedback on accuracy & track progress in Stats</li>
@@ -95,6 +95,22 @@ export default function Tutorial() {
             <div>
               <span className="text-primary font-semibold">Noob Mode:</span> Manual trial navigation with Prev/Next buttons
             </div>
+          </div>
+        </div>
+
+        {/* New Audio-Visual Features */}
+        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-6 mb-8">
+          <h2 className="text-lg font-mono font-semibold text-emerald-400 mb-3">New Audio-Visual Features</h2>
+          <div className="space-y-3 text-sm font-mono text-foreground/90">
+            <p>
+              Sound relationships are now fully non-verbal: instead of spoken words, letters, or numbers, the game uses pure pitch and rhythm cues such as higher/lower tones and faster/slower beats.
+            </p>
+            <p>
+              In multi-stream sessions, the game can play up to two sound streams at once. Active sound streams glow green and show an <span className="text-emerald-300 font-semibold">L</span> or <span className="text-emerald-300 font-semibold">R</span> badge so you know which visual stream belongs to each ear.
+            </p>
+            <p>
+              For speaker users, the right-side sound plays slightly after the left-side sound, making the two streams easier to distinguish even without headphones. Sound-only multi-stream sessions are blocked so the task remains meaningful.
+            </p>
           </div>
         </div>
 
