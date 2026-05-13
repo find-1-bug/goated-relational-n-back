@@ -19,7 +19,7 @@ export default function Tutorial() {
     {
       icon: Zap,
       title: 'Controls',
-      description: 'Each stream has a dedicated key (SPACE for Stream A, customizable others for B, C, etc.). Press when you see a match.'
+      description: 'Each stream has dedicated relationship keys. Alien modes also add separate position keys, so press REL for relationship matches and POS for grid/cube position matches.'
     },
     {
       icon: Layers,
@@ -90,7 +90,7 @@ export default function Tutorial() {
               <span className="text-primary font-semibold">Streams:</span> Multiple simultaneous sequences (Stream A, B, C, etc.)
             </div>
             <div>
-              <span className="text-primary font-semibold">Speed:</span> How long each stimulus displays before disappearing
+              <span className="text-primary font-semibold">Speed:</span> How long each stimulus displays before disappearing. Random speed varies the display time each trial.
             </div>
             <div>
               <span className="text-primary font-semibold">Noob Mode:</span> Manual trial navigation with Prev/Next buttons
@@ -137,7 +137,13 @@ export default function Tutorial() {
               <span className="text-accent font-semibold">Binary Logic:</span> Each trial assigns <span className="text-foreground font-semibold">two conditions per stream</span> (e.g., "Normal AND RINT", "Type OR Normal") combined with logic operators (AND, OR, XOR, AND_NOT). A match fires only when the combined condition is true. Tests <span className="text-foreground">boolean reasoning & dual tracking</span>. Requires N≥2.
             </div>
             <div>
-              <span className="text-accent font-semibold">Alien Cube Mode:</span> Each stream appears inside a <span className="text-foreground font-semibold">rotating transparent 3×3×3 cube</span>. A trial is a target only when both the relationship and its cube-cell position match N steps back.
+              <span className="text-accent font-semibold">Alien Cube Mode:</span> Each stream appears inside a <span className="text-foreground font-semibold">continuously rotating transparent 3×3×3 cube</span>. A trial can match by relationship and separately by cube-cell position, using the stream's REL and POS keys.
+            </div>
+            <div>
+              <span className="text-accent font-semibold">Alien Square Mode:</span> A 2D <span className="text-foreground font-semibold">rotating 3×3 square grid</span> tracks position targets. The selected cell is enlarged and highlighted so you can see which position to remember.
+            </div>
+            <div>
+              <span className="text-accent font-semibold">Alien Rotation Settings:</span> Cube and Square modes support fixed or random rotation speed plus clockwise, counter-clockwise, or random direction. Rotation continues until the trial changes.
             </div>
             <div>
               <span className="text-accent font-semibold">Variable N:</span> N <span className="text-foreground font-semibold">randomly shifts ±1</span> each trial around your chosen N. Tests <span className="text-foreground">flexible working memory updating</span>.
@@ -156,7 +162,7 @@ export default function Tutorial() {
           <h2 className="text-lg font-mono font-semibold text-accent mb-3">Tips for Better Accuracy</h2>
           <ul className="space-y-2 text-sm font-mono text-foreground/90">
             <li>• <span className="text-accent">Focus:</span> Concentrate on the current stimulus and N-back relationship</li>
-            <li>• <span className="text-accent">Consistent Pacing:</span> Start slow, increase speed as you improve</li>
+            <li>• <span className="text-accent">Consistent Pacing:</span> Start slow, increase speed as you improve; use Random speed when you want unpredictable timing</li>
             <li>• <span className="text-accent">Review Sessions:</span> Check your performance in Stats to identify weak modes</li>
             <li>• <span className="text-accent">Progressive Difficulty:</span> Use Adaptive Mode to auto-adjust N-level</li>
           </ul>
