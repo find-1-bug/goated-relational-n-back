@@ -63,7 +63,7 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas, rintCh
       };
       draw();
       cleanupRef.current = () => cancelAnimationFrame(animationId);
-    } else if (stimulus?.cubePosition || is3D(relationship)) {
+    } else if (stimulus?.cubePosition || stimulus?.tesseractPosition || is3D(relationship)) {
       // Use 3D renderer
       if (cleanupRef.current) cleanupRef.current();
       const container = containerRef.current;

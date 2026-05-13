@@ -123,10 +123,10 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
   const cubeDirection = alienSettings.cubeDirection === 'ccw' ? -1 : 1;
   const cubeSpeed = Number(alienSettings.cubeSpeed || 1);
   const streamDepthOffset = Math.max(0, streamCount - 1);
-  const alienCubeScale = stimulus?.cubePosition ? Math.min(1.36, 1.12 + streamDepthOffset * 0.04) : 1;
+  const alienCubeScale = stimulus?.cubePosition || stimulus?.tesseractPosition ? Math.min(1.36, 1.12 + streamDepthOffset * 0.04) : 1;
   const { scene, camera, renderer } = setupScene(canvas);
-  if (stimulus?.cubePosition) {
-    camera.position.z = Math.min(4.65, 3.55 + streamDepthOffset * 0.14);
+  if (stimulus?.cubePosition || stimulus?.tesseractPosition) {
+    camera.position.z = Math.min(4.85, 3.65 + streamDepthOffset * 0.14);
     camera.lookAt(0, 0, 0);
   }
 
@@ -138,7 +138,97 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
 
   let meshes = [];
 
-  if (stimulus?.cubePosition) {
+  if (stimulus?.tesseractPosition) {
+    const tesseractGroup = new THREE.Group();
+    scene.add(tesseractGroup);
+
+    const p = stimulus.tesseractPosition;
+    const tesseractDirection = alienSettings.tesseractDirection === 'ccw' ? -1 : 1;
+    const tesseractSpeed = Number(alienSettings.tesseractSpeed || cubeSpeed || 1);
+    const targetX = p.y > 0 ? -0.42 : p.y < 0 ? 0.42 : 0;
+    const targetY = p.x > 0 ? -0.52 : p.x < 0 ? 0.52 : 0;
+    tesseractGroup.rotation.set(targetX * 0.72, targetY * 0.72, (Math.random() - 0.5) * 0.2);
+    tesseractGroup.userData.rotationSpeed = {
+      x: tesseractDirection * tesseractSpeed * (targetX || 0.2) / 95,
+      y: tesseractDirection * tesseractSpeed * (targetY || 0.25) / 95,
+      z: tesseractDirection * tesseractSpeed * 0.0025,
+    };
+
+    const outerSize = 3;
+    const innerSize = 1.85;
+    const gridMaterial = new THREE.LineBasicMaterial({ color: 0x9aa8ff, transparent: true, opacity: 0.2 });
+    const innerMaterial = new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.34 });
+    const connectorMaterial = new THREE.LineBasicMaterial({ color: 0xa78bfa, transparent: true, opacity: 0.3 });
+
+    const outerEdges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(outerSize, outerSize, outerSize)), gridMaterial);
+    const innerEdges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(innerSize, innerSize, innerSize)), innerMaterial);
+    tesseractGroup.add(outerEdges);
+    tesseractGroup.add(innerEdges);
+
+    [-1, 1].forEach(x => [-1, 1].forEach(y => [-1, 1].forEach(z => {
+      const a = new THREE.Vector3(x * outerSize / 2, y * outerSize / 2, z * outerSize / 2);
+      const b = new THREE.Vector3(x * innerSize / 2, y * innerSize / 2, z * innerSize / 2);
+      const geometry = new THREE.BufferGeometry().setFromPoints([a, b]);
+      tesseractGroup.add(new THREE.Line(geometry, connectorMaterial));
+    })));
+
+    const layerScale = p.w < 0 ? 1 : p.w > 0 ? innerSize / outerSize : 0.72;
+    const activeCellEdges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(0.86, 0.86, 0.86)),
+      new THREE.LineBasicMaterial({ color: toThreeColor(colors[0]), transparent: true, opacity: 0.98 })
+    );
+    activeCellEdges.scale.setScalar(layerScale);
+    activeCellEdges.position.set(p.x * layerScale, p.y * layerScale, p.z * layerScale);
+    tesseractGroup.add(activeCellEdges);
+
+    const isCompactView = canvas.clientWidth < 420 || canvas.clientHeight < 320;
+    const panelWidth = (isCompactView ? 2.0 : 2.5) * alienCubeScale;
+    const panelHeight = (isCompactView ? 1.25 : 1.55) * alienCubeScale;
+    const texture = createRelationPanelTexture(relationship, stimulus, alienCubeScale);
+    const relPanel = new THREE.Mesh(
+      new THREE.PlaneGeometry(panelWidth, panelHeight),
+      new THREE.MeshBasicMaterial({ map: texture, transparent: false, side: THREE.DoubleSide })
+    );
+    relPanel.position.set(
+      THREE.MathUtils.clamp(p.x * 0.36, -0.42, 0.42),
+      THREE.MathUtils.clamp(p.y * 0.36, -0.42, 0.42),
+      0.46 + p.w * 0.12 + streamDepthOffset * 0.03
+    );
+    relPanel.lookAt(camera.position);
+
+    const glow = new THREE.Mesh(
+      new THREE.BoxGeometry(panelWidth * 0.84, panelHeight * 0.82, 0.08),
+      new THREE.MeshBasicMaterial({ color: toThreeColor(colors[0]), transparent: true, opacity: 0.16 })
+    );
+    glow.position.copy(relPanel.position);
+    glow.lookAt(camera.position);
+    tesseractGroup.add(glow);
+    tesseractGroup.add(relPanel);
+
+    const layerLabel = p.w < 0 ? 'OUTER W-' : p.w > 0 ? 'INNER W+' : 'MID W0';
+    const labelCanvas = document.createElement('canvas');
+    labelCanvas.width = 512;
+    labelCanvas.height = 96;
+    const labelCtx = labelCanvas.getContext('2d');
+    labelCtx.fillStyle = 'rgba(8,13,22,0.8)';
+    labelCtx.fillRect(0, 0, labelCanvas.width, labelCanvas.height);
+    labelCtx.font = "bold 38px 'JetBrains Mono', monospace";
+    labelCtx.textAlign = 'center';
+    labelCtx.textBaseline = 'middle';
+    labelCtx.fillStyle = '#22d3ee';
+    labelCtx.fillText(layerLabel, labelCanvas.width / 2, labelCanvas.height / 2);
+    const labelTexture = new THREE.CanvasTexture(labelCanvas);
+    labelTexture.colorSpace = THREE.SRGBColorSpace;
+    const labelMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.7, 0.32),
+      new THREE.MeshBasicMaterial({ map: labelTexture, transparent: true, side: THREE.DoubleSide })
+    );
+    labelMesh.position.set(0, -1.82, 0.65);
+    labelMesh.lookAt(camera.position);
+    tesseractGroup.add(labelMesh);
+
+    meshes = [tesseractGroup, relPanel, labelMesh];
+  } else if (stimulus?.cubePosition) {
     const cubeGroup = new THREE.Group();
     scene.add(cubeGroup);
 
@@ -265,7 +355,7 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
   }
 
   // Position based on relationship (only for normal 3D relationships)
-  if (!stimulus?.cubePosition && (!rintChain || rintChain.length === 0)) {
+  if (!stimulus?.cubePosition && !stimulus?.tesseractPosition && (!rintChain || rintChain.length === 0)) {
     const mesh1 = meshes[0];
     const mesh2 = meshes[1];
     
@@ -345,18 +435,19 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     animationId = requestAnimationFrame(animate);
 
     meshes.forEach((mesh, index) => {
-      if (stimulus?.cubePosition && index === 1) return;
+      if ((stimulus?.cubePosition || stimulus?.tesseractPosition) && index > 0) return;
       const speed = mesh.userData?.rotationSpeed;
       mesh.rotation.x += speed?.x || 0.003;
       mesh.rotation.y += speed?.y || 0.005;
       mesh.rotation.z += speed?.z || 0;
     });
 
-    if (stimulus?.cubePosition && meshes[1]) {
+    if ((stimulus?.cubePosition || stimulus?.tesseractPosition) && meshes[1]) {
       meshes[1].lookAt(camera.position);
+      if (meshes[2]) meshes[2].lookAt(camera.position);
     }
 
-    if (!stimulus?.cubePosition && (!rintChain || rintChain.length === 0)) {
+    if (!stimulus?.cubePosition && !stimulus?.tesseractPosition && (!rintChain || rintChain.length === 0)) {
       const mesh1 = meshes[0];
       const mesh2 = meshes[1];
       

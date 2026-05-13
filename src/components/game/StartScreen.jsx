@@ -30,8 +30,9 @@ const MODE_OPTIONS = [
   { id: 'mixed_rint',    icon: Shuffle,    label: 'Mixed RINT',        desc: 'Three-way random per trial: Normal / Type / RINT. Maximum flexibility demand. Requires N≥2.', minN: 2 },
   { id: 'impossible',    icon: Zap,        label: 'Impossible',        desc: 'Each stream independently randomizes between Normal, Type, and RINT every trial — different rules per stream simultaneously. Requires ≥2 streams and N≥2.', minN: 2, minStreams: 2 },
   { id: 'binary_logic',  icon: GitBranch,  label: 'Binary Logic',      desc: 'Each trial, each stream is assigned a random pair: <NBack type> <OP> <NBack type> (e.g. NRM AND NOT RINT). A match fires only when the combined boolean condition is true. Shown as live badges on each stream. Requires N≥2.', minN: 2 },
-  { id: 'alien_cube',   icon: Layers,     label: 'Alien Cube Mode',    desc: 'Each stream appears inside a rotating transparent 3×3×3 cube. Relation and position can be answered with separate keys.' },
-  { id: 'alien_square', icon: Layers,     label: 'Alien Square Mode',  desc: 'Each stream appears inside a rotating 3×3 square. Relation and square position can be answered with separate keys.' },
+  { id: 'alien_cube',      icon: Layers,     label: 'Alien Cube Mode',      desc: 'Each stream appears inside a rotating transparent 3×3×3 cube. Relation and position can be answered with separate keys.' },
+  { id: 'alien_tesseract', icon: Layers,     label: 'Alien Tesseract Mode', desc: 'Each stream appears inside a projected 4D tesseract. Position targets include the visible cube cell plus an inner/outer hyperspace layer.' },
+  { id: 'alien_square',    icon: Layers,     label: 'Alien Square Mode',    desc: 'Each stream appears inside a rotating 3×3 square. Relation and square position can be answered with separate keys.' },
   { id: 'variable_n',    icon: Shuffle,    label: 'Variable N',        desc: 'N changes randomly each trial (±1 around your chosen N). Forces flexible updating.' },
   { id: 'adaptive',      icon: TrendingUp, label: 'Adaptive N',        desc: 'N auto-adjusts between sessions based on accuracy (≥80% → up, ≤50% → down).' },
   { id: 'distractors',   icon: Shuffle,    label: 'Distractors',       desc: 'Near-match stimuli from the same category create interference in normal mode.' },
@@ -43,7 +44,7 @@ const EXCLUSIVE_GROUPS = [
   ['rint', 'mixed_rint', 'impossible'],
   // binary_logic overrides the primary nback type selection per trial so conflicts with fixed-mode selectors
   ['binary_logic', 'mixed_nback', 'mixed_rint', 'impossible'],
-  ['alien_cube', 'alien_square'],
+  ['alien_cube', 'alien_tesseract', 'alien_square'],
 ];
 
 const CATEGORY_META = {
@@ -233,6 +234,9 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
     squareDirection: 'cw',
     squareSpeed: 1,
     squareSpeedMode: 'fixed',
+    tesseractDirection: 'cw',
+    tesseractSpeed: 1,
+    tesseractSpeedMode: 'fixed',
   });
   const [carouselSettings, setCarouselSettings] = React.useState({
     enabled: true,
@@ -240,7 +244,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
     slideMs: 2800,
     ...(lastSettings?.carouselSettings || {}),
   });
-  const alienModeActive = modes.includes('alien_cube') || modes.includes('alien_square');
+  const alienModeActive = modes.includes('alien_cube') || modes.includes('alien_tesseract') || modes.includes('alien_square');
 
   // extra stream: { key, keyDisplay, positionKey, positionKeyDisplay, label }
   const allStreamKeys = [streamAKey, ...(alienModeActive ? [streamAPositionKey] : []), ...extraStreams.flatMap(s => [s.key, ...(alienModeActive ? [s.positionKey] : [])]).filter(Boolean)];
@@ -672,6 +676,7 @@ export default function StartScreen({ onStart, suggestedN, lastSettings }) {
             <label className="block text-xs font-mono text-muted-foreground uppercase tracking-widest">Alien Rotation</label>
             {[
               { id: 'cube', label: 'Cube', active: modes.includes('alien_cube') },
+              { id: 'tesseract', label: 'Tesseract', active: modes.includes('alien_tesseract') },
               { id: 'square', label: 'Square', active: modes.includes('alien_square') },
             ].filter(item => item.active).map(item => (
               <div key={item.id} className="space-y-2">

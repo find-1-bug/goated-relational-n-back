@@ -138,8 +138,25 @@ function pickSquarePosition(excludePosition = null) {
   return pickRandom(candidates.length ? candidates : positions);
 }
 
+function pickTesseractPosition(excludePosition = null) {
+  const positions = [];
+  for (let x = -1; x <= 1; x += 1) {
+    for (let y = -1; y <= 1; y += 1) {
+      for (let z = -1; z <= 1; z += 1) {
+        for (let w = -1; w <= 1; w += 1) positions.push({ x, y, z, w });
+      }
+    }
+  }
+  const candidates = excludePosition ? positions.filter(p => !sameTesseractPosition(p, excludePosition)) : positions;
+  return pickRandom(candidates.length ? candidates : positions);
+}
+
 function sameCubePosition(a, b) {
   return !!a && !!b && a.x === b.x && a.y === b.y && a.z === b.z;
+}
+
+function sameTesseractPosition(a, b) {
+  return !!a && !!b && a.x === b.x && a.y === b.y && a.z === b.z && a.w === b.w;
 }
 
 function sameSquarePosition(a, b) {
@@ -155,14 +172,21 @@ function resolveAlienSettings(alienSettings = {}) {
     cubeSpeed: pickSpeed(alienSettings.cubeSpeed, alienSettings.cubeSpeedMode),
     squareDirection: pickDirection(alienSettings.squareDirection || 'cw'),
     squareSpeed: pickSpeed(alienSettings.squareSpeed, alienSettings.squareSpeedMode),
+    tesseractDirection: pickDirection(alienSettings.tesseractDirection || 'cw'),
+    tesseractSpeed: pickSpeed(alienSettings.tesseractSpeed, alienSettings.tesseractSpeedMode),
   };
 }
 
-function withAlienPosition(stim, { cubePosition, squarePosition, alienMode, alienSettings }) {
+function withAlienPosition(stim, { cubePosition, squarePosition, tesseractPosition, alienMode, alienSettings }) {
   if (!stim) return stim;
+  const position = alienMode === 'square'
+    ? { squarePosition: squarePosition || pickSquarePosition() }
+    : alienMode === 'tesseract'
+      ? { tesseractPosition: tesseractPosition || pickTesseractPosition() }
+      : { cubePosition: cubePosition || pickCubePosition() };
   return {
     ...stim,
-    ...(alienMode === 'square' ? { squarePosition: squarePosition || pickSquarePosition() } : { cubePosition: cubePosition || pickCubePosition() }),
+    ...position,
     alienMode,
     alienSettings: resolveAlienSettings(alienSettings),
   };
@@ -212,7 +236,7 @@ function rollTrialMode(modes, effectiveN) {
 
 // Generate stimulus for a single stream, given its own history/typeHistory/rintState
 // streamConfig: { trialMode, binaryMode, binaryOp, hierHistory } for Hierarchical and Binary Logic
-function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex, hierHistory, binaryMode, binaryOp, signalOnly = false, baseStim = null, alienCube = false, alienSquare = false, alienSettings = {} }) {
+function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex, hierHistory, binaryMode, binaryOp, signalOnly = false, baseStim = null, alienCube = false, alienSquare = false, alienTesseract = false, alienSettings = {} }) {
    let stim, isPrimaryTarget = false, isPositionTarget = false, nextRINTState = rintState;
    const canTarget = history.length >= effectiveN;
 
@@ -270,19 +294,22 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
     isPrimaryTarget = canTarget && relationshipMatches(stim.rel, nBackEntry?.rel);
   }
 
-  if (alienCube || alienSquare) {
-    const alienMode = alienSquare ? 'square' : 'cube';
-    const targetPosition = alienSquare ? nBackEntry?.squarePosition : nBackEntry?.cubePosition;
+  if (alienCube || alienSquare || alienTesseract) {
+    const alienMode = alienSquare ? 'square' : alienTesseract ? 'tesseract' : 'cube';
+    const targetPosition = alienSquare ? nBackEntry?.squarePosition : alienTesseract ? nBackEntry?.tesseractPosition : nBackEntry?.cubePosition;
     const shouldMatchPosition = canTarget && targetPosition && Math.random() < matchChance;
     stim = withAlienPosition(stim, {
       alienMode,
       alienSettings,
       cubePosition: alienCube ? (shouldMatchPosition ? targetPosition : pickCubePosition(targetPosition)) : null,
       squarePosition: alienSquare ? (shouldMatchPosition ? targetPosition : pickSquarePosition(targetPosition)) : null,
+      tesseractPosition: alienTesseract ? (shouldMatchPosition ? targetPosition : pickTesseractPosition(targetPosition)) : null,
     });
     isPositionTarget = canTarget && (alienSquare
       ? sameSquarePosition(stim.squarePosition, targetPosition)
-      : sameCubePosition(stim.cubePosition, targetPosition));
+      : alienTesseract
+        ? sameTesseractPosition(stim.tesseractPosition, targetPosition)
+        : sameCubePosition(stim.cubePosition, targetPosition));
   }
 
   // Hierarchical signal: is the category of this stim the same as N back?
@@ -430,6 +457,7 @@ export function generateNextStimulus(state) {
   const isBinaryLogic = modes.includes('binary_logic');
   const alienCube = modes.includes('alien_cube');
   const alienSquare = modes.includes('alien_square');
+  const alienTesseract = modes.includes('alien_tesseract');
   const totalStreams = 1 + (extraHistories || []).length;
   const soundPool = pool.filter(isSound);
   const nonSoundPool = pool.filter(rel => !isSound(rel));
@@ -471,6 +499,7 @@ export function generateNextStimulus(state) {
     binaryOp: cfgA.binaryOp,
     alienCube,
     alienSquare,
+    alienTesseract,
     alienSettings,
   });
 
@@ -597,7 +626,7 @@ export function processResponses(state, { pressedA, pressedExtra = [], pressedPo
   const trialKey = state.round;
   if ((state.scoredTrialKeys || []).includes(trialKey)) return state;
 
-  const hasAlienPosition = state.modes?.includes('alien_cube') || state.modes?.includes('alien_square');
+  const hasAlienPosition = state.modes?.includes('alien_cube') || state.modes?.includes('alien_tesseract') || state.modes?.includes('alien_square');
   let next = { ...state, scoredTrialKeys: [...(state.scoredTrialKeys || []), trialKey] };
   const trialRecords = [];
 

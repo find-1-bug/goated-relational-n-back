@@ -118,9 +118,9 @@ export default function GameScreen({ nLevel, modes, relationshipPool, totalRound
   // extraStreams: [{ key, label, keyDisplay, positionKey, positionKeyDisplay }]
   const getStimulusDuration = useCallback(() => {
     const duration = stimulusDuration === 'random' ? 1000 + Math.random() * 3000 : stimulusDuration || 2800;
-    return modes.includes('alien_cube') ? Math.max(1400, duration) : duration;
+    return modes.includes('alien_cube') || modes.includes('alien_tesseract') ? Math.max(1400, duration) : duration;
   }, [stimulusDuration, modes]);
-  const hasAlienPosition = modes.includes('alien_cube') || modes.includes('alien_square');
+  const hasAlienPosition = modes.includes('alien_cube') || modes.includes('alien_tesseract') || modes.includes('alien_square');
   const allStreams = [
     { key: streamA?.key || 'Space', keyDisplay: streamA?.keyDisplay || 'SPACE', positionKey: streamA?.positionKey || 'KeyP', positionKeyDisplay: streamA?.positionKeyDisplay || 'P', label: 'A' },
     ...(extraStreams || []).map((stream) => ({

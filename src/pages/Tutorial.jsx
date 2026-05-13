@@ -19,7 +19,7 @@ export default function Tutorial() {
     {
       icon: Zap,
       title: 'Controls',
-      description: 'Each stream has dedicated relationship keys. Alien modes also add separate position keys, so press REL for relationship matches and POS for grid/cube position matches.'
+      description: 'Each stream has dedicated relationship keys. Alien modes also add separate position keys, so press REL for relationship matches and POS for square/cube/tesseract position matches.'
     },
     {
       icon: Layers,
@@ -93,7 +93,7 @@ export default function Tutorial() {
               <span className="text-primary font-semibold">Automated Carousel:</span> When many streams cannot fit comfortably, the game splits them into timed slides. Watch all slides first, then responses unlock for the response window. Carousel Speed controls slide timing separately from Trial Speed.
             </div>
             <div>
-              <span className="text-primary font-semibold">Speed:</span> How long each trial stays active before disappearing. Random speed varies the display time each trial; Alien Cube keeps a small minimum display time so 3D scenes can render reliably.
+              <span className="text-primary font-semibold">Speed:</span> How long each trial stays active before disappearing. Random speed varies the display time each trial; Alien Cube and Tesseract keep a small minimum display time so 3D scenes can render reliably.
             </div>
             <div>
               <span className="text-primary font-semibold">Noob Mode:</span> Manual trial navigation with Prev/Next buttons
@@ -143,10 +143,13 @@ export default function Tutorial() {
               <span className="text-accent font-semibold">Alien Cube Mode:</span> Each stream appears inside a <span className="text-foreground font-semibold">continuously rotating transparent 3×3×3 cube</span>. A trial can match by relationship and separately by cube-cell position, using the stream's REL and POS keys.
             </div>
             <div>
+              <span className="text-accent font-semibold">Alien Tesseract Mode:</span> Each stream appears inside a <span className="text-foreground font-semibold">projected 4D tesseract</span>. POS targets track both the visible cube cell and an inner/mid/outer hyperspace layer.
+            </div>
+            <div>
               <span className="text-accent font-semibold">Alien Square Mode:</span> A 2D <span className="text-foreground font-semibold">rotating 3×3 square grid</span> tracks position targets. The selected cell is enlarged and highlighted so you can see which position to remember.
             </div>
             <div>
-              <span className="text-accent font-semibold">Alien Rotation Settings:</span> Cube and Square modes support fixed or random rotation speed plus clockwise, counter-clockwise, or random direction. Rotation continues until the trial changes.
+              <span className="text-accent font-semibold">Alien Rotation Settings:</span> Cube, Tesseract, and Square modes support fixed or random rotation speed plus clockwise, counter-clockwise, or random direction. Rotation continues until the trial changes.
             </div>
             <div>
               <span className="text-accent font-semibold">Variable N:</span> N <span className="text-foreground font-semibold">randomly shifts ±1</span> each trial around your chosen N. Tests <span className="text-foreground">flexible working memory updating</span>.
