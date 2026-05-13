@@ -118,6 +118,22 @@ function pickSoundStreamIndexes(totalStreams) {
   return indexes.slice(0, Math.min(2, totalStreams));
 }
 
+function pickCubePosition() {
+  return {
+    x: Math.floor(Math.random() * 3) - 1,
+    y: Math.floor(Math.random() * 3) - 1,
+    z: Math.floor(Math.random() * 3) - 1,
+  };
+}
+
+function sameCubePosition(a, b) {
+  return !!a && !!b && a.x === b.x && a.y === b.y && a.z === b.z;
+}
+
+function withCubePosition(stim, position) {
+  return stim ? { ...stim, cubePosition: position || pickCubePosition() } : stim;
+}
+
 // Evaluate binary logic between two boolean signals
 // op: 'AND' | 'OR' | 'XOR' | 'AND_NOT'
 export function evalBinaryOp(a, b, op) {
@@ -162,7 +178,7 @@ function rollTrialMode(modes, effectiveN) {
 
 // Generate stimulus for a single stream, given its own history/typeHistory/rintState
 // streamConfig: { trialMode, binaryMode, binaryOp, hierHistory } for Hierarchical and Binary Logic
-function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex, hierHistory, binaryMode, binaryOp, signalOnly = false, baseStim = null }) {
+function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effectiveN, trialMode, matchChance, hasDistractors, trialIndex, hierHistory, binaryMode, binaryOp, signalOnly = false, baseStim = null, alienCube = false }) {
    let stim, isPrimaryTarget = false, nextRINTState = rintState;
    const canTarget = history.length >= effectiveN;
 
@@ -180,7 +196,13 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
     return { stim: baseStim, isTarget: isSignalTarget, isPrimaryTarget: isSignalTarget, isHierTarget: isSignalTarget, nextRINTState };
   }
 
-  if (trialMode === 'rint') {
+  const nBackEntry = canTarget ? history[history.length - effectiveN] : null;
+  const forceAlienCubeTarget = alienCube && canTarget && nBackEntry && Math.random() < matchChance;
+
+  if (forceAlienCubeTarget) {
+    stim = withCubePosition(makeStimulusEntry(nBackEntry.rel), nBackEntry.cubePosition);
+    isPrimaryTarget = true;
+  } else if (trialMode === 'rint') {
     const rintResult = generateRINTStimulus(rintState, finalPool, effectiveN, matchChance);
     stim = rintResult.stim;
     isPrimaryTarget = rintResult.isTarget;
@@ -206,7 +228,6 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
     stim = makeStimulusEntry(rel);
     isPrimaryTarget = canHier && getCategory(stim.rel) === nBackCat;
   } else {
-    const nBackEntry = canTarget ? history[history.length - effectiveN] : null;
     if (canTarget && nBackEntry && finalPool.includes(nBackEntry.rel) && Math.random() < matchChance) {
       stim = isVerbal(nBackEntry.rel)
         ? (Math.random() < 0.35 ? makeInverseStimulus(nBackEntry) : null) || nBackEntry
@@ -217,6 +238,11 @@ function generateOneStreamStimulus({ history, typeHistory, rintState, pool, effe
       stim = makeStimulusEntry(makeNonTargetRelationship(finalPool, rel => canTarget && relationshipMatches(rel, nBackEntry?.rel)));
     }
     isPrimaryTarget = canTarget && relationshipMatches(stim.rel, nBackEntry?.rel);
+  }
+
+  if (alienCube) {
+    stim = withCubePosition(stim, stim?.cubePosition);
+    isPrimaryTarget = isPrimaryTarget && sameCubePosition(stim.cubePosition, nBackEntry?.cubePosition);
   }
 
   // Hierarchical signal: is the category of this stim the same as N back?
@@ -350,6 +376,7 @@ export function generateNextStimulus(state) {
 
   const trialIndex = round;
   const isBinaryLogic = modes.includes('binary_logic');
+  const alienCube = modes.includes('alien_cube');
   const totalStreams = 1 + (extraHistories || []).length;
   const soundPool = pool.filter(isSound);
   const nonSoundPool = pool.filter(rel => !isSound(rel));
@@ -389,6 +416,7 @@ export function generateNextStimulus(state) {
     hierHistory: (hierHistories || [])[0] || [],
     binaryMode: isBinaryLogic ? cfgA.binaryMode : null,
     binaryOp: cfgA.binaryOp,
+    alienCube,
   });
 
   const stimA = resultA.stim;
@@ -417,6 +445,7 @@ export function generateNextStimulus(state) {
       hierHistory: (hierHistories || [])[1 + i] || [],
       binaryMode: isBinaryLogic ? cfg.binaryMode : null,
       binaryOp: cfg.binaryOp,
+      alienCube,
     });
   });
 

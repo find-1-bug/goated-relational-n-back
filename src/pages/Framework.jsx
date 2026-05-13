@@ -41,9 +41,9 @@ const MODES = [
     example: '"Normal AND RINT" → press only if BOTH a normal match AND a RINT conclusion are true. "Type OR Normal" → press if either condition is true. The live badge on each stream shows the active pair.',
   },
   {
-    mode: '3D Void Mode',
-    rule: 'Biases the session toward animated 3D spatial relationships rendered in a void-like depth scene.',
-    example: 'Instead of flat shapes or words, trials emphasize depth-layering, orbiting, floating, stacking, front/behind, and other spatial transformations similar to 3D position-memory trainers.',
+    mode: 'Alien Cube Mode',
+    rule: 'Adds a rotating transparent 3×3×3 cube to every stream and requires position memory in addition to relationship memory.',
+    example: 'A relation block appears inside one of 27 cube cells. Press only if both the relationship and the exact cube-cell position match N steps back. Multi-stream sessions show multiple independently rotating cubes.',
   },
   {
     mode: 'Variable N',

@@ -30,7 +30,7 @@ export default function GameCanvas({ relationship, stimulus, clearCanvas, rintCh
       return;
     }
 
-    if (is3D(relationship)) {
+    if (stimulus?.cubePosition || is3D(relationship)) {
       // Use 3D renderer
       if (cleanupRef.current) cleanupRef.current();
       const container = containerRef.current;

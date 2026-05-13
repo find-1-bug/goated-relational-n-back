@@ -90,7 +90,34 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
 
   let meshes = [];
 
-  if (rintChain && rintChain.length > 0) {
+  if (stimulus?.cubePosition) {
+    const cubeGroup = new THREE.Group();
+    scene.add(cubeGroup);
+
+    const gridMaterial = new THREE.LineBasicMaterial({ color: 0x8ea2ff, transparent: true, opacity: 0.46 });
+    for (let i = -1.5; i <= 1.5; i += 1) {
+      for (let j = -1.5; j <= 1.5; j += 1) {
+        [[[-1.5, i, j], [1.5, i, j]], [[i, -1.5, j], [i, 1.5, j]], [[i, j, -1.5], [i, j, 1.5]]].forEach(([a, b]) => {
+          const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a), new THREE.Vector3(...b)]);
+          cubeGroup.add(new THREE.Line(geometry, gridMaterial));
+        });
+      }
+    }
+
+    const shell = new THREE.Mesh(
+      new THREE.BoxGeometry(3, 3, 3),
+      new THREE.MeshBasicMaterial({ color: 0x6d7cff, transparent: true, opacity: 0.08, side: THREE.BackSide })
+    );
+    cubeGroup.add(shell);
+
+    const p = stimulus.cubePosition;
+    const relBlock = createShape3D(stimulus?.shape3DA || 'cube', 0.68, toThreeColor(colors[0]));
+    relBlock.position.set(p.x, p.y, p.z);
+    relBlock.material.emissive = new THREE.Color(toThreeColor(colors[0]));
+    relBlock.material.emissiveIntensity = 0.28;
+    cubeGroup.add(relBlock);
+    meshes = [cubeGroup, relBlock];
+  } else if (rintChain && rintChain.length > 0) {
     // RINT mode: show entity chain (A > B, B > C)
     const ENTITY_COLORS = {
       alpha: 0x22d3ee,  // cyan
@@ -134,8 +161,8 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     meshes = [mesh1, mesh2];
   }
 
-  // Position based on relationship (only for non-RINT mode)
-  if (!rintChain || rintChain.length === 0) {
+  // Position based on relationship (only for normal 3D relationships)
+  if (!stimulus?.cubePosition && (!rintChain || rintChain.length === 0)) {
     const mesh1 = meshes[0];
     const mesh2 = meshes[1];
     
@@ -221,12 +248,12 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
     frameCount += 1;
     animationId = requestAnimationFrame(animate);
 
-    meshes.forEach(mesh => {
-      mesh.rotation.x += 0.003;
-      mesh.rotation.y += 0.005;
+    meshes.forEach((mesh, index) => {
+      mesh.rotation.x += index === 0 && stimulus?.cubePosition ? 0.006 : 0.003;
+      mesh.rotation.y += index === 0 && stimulus?.cubePosition ? 0.009 : 0.005;
     });
 
-    if (!rintChain || rintChain.length === 0) {
+    if (!stimulus?.cubePosition && (!rintChain || rintChain.length === 0)) {
       const mesh1 = meshes[0];
       const mesh2 = meshes[1];
       
