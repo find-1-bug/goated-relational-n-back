@@ -115,10 +115,11 @@ function setupScene(canvas) {
 
 export function render3DRelationship(canvas, relationship, colors, rintChain = null, stimulus = null, options = {}) {
   const streamCount = options.streamCount || 1;
-  const alienCubeScale = stimulus?.cubePosition ? Math.min(1.55, 1 + Math.max(0, streamCount - 1) * 0.12) : 1;
+  const streamDepthOffset = Math.max(0, streamCount - 1);
+  const alienCubeScale = stimulus?.cubePosition ? Math.min(1.28, 1 + streamDepthOffset * 0.05) : 1;
   const { scene, camera, renderer } = setupScene(canvas);
   if (stimulus?.cubePosition) {
-    camera.position.z = Math.max(2.35, 3.15 - Math.max(0, streamCount - 1) * 0.16);
+    camera.position.z = Math.min(4.2, 3.15 + streamDepthOffset * 0.18);
     camera.lookAt(0, 0, 0);
   }
 
@@ -159,8 +160,6 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       }
     }
 
-    cubeGroup.scale.setScalar(alienCubeScale);
-
     const shell = new THREE.Mesh(
       new THREE.BoxGeometry(3, 3, 3),
       new THREE.MeshBasicMaterial({ color: 0x6d7cff, transparent: true, opacity: 0.045, side: THREE.BackSide })
@@ -199,7 +198,7 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       new THREE.PlaneGeometry(panelWidth, panelHeight),
       new THREE.MeshBasicMaterial({ map: texture, transparent: false, side: THREE.DoubleSide })
     );
-    relPanel.position.set(p.x, p.y, p.z);
+    relPanel.position.set(p.x, p.y, p.z + 0.18 + streamDepthOffset * 0.04);
     relPanel.lookAt(camera.position);
 
     const glow = new THREE.Mesh(
@@ -207,6 +206,7 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       new THREE.MeshBasicMaterial({ color: toThreeColor(colors[0]), transparent: true, opacity: 0.18 })
     );
     glow.position.copy(relPanel.position);
+    glow.lookAt(camera.position);
     cubeGroup.add(glow);
     cubeGroup.add(relPanel);
     meshes = [cubeGroup, relPanel];
