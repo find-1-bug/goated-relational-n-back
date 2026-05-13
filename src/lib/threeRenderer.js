@@ -142,12 +142,12 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
 
     const p = stimulus.cubePosition;
     const axisConfigs = [
-      { color: 0xff4d6d, points: [new THREE.Vector3(-1.5, 0, 0), new THREE.Vector3(0, 0, 0)] },
-      { color: 0xffb3c1, points: [new THREE.Vector3(0, 0, 0), new THREE.Vector3(1.5, 0, 0)] },
-      { color: 0x35f2a9, points: [new THREE.Vector3(0, -1.5, 0), new THREE.Vector3(0, 0, 0)] },
-      { color: 0xb8ffe3, points: [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1.5, 0)] },
-      { color: 0x4da3ff, points: [new THREE.Vector3(0, 0, -1.5), new THREE.Vector3(0, 0, 0)] },
-      { color: 0xc4ddff, points: [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 1.5)] },
+      { color: 0xff1744, points: [new THREE.Vector3(-1.5, 0, 0), new THREE.Vector3(0, 0, 0)] },
+      { color: 0xffc400, points: [new THREE.Vector3(0, 0, 0), new THREE.Vector3(1.5, 0, 0)] },
+      { color: 0x7c3aed, points: [new THREE.Vector3(0, -1.5, 0), new THREE.Vector3(0, 0, 0)] },
+      { color: 0x39ff14, points: [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1.5, 0)] },
+      { color: 0x0066ff, points: [new THREE.Vector3(0, 0, -1.5), new THREE.Vector3(0, 0, 0)] },
+      { color: 0x00f5ff, points: [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 1.5)] },
     ];
 
     axisConfigs.forEach(({ color, points }) => {
@@ -157,16 +157,19 @@ export function render3DRelationship(canvas, relationship, colors, rintChain = n
       );
       cubeGroup.add(axis);
     });
+    const isCompactView = canvas.clientWidth < 420 || canvas.clientHeight < 320;
+    const panelWidth = isCompactView ? 2.1 : 2.65;
+    const panelHeight = isCompactView ? 1.3 : 1.65;
     const texture = createRelationPanelTexture(relationship, stimulus);
     const relPanel = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.65, 1.65),
+      new THREE.PlaneGeometry(panelWidth, panelHeight),
       new THREE.MeshBasicMaterial({ map: texture, transparent: false, side: THREE.DoubleSide })
     );
     relPanel.position.set(p.x, p.y, p.z);
     relPanel.lookAt(camera.position);
 
     const glow = new THREE.Mesh(
-      new THREE.BoxGeometry(2.18, 1.34, 0.08),
+      new THREE.BoxGeometry(panelWidth * 0.82, panelHeight * 0.81, 0.08),
       new THREE.MeshBasicMaterial({ color: toThreeColor(colors[0]), transparent: true, opacity: 0.18 })
     );
     glow.position.copy(relPanel.position);
