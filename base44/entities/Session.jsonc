@@ -83,30 +83,15 @@
     "accuracy"
   ],
   "rls": {
-    "create": {
+    "create": {},
+    "read": {
       "created_by": "{{user.email}}"
     },
-    "read": {
-      "$or": [
-        {
-          "created_by": "{{user.email}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
-    },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "created_by": "{{user.email}}"
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "created_by": "{{user.email}}"
     }
   }
 }
